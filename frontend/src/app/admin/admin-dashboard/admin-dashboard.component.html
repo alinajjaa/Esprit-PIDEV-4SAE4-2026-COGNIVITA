@@ -1,0 +1,63 @@
+<div class="dashboard-wrapper">
+
+  <!-- Header -->
+  <header class="dashboard-header">
+    <div class="header-content">
+      <div class="header-title">
+        <span class="header-icon">⚙️</span>
+        <div>
+          <h1>Admin Dashboard</h1>
+          <p class="header-subtitle">Manage system users</p>
+        </div>
+      </div>
+      <div class="header-date">
+        <span class="date-icon">📅</span>
+        <span>{{ today | date:'fullDate' }}</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Table Section -->
+  <section class="table-section">
+
+    <div class="section-header">
+      <h2>
+        <span class="section-icon">👥</span>
+        Users List
+      </h2>
+      <button class="btn-refresh" (click)="loadDashboard()">
+        🔄 Refresh
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="loading-state">
+      <div class="scanner-line"></div>
+      <div class="loading-text">
+        <span class="pulse-dot"></span>
+        Scanning neural database...
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="error && !loading" class="error-state">
+      <span>⚠️</span>
+      <span>{{ error }}</span>
+      <button (click)="loadDashboard()">Retry</button>
+    </div>
+
+    <!-- Users List Component -->
+    <app-users-list
+      *ngIf="!loading && !error"
+      [users]="users"
+    ></app-users-list>
+
+    <!-- Empty -->
+    <div *ngIf="!loading && !error && users.length === 0" class="empty-state">
+      <span style="font-size:2.5rem">📭</span>
+      <p>No users found</p>
+    </div>
+
+  </section>
+
+</div>

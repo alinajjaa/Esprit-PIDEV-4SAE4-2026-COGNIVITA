@@ -1,0 +1,295 @@
+<div class="register-page">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <div class="register-wrapper" [class.shake]="wrapperShake" [class.success-pulse]="wrapperSuccess">
+
+    <!-- ══════════════════════════════════════
+         ÉTAPE 1 — Formulaire Register
+         ══════════════════════════════════════ -->
+    <ng-container *ngIf="!showOtpStep">
+
+      <!-- Left Panel -->
+      <div class="panel-left">
+        <div class="brand-icon">🧠</div>
+        <div class="brand-name">COGNIVITA</div>
+        <div class="brand-tagline">Neural · Secure · Intelligent</div>
+        <ul class="feature-list">
+          <li class="feature-item"><span class="feature-dot"></span> AI-powered diagnosis</li>
+          <li class="feature-item"><span class="feature-dot"></span> Secure neural profile</li>
+          <li class="feature-item"><span class="feature-dot"></span> Real-time analysis</li>
+          <li class="feature-item"><span class="feature-dot"></span> Advanced reporting</li>
+        </ul>
+        <p class="login-prompt">
+          Already have an account? <a routerLink="/login">Sign in</a>
+        </p>
+      </div>
+
+      <!-- Right Panel -->
+      <div class="panel-right">
+        <div class="form-header">
+          <div class="form-title">Create Account</div>
+          <div class="form-subtitle">Join the neural network</div>
+        </div>
+        <div class="form-divider"></div>
+
+        <form class="register-form" [formGroup]="form" (ngSubmit)="register()">
+
+          <!-- First & Last Name -->
+          <div class="fields-grid">
+            <div class="field-group">
+              <div class="field-label"><span class="lbl-icon">👤</span> First Name</div>
+              <div class="field-input-wrap">
+                <input class="field-input"
+                  [class.input-error]="firstName.invalid && firstName.touched"
+                  [class.input-success]="firstName.valid && firstName.touched"
+                  type="text" placeholder="John"
+                  formControlName="firstName"
+                />
+                <span class="input-icon" *ngIf="firstName.valid && firstName.touched">✅</span>
+                <span class="input-icon" *ngIf="firstName.invalid && firstName.touched">❌</span>
+              </div>
+              <div class="field-error" *ngIf="firstName.touched && firstName.errors">
+                <span *ngIf="firstName.errors?.['required']">⚠ Required</span>
+                <span *ngIf="firstName.errors?.['minlength']">⚠ Min 2 characters</span>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <div class="field-label"><span class="lbl-icon">👤</span> Last Name</div>
+              <div class="field-input-wrap">
+                <input class="field-input"
+                  [class.input-error]="lastName.invalid && lastName.touched"
+                  [class.input-success]="lastName.valid && lastName.touched"
+                  type="text" placeholder="Doe"
+                  formControlName="lastName"
+                />
+                <span class="input-icon" *ngIf="lastName.valid && lastName.touched">✅</span>
+                <span class="input-icon" *ngIf="lastName.invalid && lastName.touched">❌</span>
+              </div>
+              <div class="field-error" *ngIf="lastName.touched && lastName.errors">
+                <span *ngIf="lastName.errors?.['required']">⚠ Required</span>
+                <span *ngIf="lastName.errors?.['minlength']">⚠ Min 2 chars</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Email -->
+          <div class="field-full">
+            <div class="field-group">
+              <div class="field-label"><span class="lbl-icon">📡</span> Email Address</div>
+              <div class="field-input-wrap">
+                <input class="field-input"
+                  [class.input-error]="email.invalid && email.touched && !emailChecking"
+                  [class.input-success]="email.valid && email.touched && !emailChecking"
+                  [class.input-checking]="emailChecking"
+                  type="email" placeholder="you@example.com"
+                  formControlName="email"
+                />
+                <span class="input-icon spin" *ngIf="emailChecking">⟳</span>
+                <span class="input-icon" *ngIf="email.valid && email.touched && !emailChecking">✅</span>
+                <span class="input-icon" *ngIf="email.invalid && email.touched && !emailChecking">❌</span>
+              </div>
+              <div class="field-checking" *ngIf="emailChecking">⟳ Checking availability...</div>
+              <div class="field-error" *ngIf="email.touched && email.errors && !emailChecking">
+                <span *ngIf="email.errors?.['required']">⚠ Email is required</span>
+                <span *ngIf="email.errors?.['email']">⚠ Invalid email format</span>
+                <span *ngIf="email.errors?.['emailExists']" class="error-exists">
+                  ⚠ Already registered.
+                  <a routerLink="/login" class="error-link">Sign in instead?</a>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div class="field-full">
+            <div class="field-group">
+              <div class="field-label"><span class="lbl-icon">🔐</span> Password</div>
+              <div class="field-input-wrap">
+                <input class="field-input"
+                  [class.input-error]="password.invalid && password.touched"
+                  [class.input-success]="password.valid && password.touched"
+                  [type]="showPassword ? 'text' : 'password'"
+                  placeholder="Min 8 chars, uppercase, number"
+                  formControlName="password"
+                />
+                <span class="toggle-password" (click)="showPassword = !showPassword">
+                  {{ showPassword ? '🙈' : '👁️' }}
+                </span>
+              </div>
+
+              <!-- Strength bar -->
+              <div class="strength-bar" *ngIf="password.value">
+                <div class="strength-track">
+                  <div class="strength-fill"
+                    [style.width.%]="(passwordStrength / 5) * 100"
+                    [style.background]="passwordStrengthColor">
+                  </div>
+                </div>
+                <span class="strength-label" [style.color]="passwordStrengthColor">
+                  {{ passwordStrengthLabel }}
+                </span>
+              </div>
+
+              <!-- Password hints -->
+              <div class="password-hints" *ngIf="password.touched && password.value">
+                <span [class.hint-ok]="password.value?.length >= 8"
+                      [class.hint-fail]="password.value?.length < 8">
+                  {{ password.value?.length >= 8 ? '✅' : '○' }} Min 8 characters
+                </span>
+                <span [class.hint-ok]="/[A-Z]/.test(password.value)"
+                      [class.hint-fail]="!/[A-Z]/.test(password.value)">
+                  {{ /[A-Z]/.test(password.value) ? '✅' : '○' }} One uppercase letter
+                </span>
+                <span [class.hint-ok]="/\d/.test(password.value)"
+                      [class.hint-fail]="!/\d/.test(password.value)">
+                  {{ /\d/.test(password.value) ? '✅' : '○' }} One number
+                </span>
+              </div>
+
+              <div class="field-error" *ngIf="password.touched && password.errors">
+                <span *ngIf="password.errors?.['required']">⚠ Password is required</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Confirm Password -->
+          <div class="field-full">
+            <div class="field-group">
+              <div class="field-label"><span class="lbl-icon">🔒</span> Confirm Password</div>
+              <div class="field-input-wrap">
+                <input class="field-input"
+                  [class.input-error]="confirmPassword.touched && confirmPassword.errors?.['mismatch']"
+                  [class.input-success]="confirmPassword.valid && confirmPassword.touched"
+                  [type]="showConfirm ? 'text' : 'password'"
+                  placeholder="Repeat your password"
+                  formControlName="confirmPassword"
+                />
+                <span class="toggle-password" (click)="showConfirm = !showConfirm">
+                  {{ showConfirm ? '🙈' : '👁️' }}
+                </span>
+              </div>
+
+              <div class="match-indicator" *ngIf="confirmPassword.value && password.value">
+                <span *ngIf="confirmPassword.value === password.value" class="match-ok">✅ Passwords match</span>
+                <span *ngIf="confirmPassword.value !== password.value" class="match-fail">❌ Passwords do not match</span>
+              </div>
+
+              <div class="field-error" *ngIf="confirmPassword.touched && confirmPassword.errors">
+                <span *ngIf="confirmPassword.errors?.['required']">⚠ Please confirm your password</span>
+                <span *ngIf="confirmPassword.errors?.['mismatch']">⚠ Passwords do not match</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Status messages -->
+          <div class="status-msg success" *ngIf="success">✅ {{ success }}</div>
+          <div class="status-msg error"   *ngIf="error">❌ {{ error }}</div>
+
+          <!-- Submit -->
+          <button class="submit-btn" type="submit"
+            [disabled]="loading || form.invalid || emailChecking">
+            <div class="btn-content">
+              <span [class.rotating]="loading">{{ loading ? '⟳' : '🚀' }}</span>
+              <span>{{ loading ? 'CREATING...' : 'CREATE ACCOUNT' }}</span>
+            </div>
+          </button>
+
+        </form>
+      </div>
+
+    </ng-container>
+
+    <!-- ══════════════════════════════════════
+         ÉTAPE 2 — Vérification OTP
+         ══════════════════════════════════════ -->
+    <ng-container *ngIf="showOtpStep">
+
+      <!-- Left Panel OTP -->
+      <div class="panel-left">
+        <div class="brand-icon">📧</div>
+        <div class="brand-name">COGNIVITA</div>
+        <div class="brand-tagline">Email Verification</div>
+        <ul class="feature-list">
+          <li class="feature-item"><span class="feature-dot"></span> Check your inbox</li>
+          <li class="feature-item"><span class="feature-dot"></span> 6-digit code sent</li>
+          <li class="feature-item"><span class="feature-dot"></span> Expires in 5 minutes</li>
+          <li class="feature-item"><span class="feature-dot"></span> One step to access</li>
+        </ul>
+        <p class="login-prompt">
+          Wrong email? <a (click)="showOtpStep = false" style="cursor:pointer">Go back</a>
+        </p>
+      </div>
+
+      <!-- Right Panel OTP -->
+      <div class="panel-right">
+        <div class="form-header">
+          <div class="form-title">Verify Your Email</div>
+          <div class="form-subtitle">
+            Code sent to <span class="email-highlight">{{ pendingEmail }}</span>
+          </div>
+        </div>
+        <div class="form-divider"></div>
+
+        <form class="register-form" [formGroup]="otpForm" (ngSubmit)="verifyRegister()">
+
+          <!-- OTP Input -->
+          <div class="field-full">
+            <div class="field-group">
+              <div class="field-label"><span class="lbl-icon">🔑</span> Verification Code</div>
+              <div class="field-input-wrap">
+                <input class="field-input otp-input"
+                  [class.input-error]="otp.invalid && otp.touched"
+                  [class.input-success]="otp.valid"
+                  type="text"
+                  maxlength="6"
+                  placeholder="_ _ _ _ _ _"
+                  formControlName="otp"
+                  autocomplete="one-time-code"
+                />
+                <span class="input-icon" *ngIf="otp.valid">✅</span>
+              </div>
+              <div class="field-error" *ngIf="otp.touched && otp.errors">
+                <span *ngIf="otp.errors?.['required']">⚠ Code is required</span>
+                <span *ngIf="otp.errors?.['minlength'] || otp.errors?.['maxlength']">⚠ Code must be 6 digits</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Erreur / Succès -->
+          <div class="status-msg error"   *ngIf="otpError">❌ {{ otpError }}</div>
+          <div class="status-msg success" *ngIf="success">✅ {{ success }}</div>
+
+          <!-- Submit -->
+          <button class="submit-btn" type="submit" [disabled]="otpLoading">
+            <div class="btn-content">
+              <span [class.rotating]="otpLoading">{{ otpLoading ? '⟳' : '✅' }}</span>
+              <span>{{ otpLoading ? 'VERIFYING...' : 'VERIFY EMAIL' }}</span>
+            </div>
+          </button>
+
+          <!-- Resend -->
+          <div class="resend-wrap">
+            <span class="resend-text">Didn't receive the code?</span>
+            <button type="button" class="resend-btn"
+              (click)="resendOtp()"
+              [disabled]="resendCooldown > 0 || resendLoading">
+              {{ resendLoading ? 'Sending...' :
+                 resendCooldown > 0 ? 'Resend in ' + resendCooldown + 's' :
+                 'Resend Code' }}
+            </button>
+          </div>
+
+          <!-- Back -->
+          <button type="button" class="back-otp-btn" (click)="showOtpStep = false">
+            ← Back to Register
+          </button>
+
+        </form>
+      </div>
+
+    </ng-container>
+
+  </div>
+</div>

@@ -1,0 +1,225 @@
+<!-- ── Toast ───────────────────────────────────── -->
+<div class="toast" *ngIf="toast" [ngClass]="'toast-' + toast.type">
+  <span class="toast-icon">
+    {{ toast.type === 'success' ? '✅' : toast.type === 'error' ? '❌' : '⚠️' }}
+  </span>
+  <span>{{ toast.message }}</span>
+</div>
+
+<div class="users-list-wrapper">
+
+  <!-- ── Stats Dashboard ────────────────────────── -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-value cyan">{{ totalUsers }}</div>
+      <div class="stat-label">Total Users</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value gold">{{ totalAdmins }}</div>
+      <div class="stat-label">Admins</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-value red">{{ totalBlocked }}</div>
+      <div class="stat-label">Blocked</div>
+    </div>
+  </div>
+
+  <!-- ── Toolbar ────────────────────────────────── -->
+  <div class="list-toolbar">
+    <div class="toolbar-left">
+      <span class="list-title">
+        <span class="title-icon">👥</span>
+        <span>Users Management</span>
+      </span>
+      <span class="user-count-badge">{{ filteredUsers.length }} users</span>
+    </div>
+    <div class="toolbar-right">
+
+      <!-- Search -->
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" type="text" placeholder="Search..." [(ngModel)]="searchQuery"
+          (input)="filterUsers()" />
+      </div>
+
+      <!-- Role filter -->
+      <select class="filter-select" [(ngModel)]="roleFilter" (change)="applyFilters()">
+        <option value="ALL">All Roles</option>
+        <option value="USER">User</option>
+        <option value="ADMIN">Admin</option>
+      </select>
+
+      <!-- Status filter -->
+      <select class="filter-select" [(ngModel)]="statusFilter" (change)="applyFilters()">
+        <option value="ALL">All Status</option>
+        <option value="ACTIVE">Active</option>
+        <option value="BLOCKED">Blocked</option>
+      </select>
+
+      <!-- Export PDF -->
+      <button class="btn-export" (click)="exportPdf()" title="Export PDF">
+        📄 Export PDF
+      </button>
+
+    </div>
+  </div>
+
+  <!-- Empty -->
+  <div *ngIf="filteredUsers.length === 0" class="empty-state">
+    <span class="empty-icon">{{ searchQuery ? '🔍' : '📭' }}</span>
+    <p class="empty-title">{{ searchQuery ? 'No results for "' + searchQuery + '"' : 'No users found' }}</p>
+  </div>
+
+  <!-- ── Table ──────────────────────────────────── -->
+  <div *ngIf="filteredUsers.length > 0" class="table-container">
+    <table class="users-table">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th class="hide-sm">Email</th>
+          <th>Role</th>
+          <th class="hide-sm">Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let user of paginatedUsers; let i = index" class="user-row" [class.row-blocked]="user.blocked"
+          [style.animation-delay]="i * 0.04 + 's'">
+
+          <!-- ID -->
+
+          <!-- User -->
+          <td>
+            <div class="user-info">
+              <div class="user-avatar" [style.background]="getAvatarColor(user.fullName)"
+                (click)="user.photoUrl && openZoom(user)" [class.clickable]="user.photoUrl">
+                <img *ngIf="user.photoUrl" [src]="user.photoUrl" alt="avatar" (error)="onImgError($event)" />
+                <span *ngIf="!user.photoUrl">{{ user.fullName?.charAt(0)?.toUpperCase() }}</span>
+                <!-- Overlay hover -->
+                <div class="avatar-overlay" *ngIf="user.photoUrl">
+                  <span>🔍</span>
+                </div>
+              </div>
+              <div class="user-details">
+                <span class="user-name">{{ user.fullName }}</span>
+                <span class="user-email-small">{{ user.email }}</span>
+              </div>
+            </div>
+          </td>
+
+          <!-- Email -->
+          <td class="hide-sm">
+            <a class="email-link" href="mailto:{{ user.email }}">{{ user.email }}</a>
+          </td>
+
+          <!-- Role — inline edit -->
+          <td>
+            <div *ngIf="editingRoleId !== user.id">
+              <span class="role-badge" [ngClass]="'role-' + user.role?.toLowerCase()">
+                {{ user.role }}
+              </span>
+              <button class="btn-edit-role" (click)="startEditRole(user)" title="Change role">✏️</button>
+            </div>
+            <div *ngIf="editingRoleId === user.id" class="role-select-wrap">
+              <select class="role-select-inline" [value]="user.role"
+                (change)="changeRole(user, $any($event.target).value)">
+                <option value="USER">USER</option>
+                <option value="ADMIN">ADMIN</option>
+              </select>
+              <button class="btn-cancel-role" (click)="cancelEditRole()">✕</button>
+            </div>
+          </td>
+
+          <!-- Status -->
+          <td class="hide-sm">
+            <span class="status-badge" [ngClass]="user.blocked ? 'status-blocked' : 'status-active'">
+              <span class="status-dot"></span>
+              {{ user.blocked ? 'Blocked' : 'Active' }}
+            </span>
+          </td>
+
+          <!-- Actions -->
+          <td>
+            <div class="action-buttons">
+
+              <!-- 🔒 Block -->
+              <button *ngIf="!user.blocked" class="btn-action btn-block" (click)="confirmBlock(user)"
+                [disabled]="blockingId === user.id" title="Block user">
+                <span>{{ blockingId === user.id ? '⟳' : '🔒' }}</span>
+                <span class="btn-label">Block</span>
+              </button>
+
+              <!-- 🔓 Unblock -->
+              <button *ngIf="user.blocked" class="btn-action btn-unblock" (click)="unblockUser(user)"
+                [disabled]="blockingId === user.id" title="Unblock user">
+                <span>{{ blockingId === user.id ? '⟳' : '🔓' }}</span>
+                <span class="btn-label">Unblock</span>
+              </button>
+
+
+
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ── Pagination ──────────────────────────── -->
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">‹</button>
+      <button class="page-btn" *ngFor="let p of pageNumbers" [class.active]="p === currentPage" (click)="goToPage(p)">{{
+        p }}</button>
+      <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">›</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Block Confirm Modal ─────────────────────── -->
+<div class="modal-backdrop" *ngIf="userToBlock" (click)="cancelBlock()">
+  <div class="confirm-modal modal-warning" (click)="$event.stopPropagation()">
+    <div class="modal-icon">🔒</div>
+    <h3 class="modal-title">Block User</h3>
+    <p class="modal-body">
+      You are about to block <strong>{{ userToBlock?.fullName }}</strong>.<br />
+      They will no longer be able to log in.
+    </p>
+    <div class="modal-actions">
+      <button class="btn-cancel" (click)="cancelBlock()">Cancel</button>
+      <button class="btn-confirm-block" (click)="blockUser(userToBlock!)">🔒 Block</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Delete Confirm Modal ────────────────────── -->
+<div class="modal-backdrop" *ngIf="userToDelete" (click)="cancelDelete()">
+  <div class="confirm-modal modal-danger" (click)="$event.stopPropagation()">
+    <div class="modal-icon">⚠️</div>
+    <h3 class="modal-title">Delete User</h3>
+    <p class="modal-body">
+      You are about to delete <strong>{{ userToDelete?.fullName }}</strong>.<br />
+      This action cannot be undone.
+    </p>
+    <div class="modal-actions">
+      <button class="btn-cancel" (click)="cancelDelete()">Cancel</button>
+      <button class="btn-confirm-delete" (click)="deleteUser(userToDelete!.id!)">🗑️ Delete</button>
+    </div>
+  </div>
+</div>
+<!-- ── Zoom Modal ─────────────────────────────── -->
+<div class="zoom-modal" *ngIf="zoomOpen" (click)="closeZoom()">
+  <div class="zoom-content" (click)="$event.stopPropagation()">
+
+    <button class="zoom-close" (click)="closeZoom()">✕</button>
+
+<img [src]="zoomedPhotoUrl" class="zoom-img" alt="Profile photo" 
+     style="image-rendering: auto; width: 100%; max-width: 400px; height: auto;" />
+    <div class="zoom-actions">
+      <button class="zoom-btn download-btn" (click)="downloadPhoto()">
+        <span>⬇️</span> Download Photo
+      </button>
+    </div>
+
+  </div>
+</div>

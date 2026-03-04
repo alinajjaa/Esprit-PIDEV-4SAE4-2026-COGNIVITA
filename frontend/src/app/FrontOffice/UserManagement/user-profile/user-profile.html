@@ -1,0 +1,182 @@
+<div class="profile-page">
+  <div class="profile-card">
+
+    <!-- ================= HEADER ================= -->
+    <div class="profile-header">
+
+      <!-- Avatar avec zoom -->
+      <div class="avatar-ring"
+           (click)="openZoom()"
+           [class.clickable]="photoPreview">
+
+        <div class="avatar-inner">
+          <img
+            *ngIf="photoPreview; else avatarPlaceholder"
+            [src]="photoPreview"
+            alt="Profile photo"
+            (error)="photoPreview = ''"
+          />
+
+          <ng-template #avatarPlaceholder>
+            <span class="avatar-placeholder">👤</span>
+          </ng-template>
+        </div>
+
+        <!-- Overlay hover -->
+        <div class="avatar-overlay" *ngIf="photoPreview">
+          <span>🔍</span>
+        </div>
+      </div>
+
+      <div class="profile-title">
+        {{ currentUser?.fullName || 'My Profile' }}
+      </div>
+
+      <div class="profile-subtitle">Identity Config</div>
+
+      <div class="unsaved-badge" *ngIf="hasChanges">
+        <span>●</span> Unsaved changes
+      </div>
+
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ================= FORM ================= -->
+    <form class="profile-form"
+          *ngIf="currentUser"
+          (ngSubmit)="saveProfile()">
+
+      <!-- Full Name -->
+      <div class="field-group">
+        <div class="field-label">
+          <span class="label-icon">🪪</span> Full Name
+        </div>
+
+        <div class="field-input-wrapper">
+          <input
+            class="field-input"
+            type="text"
+            [(ngModel)]="currentUser.fullName"
+            name="fullName"
+            placeholder="Enter your full name"
+            (ngModelChange)="onFieldChange()"
+            required
+          />
+        </div>
+      </div>
+
+      <!-- Email -->
+      <div class="field-group">
+        <div class="field-label">
+          <span class="label-icon">📡</span> Email Address
+        </div>
+
+        <div class="field-input-wrapper">
+          <input
+            class="field-input"
+            type="email"
+            [(ngModel)]="currentUser.email"
+            name="email"
+            placeholder="Enter your email"
+            (ngModelChange)="onFieldChange()"
+            required
+          />
+        </div>
+      </div>
+
+
+      <!-- Role (read only) -->
+      <div class="field-group" *ngIf="currentUser.role">
+        <div class="field-label">
+          <span class="label-icon">🔰</span> Access Level
+        </div>
+
+        <div class="role-badge">
+          <span>⬡</span> {{ currentUser.role | uppercase }}
+        </div>
+      </div>
+
+      <!-- Status message -->
+      <div *ngIf="statusMessage"
+           class="status-msg"
+           [class.success]="isSuccess"
+           [class.error]="!isSuccess">
+        <span>{{ isSuccess ? '✅' : '❌' }}</span>
+        {{ statusMessage }}
+      </div>
+
+      <!-- Buttons -->
+      <div class="btn-row">
+
+        <button
+          *ngIf="hasChanges || selectedFile"
+          type="button"
+          class="reset-btn"
+          (click)="resetChanges()"
+          [disabled]="saving">
+          ↺ Reset
+        </button>
+
+        <button
+          class="save-btn"
+          type="submit"
+          [disabled]="saving || (!hasChanges && !selectedFile)"
+          [class.inactive]="!hasChanges && !selectedFile">
+
+          <div class="btn-content">
+            <span>{{ saving ? '⟳' : '💾' }}</span>
+            <span>{{ saving ? 'SAVING...' : 'SAVE CHANGES' }}</span>
+          </div>
+        </button>
+
+      </div>
+
+    </form>
+
+    <!-- Account creation date -->
+    <div class="meta-row" *ngIf="currentUser?.createdAt">
+      <span>⚡</span>
+      Account created:
+      {{ currentUser.createdAt | date:'mediumDate' }}
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ================= ZOOM MODAL ================= -->
+<div class="zoom-modal"
+     *ngIf="zoomOpen"
+     (click)="closeZoom()">
+
+  <div class="zoom-content"
+       (click)="$event.stopPropagation()">
+
+    <!-- Close -->
+    <button class="zoom-close"
+            (click)="closeZoom()">✕</button>
+
+    <!-- Image -->
+    <img
+      [src]="photoPreview"
+      class="zoom-img"
+      alt="Profile photo" />
+
+    <!-- Actions -->
+    <div class="zoom-actions">
+
+      <button class="zoom-btn download-btn"
+              (click)="downloadPhoto()">
+        <span>⬇️</span> Download Photo
+      </button>
+
+      <button class="zoom-btn change-btn"
+              (click)="closeZoom(); triggerUpload()">
+        <span>📁</span> Change Photo
+      </button>
+
+    </div>
+
+  </div>
+</div>

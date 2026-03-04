@@ -1,0 +1,33 @@
+<div class="callback-page">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <div class="callback-card">
+
+    <div *ngIf="!error" class="loading-state">
+      <div class="brain-icon">🧠</div>
+      <div class="spinner-wrap">
+        <div class="spinner-ring"></div>
+        <div class="spinner-ring ring-2"></div>
+      </div>
+      <div class="callback-title">AUTHENTICATING</div>
+      <div class="callback-subtitle">Connecting to your neural profile...</div>
+      <div class="progress-bar">
+        <div class="progress-fill"></div>
+      </div>
+      <div class="status-dots">
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+      </div>
+    </div>
+
+    <div *ngIf="error" class="error-state">
+      <div class="error-icon">❌</div>
+      <div class="callback-title">AUTH FAILED</div>
+      <div class="callback-subtitle">{{ error }}</div>
+      <a routerLink="/login" class="back-btn">← Back to Login</a>
+    </div>
+
+  </div>
+</div>
