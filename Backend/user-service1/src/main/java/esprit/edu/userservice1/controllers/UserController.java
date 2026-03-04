@@ -413,54 +413,5 @@ public class UserController {
     }
 
 
-        /* ══════════════════════════════════════════
-       ProfileScore
-       ══════════════════════════════════════════ */
-        @GetMapping("/{id}/profile-score")
-        public ResponseEntity<?> getProfileScore(@PathVariable Long id) {
-            user u = service.getById(id);
-            if (u == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
-
-            int score = 0;
-            List<String> missing = new ArrayList<>();
-            List<String> completed = new ArrayList<>();
-
-            // ── Critères ──────────────────────────────────
-            if (u.getEmail() != null && !u.getEmail().isBlank()) {
-                score += 20; completed.add("Email address");
-            } else missing.add("Add your email");
-
-            if (u.getFullName() != null && !u.getFullName().isBlank()) {
-                score += 20; completed.add("Full name");
-            } else missing.add("Add your full name");
-
-            if (u.getPhotoUrl() != null && !u.getPhotoUrl().isBlank()) {
-                score += 25; completed.add("Profile photo");
-            } else missing.add("Upload a profile photo");
-
-            if (u.getEmailVerified() != null && u.getEmailVerified()) {
-                score += 20; completed.add("Email verified");
-            } else missing.add("Verify your email");
-
-            if (u.getLast2faVerifiedAt() != null) {
-                score += 15; completed.add("2FA verified");
-            } else missing.add("Complete 2FA verification");
-
-            // ── Label ──────────────────────────────────────
-            String level;
-            String color;
-            if      (score >= 90) { level = "EXPERT 🛡️";    color = "#00ff80"; }
-            else if (score >= 70) { level = "ADVANCED ⚡";   color = "#00ffff"; }
-            else if (score >= 50) { level = "INTERMEDIATE";  color = "#ffd700"; }
-            else                  { level = "BEGINNER 🔰";   color = "#ff3250"; }
-
-            return ResponseEntity.ok(Map.of(
-                    "score",     score,
-                    "level",     level,
-                    "color",     color,
-                    "completed", completed,
-                    "missing",   missing
-            ));
-        }
 
 }
