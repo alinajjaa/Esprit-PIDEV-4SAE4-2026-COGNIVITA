@@ -208,17 +208,20 @@ Chosen for:
 
 | Name | Role |
 |------|------|
-| Ali Najjaa | Full Stack Developer |
-| [Coéquipier 2] | [Rôle] |
-| [Coéquipier 3] | [Rôle] |
-| [Coéquipier 4] | [Rôle] |
+| Ali Najjaa | Full Stack Developer Student |
+| Louzeinej Aloui | Full Stack Developer Student |
+| Borhen Messaoudi  | Full Stack Developer Student |
+| Med SAdek Bennjima | Full Stack Developer Student |
+| Montassar Bellakhal | Full Stack Developer Student |
+| Yessine Jmal | Full Stack Developer Student|
+
 
 ---
 
 ## 🎓 Academic Context
 
 Developed at **Esprit School of Engineering – Tunisia**
-**PIDEV – 3rd Year Engineering | Academic Year 2025–2026**
+**PIDEV – 2nd Year Engineering | Academic Year 2025–2026**
 
 ---
 
@@ -238,8 +241,8 @@ Docker (optional)
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/TON_USERNAME/Esprit-PIDEV-3AXX-2026-Cognivita.git
-cd Esprit-PIDEV-3AXX-2026-Cognivita
+git clone https://github.com/TON_USERNAME/Esprit-PIDEV-4SAE4-2026-Cognivita.git
+cd Esprit-PIDEV-4SAE4-2026-Cognivita
 ```
 
 ### 2. Backend — Spring Boot
@@ -263,35 +266,8 @@ ng serve
 # → http://localhost:4200
 ```
 
-### 4. AI Service — Python / Flask
 
-```bash
-cd ai-service
-pip install -r requirements.txt
-python app.py
-# → http://localhost:5000
-```
 
-### 5. Environment Variables
-
-Configure in `application.properties`:
-
-```properties
-spring.mail.username=YOUR_EMAIL
-spring.mail.password=YOUR_APP_PASSWORD
-spring.security.oauth2.client.registration.google.client-id=YOUR_ID
-spring.security.oauth2.client.registration.google.client-secret=YOUR_SECRET
-spring.security.oauth2.client.registration.facebook.client-id=YOUR_ID
-spring.security.oauth2.client.registration.facebook.client-secret=YOUR_SECRET
-```
-
-### 6. Docker (optional)
-
-```bash
-docker-compose up --build
-```
-
----
 
 ## 📁 Project Structure
 
@@ -317,7 +293,7 @@ Cognivita/
 ## 🙏 Acknowledgments
 
 - **Esprit School of Engineering** – Tunisia
-- Encadrant : [Nom du tuteur]
+- Encadrant : [Nadine Mili ]
 - Dataset : Public Alzheimer MRI Dataset (Kaggle)
 - Année universitaire : **2025–2026**
 
