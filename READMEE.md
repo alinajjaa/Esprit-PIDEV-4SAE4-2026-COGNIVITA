@@ -293,7 +293,7 @@ Cognivita/
 ## 🙏 Acknowledgments
 
 - **Esprit School of Engineering** – Tunisia
-- Encadrant : [Nadine Mili ]
+- Encadrant : Nadine Mili 
 - Dataset : Public Alzheimer MRI Dataset (Kaggle)
 - Année universitaire : **2025–2026**
 
