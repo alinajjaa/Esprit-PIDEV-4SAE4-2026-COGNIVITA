@@ -1,0 +1,216 @@
+/* ===============================
+   CONTAINER
+================================= */
+.suivi-container {
+  margin-top: 90px;
+  padding: 30px 60px;
+  max-width: 1200px;
+}
+
+/* ===============================
+   HEADER (Patient info)
+================================= */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.header h2 {
+  margin: 0;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.patient-meta {
+  margin-top: 8px;
+  padding: 14px 18px;
+  background: #f8fafc;
+  border: 1px solid #e6edf3;
+  border-radius: 12px;
+  min-width: 260px;
+}
+
+.patient-line {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.patient-line b {
+  font-size: 16px;
+  color: #1e293b;
+}
+
+.muted {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.error-inline {
+  margin-top: 6px;
+  color: #b91c1c;
+}
+
+/* ===============================
+   PLAN CARD
+================================= */
+.plan-card {
+  background: #ffffff;
+  border: 1px solid #e0e6ed;
+  border-radius: 14px;
+  padding: 20px;
+  margin-top: 18px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+  transition: 0.2s ease;
+}
+
+.plan-card:hover {
+  box-shadow: 0 10px 28px rgba(0,0,0,0.08);
+}
+
+.plan-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: #1e293b;
+}
+
+.plan-sub {
+  font-size: 13px;
+  color: #6c757d;
+  margin-top: 6px;
+}
+
+/* ===============================
+   TABLE
+================================= */
+.steps-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 14px;
+}
+
+.steps-table th {
+  text-align: left;
+  padding: 14px 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6c757d;
+  border-bottom: 2px solid #e9ecef;
+  background: #fafafa;
+}
+
+.steps-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #f1f3f5;
+  font-size: 14px;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.steps-table tbody tr:hover {
+  background: #f8fafc;
+  transition: 0.2s ease;
+}
+
+/* ===============================
+   STATUS PILLS
+================================= */
+.pill {
+  padding: 6px 12px;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 12px;
+  display: inline-block;
+}
+
+/* Status Colors */
+.st-pending {
+  background: #fff6e8;
+  color: #9a5b00;
+}
+
+.st-done {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.st-missed {
+  background: #fdecec;
+  color: #8a1f1f;
+}
+
+.st-cancelled {
+  background: #eef4ff;
+  color: #2457c5;
+}
+
+/* ===============================
+   BUTTON
+================================= */
+.btn-done {
+  background: #2e7d32;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: 0.2s ease;
+}
+
+.btn-done:hover {
+  background: #1b5e20;
+}
+
+.btn-done:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===============================
+   ALERTS & STATES
+================================= */
+.alert.error {
+  background-color: #ffebee;
+  color: #c62828;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-top: 10px;
+}
+
+.empty {
+  padding: 20px;
+  color: #90a4ae;
+  text-align: center;
+  font-size: 14px;
+}
+
+.info {
+  padding: 10px;
+  color: #666;
+}
+
+/* ===============================
+   RESPONSIVE
+================================= */
+@media (max-width: 900px) {
+  .suivi-container {
+    padding: 20px;
+  }
+
+  .header {
+    flex-direction: column;
+  }
+
+  .patient-meta {
+    width: 100%;
+  }
+
+  .steps-table {
+    font-size: 13px;
+  }
+}

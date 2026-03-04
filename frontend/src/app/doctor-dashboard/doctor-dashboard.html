@@ -1,0 +1,49 @@
+<div class="page">
+  <div class="header">
+    <div>
+      <h1>Doctor Statistics Dashboard</h1>
+    </div>
+
+
+    <div class="filters">
+
+
+      <div class="field">
+        <label>From</label>
+        <input type="date" [(ngModel)]="from" />
+      </div>
+
+      <div class="field">
+        <label>To</label>
+        <input type="date" [(ngModel)]="to" />
+      </div>
+
+      <button class="secondary" (click)="quickRange(7)" [disabled]="loading">Last 7 days</button>
+      <button class="secondary" (click)="quickRange(30)" [disabled]="loading">Last 30 days</button>
+      <button class="secondary" (click)="quickRange(90)" [disabled]="loading">Last 90 days</button>
+      <button (click)="downloadPdf()" [disabled]="loading || !stats">Download PDF</button>
+
+    </div>
+  </div>
+
+  <div *ngIf="error" class="alert error">{{ error }}</div>
+  <div *ngIf="loading" class="alert info">Loading stats...</div>
+
+  <ng-container *ngIf="stats as s">
+    <div id="statsExport">
+
+
+    <div class="kpis">
+      <div class="card"><div class="kpi-label">Total RDV</div><div class="kpi-value">{{ s.total }}</div></div>
+      <div class="card"><div class="kpi-label">Upcoming</div><div class="kpi-value">{{ s.upcoming }}</div></div>
+      <div class="card"><div class="kpi-label">Today</div><div class="kpi-value">{{ s.today }}</div></div>
+      <div class="card"><div class="kpi-label">Unique Patients</div><div class="kpi-value">{{ s.uniquePatients }}</div></div>
+      <div class="card"><div class="kpi-label">Cancellation Rate</div><div class="kpi-value">{{ cancelRatePct }}%</div></div>
+    </div>
+    <app-stats-charts [stats]="s"></app-stats-charts>
+    <div class="grid">
+
+    </div>
+    </div>
+  </ng-container>
+</div>
