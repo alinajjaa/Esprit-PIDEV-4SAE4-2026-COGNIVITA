@@ -1,0 +1,82 @@
+<!-- src/app/cognitive-activities/daily-challenge/daily-challenge.component.html -->
+<div class="challenges-container">
+  <!-- Header -->
+  <div class="challenges-header">
+    <h2>🏆 Défis en cours</h2>
+    <p>Continue ta progression !</p>
+  </div>
+
+  <!-- Stats -->
+  <div *ngIf="progression" class="stats-banner">
+    <div class="stat-item">
+      <span class="stat-value">{{ progression.totalCount }}</span>
+      <span class="stat-label">Exercices</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value">{{ progression.totalPoints }}</span>
+      <span class="stat-label">Points</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value">{{ progression.badges.length }}</span>
+      <span class="stat-label">Badges</span>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-small">
+    <div class="spinner-small"></div>
+  </div>
+
+  <!-- Défis en cours -->
+  <div *ngIf="!loading" class="challenges-list">
+    <h3>📋 À compléter</h3>
+    <div *ngFor="let challenge of getPendingChallenges()" class="challenge-card">
+      <div class="challenge-header">
+        <div class="challenge-icon">{{ getChallengeIcon(challenge.type) }}</div>
+        <div class="challenge-info">
+          <h4>{{ challenge.title }}</h4>
+          <span class="challenge-level">{{ getLevelLabel(challenge.level) }}</span>
+        </div>
+        <div class="challenge-reward">
+          <span class="reward-points">+{{ challenge.rewardPoints }}</span>
+        </div>
+      </div>
+
+      <p class="challenge-description">{{ challenge.description }}</p>
+
+      <div class="challenge-progress">
+        <div class="progress-label">
+          <span>{{ challenge.currentCount }}/{{ challenge.targetCount }}</span>
+          <span>{{ getProgressPercentage(challenge).toFixed(0) }}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill"
+               [style.width.%]="getProgressPercentage(challenge)"
+               [style.background-color]="getProgressColor(challenge)"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Défis récemment complétés -->
+    <div *ngIf="getRecentCompletedChallenges().length > 0" class="completed-section">
+      <h3>✅ Récemment complétés</h3>
+      <div *ngFor="let challenge of getRecentCompletedChallenges()" class="challenge-card completed">
+        <div class="challenge-header">
+          <div class="challenge-icon">{{ getChallengeIcon(challenge.type) }}</div>
+          <div class="challenge-info">
+            <h4>{{ challenge.title }}</h4>
+            <span class="completed-date">Complété</span>
+          </div>
+          <div class="challenge-reward">
+            <span class="reward-points">+{{ challenge.rewardPoints }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message si aucun défi -->
+    <div *ngIf="getPendingChallenges().length === 0 && getRecentCompletedChallenges().length === 0" class="empty-state">
+      <p>Aucun défi pour le moment. Commence à jouer !</p>
+    </div>
+  </div>
+</div>

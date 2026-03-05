@@ -1,0 +1,300 @@
+<!-- src/app/cognitive-activities/activity-form/activity-form.html -->
+<div class="form-container">
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Chargement...</p>
+  </div>
+
+  <!-- Formulaire -->
+  <div *ngIf="!loading" class="form-content">
+
+    <!-- Header -->
+    <div class="form-header">
+      <h1>{{ isEditMode ? '✏️ Modifier' : '➕ Nouvelle' }} activité cognitive</h1>
+      <p *ngIf="!isEditMode">Créez un nouvel exercice pour entraîner le cerveau</p>
+      <p *ngIf="isEditMode">Modifiez les paramètres de l'activité</p>
+    </div>
+
+    <!-- Messages -->
+    <div *ngIf="error" class="alert alert-error">
+      <span>⚠️ {{ error }}</span>
+      <button class="close-btn" (click)="error = ''">×</button>
+    </div>
+
+    <div *ngIf="success" class="alert alert-success">
+      <span>✅ {{ success }}</span>
+    </div>
+
+    <!-- Formulaire -->
+    <form (ngSubmit)="onSubmit()" class="activity-form">
+
+      <!-- Section Informations de base -->
+      <div class="form-section">
+        <h2>📋 Informations de base</h2>
+
+        <div class="form-group">
+          <label for="title">
+            Titre <span class="required">*</span>
+          </label>
+          <input
+            type="text"
+            id="title"
+            [(ngModel)]="activity.title"
+            name="title"
+            class="form-control"
+            placeholder="ex: Jeu de mémoire - Les animaux"
+            required>
+        </div>
+
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea
+            id="description"
+            [(ngModel)]="activity.description"
+            name="description"
+            class="form-control"
+            rows="3"
+            placeholder="Décrivez brièvement l'activité..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group half">
+            <label for="type">
+              Type <span class="required">*</span>
+            </label>
+            <select
+              id="type"
+              [(ngModel)]="activity.type"
+              name="type"
+              class="form-control"
+              (change)="onTypeChange()"
+              required>
+              <option value="MEMORY">🧠 Mémoire</option>
+              <option value="ATTENTION">👀 Attention</option>
+              <option value="LOGIC">🔢 Logique</option>
+            </select>
+          </div>
+
+          <div class="form-group half">
+            <label for="difficulty">
+              Difficulté <span class="required">*</span>
+            </label>
+            <select
+              id="difficulty"
+              [(ngModel)]="activity.difficulty"
+              name="difficulty"
+              class="form-control"
+              required>
+              <option value="EASY">🟢 Facile</option>
+              <option value="MEDIUM">🟡 Moyen</option>
+              <option value="HARD">🔴 Difficile</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SECTION MÉMOIRE ===== -->
+      <div *ngIf="activity.type === 'MEMORY'" class="form-section">
+        <h2>🧠 Mots à mémoriser</h2>
+        <p class="section-hint">Saisissez les mots que l'utilisateur devra mémoriser</p>
+
+        <div *ngFor="let w of words; let i = index; trackBy: trackByIndex" class="word-input-group">
+          <input
+            type="text"
+            id="word_{{i}}"
+            [ngModel]="w"
+            (ngModelChange)="words[i] = $event; generateContentPreview()"
+            [name]="'word_' + i"
+            class="form-control"
+            placeholder="Mot {{ i + 1 }}">
+          <button type="button" class="btn-remove" (click)="removeWord(i)" *ngIf="words.length > 1">❌</button>
+        </div>
+
+        <button type="button" class="btn-add" (click)="addWord()">
+          ➕ Ajouter un mot
+        </button>
+        <p class="hint">Minimum 3 mots requis</p>
+
+        <!-- Prévisualisation discrète des mots -->
+        <div *ngIf="hasValidWords()" class="words-preview">
+          <span class="preview-label">Aperçu des mots :</span>
+          <span class="preview-words">{{ getValidWordsString() }}</span>
+        </div>
+      </div>
+
+      <!-- ===== SECTION ATTENTION ===== -->
+      <div *ngIf="activity.type === 'ATTENTION'" class="form-section">
+        <h2>👀 Test de Stroop</h2>
+        <p class="section-hint">Configurez le test d'attention (couleurs et mots)</p>
+
+        <div class="form-group">
+          <label for="stroopWord">Mot affiché</label>
+          <input
+            type="text"
+            id="stroopWord"
+            [(ngModel)]="activity.stroopWord"
+            name="stroopWord"
+            class="form-control"
+            placeholder="Ex: ROUGE"
+            (input)="generateContentPreview()">
+        </div>
+
+        <div class="form-group">
+          <label for="stroopColor">Couleur du texte</label>
+          <select
+            id="stroopColor"
+            [(ngModel)]="activity.stroopColor"
+            name="stroopColor"
+            class="form-control"
+            (change)="generateContentPreview()">
+            <option value="red">🔴 Rouge</option>
+            <option value="blue">🔵 Bleu</option>
+            <option value="green">🟢 Vert</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="stroopCorrect">Réponse correcte</label>
+          <select
+            id="stroopCorrect"
+            [(ngModel)]="activity.stroopCorrect"
+            name="stroopCorrect"
+            class="form-control"
+            (change)="generateContentPreview()">
+            <option value="red">🔴 Rouge</option>
+            <option value="blue">🔵 Bleu</option>
+            <option value="green">🟢 Vert</option>
+          </select>
+        </div>
+
+        <!-- Prévisualisation du test Stroop -->
+        <div *ngIf="activity.stroopWord" class="stroop-preview">
+          <div class="preview-label">Aperçu :</div>
+          <div class="stroop-sample" [style.color]="activity.stroopColor">
+            {{ activity.stroopWord }}
+          </div>
+          <div class="preview-answer">Réponse attendue :
+            <span [style.color]="activity.stroopCorrect" style="font-weight: bold;">
+              {{ activity.stroopCorrect === 'red' ? '🔴 Rouge' : activity.stroopCorrect === 'blue' ? '🔵 Bleu' : '🟢 Vert' }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SECTION LOGIQUE ===== -->
+      <div *ngIf="activity.type === 'LOGIC'" class="form-section">
+        <h2>🔢 Séquence logique</h2>
+        <p class="section-hint">Créez une séquence de nombres (ex: 2, 4, 6, 8, ?)</p>
+
+        <div *ngFor="let n of sequence; let i = index; trackBy: trackByIndex" class="sequence-input-group">
+          <input
+            type="number"
+            id="seq_{{i}}"
+            [ngModel]="n"
+            (ngModelChange)="sequence[i] = $event; generateContentPreview()"
+            [name]="'seq_' + i"
+            class="form-control"
+            placeholder="Nombre {{ i + 1 }}">
+          <button type="button" class="btn-remove" (click)="removeNumber(i)" *ngIf="sequence.length > 2">❌</button>
+        </div>
+
+        <button type="button" class="btn-add" (click)="addNumber()">
+          ➕ Ajouter un nombre
+        </button>
+
+        <div class="form-group" style="margin-top: 15px;">
+          <label for="sequenceAnswer">Réponse (nombre suivant)</label>
+          <input
+            type="number"
+            id="sequenceAnswer"
+            [(ngModel)]="activity.sequenceAnswer"
+            name="sequenceAnswer"
+            class="form-control"
+            placeholder="Ex: 10"
+            (input)="generateContentPreview()">
+        </div>
+        <p class="hint">Minimum 3 nombres dans la séquence</p>
+
+        <!-- Prévisualisation discrète de la séquence -->
+        <div *ngIf="hasValidSequence()" class="sequence-preview">
+          <span class="preview-label">Séquence :</span>
+          <span class="preview-sequence">
+            {{ getValidSequenceString() }}
+            <span *ngIf="activity.sequenceAnswer !== null">→ <strong>{{ activity.sequenceAnswer }}</strong></span>
+            <span *ngIf="activity.sequenceAnswer === null">→ ?</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Section Paramètres communs -->
+      <div class="form-section">
+        <h2>⚙️ Paramètres</h2>
+
+        <div class="form-row">
+          <div class="form-group half">
+            <label for="maxScore">Score maximum</label>
+            <input
+              type="number"
+              id="maxScore"
+              [(ngModel)]="activity.maxScore"
+              name="maxScore"
+              class="form-control"
+              min="0"
+              placeholder="ex: 10"
+              (input)="generateContentPreview()">
+          </div>
+
+          <div class="form-group half">
+            <label for="timeLimit">Temps limite (secondes)</label>
+            <input
+              type="number"
+              id="timeLimit"
+              [(ngModel)]="activity.timeLimit"
+              name="timeLimit"
+              class="form-control"
+              min="0"
+              placeholder="ex: 120"
+              (input)="generateContentPreview()">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="instructions">Instructions</label>
+          <textarea
+            id="instructions"
+            [(ngModel)]="activity.instructions"
+            name="instructions"
+            class="form-control"
+            rows="3"
+            placeholder="Expliquez comment jouer..."></textarea>
+        </div>
+      </div>
+
+      <!-- Section Statut -->
+      <div class="form-section">
+        <div class="checkbox-group">
+          <label class="checkbox-label" for="isActive">
+            <input
+              type="checkbox"
+              id="isActive"
+              [(ngModel)]="isActive"
+              name="isActive">
+            <span>Activité active (visible dans la liste)</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Boutons d'action -->
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" (click)="cancel()">
+          Annuler
+        </button>
+        <button type="submit" class="btn-submit" [disabled]="!isValid() || submitting">
+          <span *ngIf="!submitting">{{ isEditMode ? 'Mettre à jour' : 'Créer' }}</span>
+          <span *ngIf="submitting" class="loading-spinner"></span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

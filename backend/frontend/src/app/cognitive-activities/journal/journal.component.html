@@ -1,0 +1,19 @@
+<!-- src/app/cognitive-activities/journal/journal.component.html -->
+<div class="journal-module">
+  <div class="module-header">
+    <h1>📓 Mood Journal</h1>
+    <p>Suivez vos émotions et découvrez des patterns</p>
+
+    <nav class="sub-nav">
+      <a routerLink="/journal" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+        📋 Historique
+      </a>
+      <a routerLink="/journal/new" routerLinkActive="active">
+        ➕ Nouvelle entrée
+      </a>
+    </nav>
+  </div>
+
+  <!-- ✅ Ici s'affichent les composants enfants (historique ou formulaire) -->
+  <router-outlet></router-outlet>
+</div>

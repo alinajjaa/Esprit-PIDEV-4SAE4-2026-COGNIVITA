@@ -1,0 +1,60 @@
+<!-- src/app/cognitive-activities/streak-display/streak-display.component.html -->
+<div class="streak-container">
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-small">
+    <div class="spinner-small"></div>
+  </div>
+
+  <!-- Streak Content -->
+  <div *ngIf="!loading && progression" class="streak-card">
+
+    <!-- Progression Counter -->
+    <div class="streak-header">
+      <div class="streak-icon">📊</div>
+      <div class="streak-numbers">
+        <div class="streak-current" [style.color]="getStreakColor()">
+          {{ progression.totalCount }}
+          <span class="streak-label">exercices</span>
+        </div>
+        <div class="streak-best">
+          {{ progression.badges.length }} badge{{ progression.badges.length > 1 ? 's' : '' }} ·
+          {{ getCompletedChallengesCount() }} défi{{ getCompletedChallengesCount() > 1 ? 's' : '' }} complété{{ getCompletedChallengesCount() > 1 ? 's' : '' }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Streak Message -->
+    <p class="streak-message">{{ getStreakMessage() }}</p>
+
+    <!-- Stats -->
+    <div class="streak-stats">
+      <div class="stat">
+        <span class="stat-value">{{ progression.totalPoints }}</span>
+        <span class="stat-label">Points</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ progression.badges.length }}</span>
+        <span class="stat-label">Badges</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ getCompletedChallengesCount() }}</span>
+        <span class="stat-label">Défis</span>
+      </div>
+    </div>
+
+    <!-- Recent Badges -->
+    <div *ngIf="getRecentBadges().length > 0" class="badges-section">
+      <h4>Badges récents</h4>
+      <div class="badges-list">
+        <div *ngFor="let badge of getRecentBadges()" class="badge-item">
+          {{ badge }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- No Data -->
+  <div *ngIf="!loading && !progression" class="streak-card">
+    <p>Commence à jouer pour voir ta progression !</p>
+  </div>
+</div>

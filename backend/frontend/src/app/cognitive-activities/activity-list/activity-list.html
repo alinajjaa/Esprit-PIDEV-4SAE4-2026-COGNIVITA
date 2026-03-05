@@ -1,0 +1,128 @@
+<div class="activity-list-container">
+  <!-- Stats rapides -->
+  <div class="stats-bar">
+    <span>📊 {{ getFilteredCount() }} / {{ getTotalCount() }} activités</span>
+  </div>
+
+  <!-- Filtres -->
+  <div class="filters-section">
+    <div class="filter-group">
+      <h3>Type</h3>
+      <div class="filter-buttons">
+        <button
+          [class.active]="activeTypeFilter === 'ALL'"
+          (click)="filterByType('ALL')"
+          class="filter-btn">
+          Tous
+        </button>
+        <button
+          [class.active]="activeTypeFilter === 'MEMORY'"
+          (click)="filterByType('MEMORY')"
+          class="filter-btn">
+          Mémoire
+        </button>
+        <button
+          [class.active]="activeTypeFilter === 'ATTENTION'"
+          (click)="filterByType('ATTENTION')"
+          class="filter-btn">
+          Attention
+        </button>
+        <button
+          [class.active]="activeTypeFilter === 'LOGIC'"
+          (click)="filterByType('LOGIC')"
+          class="filter-btn">
+          Logique
+        </button>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <h3>Difficulté</h3>
+      <div class="filter-buttons">
+        <button
+          [class.active]="activeDifficultyFilter === 'ALL'"
+          (click)="filterByDifficulty('ALL')"
+          class="filter-btn">
+          Toutes
+        </button>
+        <button
+          [class.active]="activeDifficultyFilter === 'EASY'"
+          (click)="filterByDifficulty('EASY')"
+          class="filter-btn">
+          Facile
+        </button>
+        <button
+          [class.active]="activeDifficultyFilter === 'MEDIUM'"
+          (click)="filterByDifficulty('MEDIUM')"
+          class="filter-btn">
+          Moyen
+        </button>
+        <button
+          [class.active]="activeDifficultyFilter === 'HARD'"
+          (click)="filterByDifficulty('HARD')"
+          class="filter-btn">
+          Difficile
+        </button>
+      </div>
+    </div>
+
+    <!-- Bouton reset -->
+    <button *ngIf="activeTypeFilter !== 'ALL' || activeDifficultyFilter !== 'ALL'"
+            class="btn-reset"
+            (click)="resetFilters()">
+      ✕ Effacer les filtres
+    </button>
+  </div>
+
+  <!-- Message d'erreur -->
+  <div *ngIf="error" class="error-alert">
+    ⚠️ {{ error }}
+    <button (click)="loadActivities()" class="retry-btn">Réessayer</button>
+  </div>
+
+  <!-- Chargement -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Chargement des activités...</p>
+  </div>
+
+  <!-- Grille d'activités -->
+  <div *ngIf="!loading && !error" class="activities-grid">
+    <div *ngFor="let activity of filteredActivities" class="activity-card">
+
+      <!-- En-tête de carte -->
+      <div class="card-header">
+        <span class="type-icon">{{ getTypeIcon(activity.type) }}</span>
+        <span class="difficulty-badge" [ngClass]="getDifficultyClass(activity.difficulty)">
+          {{ activity.difficulty }}
+        </span>
+      </div>
+
+      <!-- Titre et description -->
+      <h3 class="activity-title">{{ activity.title }}</h3>
+      <p class="activity-description">{{ activity.description || 'Aucune description' }}</p>
+
+      <!-- Métadonnées -->
+      <div class="activity-meta">
+        <span class="meta-item">Score max: {{ activity.maxScore || 'N/A' }}</span>
+        <span class="meta-item">Temps: {{ activity.timeLimit || '∞' }}s</span>
+      </div>
+
+      <!-- Actions -->
+      <div class="card-actions">
+        <a [routerLink]="['/activities', activity.id]" class="btn-view">Détails</a>
+        <a [routerLink]="['/activities', activity.id, 'play']" class="btn-play">Jouer</a>
+        <a [routerLink]="['/activities/edit', activity.id]" class="btn-edit">✏️</a>
+        <button (click)="deleteActivity(activity.id!)" class="btn-delete">🗑️</button>
+      </div>
+    </div>
+
+    <!-- État vide -->
+    <div *ngIf="filteredActivities.length === 0" class="empty-state">
+      <div class="empty-icon">🔍</div>
+      <h3>Aucune activité trouvée</h3>
+      <p>Modifiez vos filtres ou créez une nouvelle activité.</p>
+      <a routerLink="/activities/new" class="btn-primary">Créer une activité</a>
+    </div>
+  </div>
+</div>
