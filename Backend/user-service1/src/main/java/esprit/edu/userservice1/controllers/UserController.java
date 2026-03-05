@@ -7,6 +7,7 @@ import esprit.edu.userservice1.dto.UpdateUserRequest;
 import esprit.edu.userservice1.entities.role;
 import esprit.edu.userservice1.entities.user;
 import esprit.edu.userservice1.security.JwtService;
+import esprit.edu.userservice1.services.CloudinaryService;
 import esprit.edu.userservice1.services.EmailService;
 import esprit.edu.userservice1.services.TwoFaService;
 import esprit.edu.userservice1.services.UserService;
@@ -40,7 +41,8 @@ public class UserController {
 
     @Autowired
     private TwoFaService twoFaService;
-
+    @Autowired
+    private CloudinaryService cloudinaryService;
     @Value("${file.upload-dir}")
     private String uploadDir;
 
@@ -240,10 +242,9 @@ public class UserController {
         u.setPassword(null);
         return u;
     }
-
-    /* ══════════════════════════════════════════
-       UPLOAD PHOTO
-       ══════════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   UPLOAD PHOTO → CLOUDINARY
+   ══════════════════════════════════════════ */
 
     @PostMapping("/{id}/uploadPhoto")
     public ResponseEntity<String> uploadPhoto(@PathVariable Long id,
@@ -252,29 +253,23 @@ public class UserController {
             return new ResponseEntity<>("No file selected", HttpStatus.BAD_REQUEST);
         }
         try {
-            String absoluteUploadDir = System.getProperty("user.dir") + File.separator + uploadDir;
-            Path path = Paths.get(absoluteUploadDir);
-            if (!Files.exists(path)) Files.createDirectories(path);
-
-            String fileName = System.currentTimeMillis() + "-" + file.getOriginalFilename();
-            Path filePath = path.resolve(fileName);
-            file.transferTo(filePath.toFile());
+            // ✅ Upload vers Cloudinary (plus de stockage local)
+            String imageUrl = cloudinaryService.uploadImage(file);
 
             user existingUser = service.getById(id);
             if (existingUser == null) {
                 return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
             }
 
-            String imageUrl = "http://localhost:8081/uploads/" + fileName;
             existingUser.setPhotoUrl(imageUrl);
             service.update(id, existingUser);
 
             return new ResponseEntity<>(imageUrl, HttpStatus.OK);
+
         } catch (IOException e) {
             return new ResponseEntity<>("Error: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
     /* ══════════════════════════════════════════
        CRUD
        ══════════════════════════════════════════ */

@@ -51,6 +51,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/users/resend-otp").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/users/*/profile-score").authenticated()
+                        .requestMatchers("/api/users/*/uploadPhoto").permitAll()
                         .requestMatchers(
                                 "/login/oauth2/**",
                                 "/oauth2/**",
