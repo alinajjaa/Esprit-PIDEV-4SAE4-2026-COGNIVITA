@@ -1,7 +1,5 @@
-import { Component } from '@angular/core';
-import {
-  FormBuilder, FormGroup, Validators, ReactiveFormsModule
-} from '@angular/forms';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { UserService } from '../../../services/user.service';
@@ -11,6 +9,7 @@ import { UserService } from '../../../services/user.service';
   selector: 'app-login',
   templateUrl: './login.html',
   styleUrls: ['./login.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, ReactiveFormsModule, RouterModule]
 })
 export class LoginComponent {
@@ -22,7 +21,6 @@ export class LoginComponent {
   isBlocked      = false;
   showPassword   = false;
 
-  // ✅ 2FA
   showOtpStep    = false;
   pendingEmail   = '';
   otpLoading     = false;
@@ -30,14 +28,14 @@ export class LoginComponent {
   resendLoading  = false;
   resendCooldown = 0;
 
-  // Animations
-  cardShake    = false;
-  cardSuccess  = false;
+  cardShake   = false;
+  cardSuccess = false;
 
   constructor(
     private fb: FormBuilder,
     private userService: UserService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {
     this.form = this.fb.group({
       email:    ['', [Validators.required, Validators.email]],
@@ -53,14 +51,20 @@ export class LoginComponent {
   get password() { return this.form.get('password')!; }
   get otp()      { return this.otpForm.get('otp')!; }
 
+  private mark(): void {
+    this.cdr.markForCheck();
+  }
+
   private triggerShake(): void {
     this.cardShake = true;
-    setTimeout(() => this.cardShake = false, 500);
+    this.mark();
+    setTimeout(() => { this.cardShake = false; this.mark(); }, 500);
   }
 
   private triggerSuccess(): void {
     this.cardSuccess = true;
-    setTimeout(() => this.cardSuccess = false, 800);
+    this.mark();
+    setTimeout(() => { this.cardSuccess = false; this.mark(); }, 800);
   }
 
   login(): void {
@@ -70,9 +74,10 @@ export class LoginComponent {
       return;
     }
 
-    this.loading  = true;
-    this.error    = '';
+    this.loading   = true;
+    this.error     = '';
     this.isBlocked = false;
+    this.mark();
 
     this.userService.login({
       email:    this.email.value,
@@ -84,6 +89,7 @@ export class LoginComponent {
         if (res.twoFaRequired) {
           this.pendingEmail = res.email;
           this.showOtpStep  = true;
+          this.mark();
         } else {
           this.triggerSuccess();
           localStorage.setItem('jwt_token', res.token);
@@ -98,15 +104,13 @@ export class LoginComponent {
         if (err?.error?.error === 'email_not_verified') {
           this.pendingEmail = err.error.email;
           this.showOtpStep  = true;
+          this.mark();
           return;
         }
 
-        if (err.status === 403) {
-          this.isBlocked = true;
-          this.error = err?.error?.message || 'Your account has been blocked.';
-        } else {
-          this.error = err?.error?.message || 'Invalid credentials';
-        }
+        this.isBlocked = err.status === 403;
+        this.error = err?.error?.message || (this.isBlocked ? 'Your account has been blocked.' : 'Invalid credentials');
+        this.mark();
         this.triggerShake();
       }
     });
@@ -121,6 +125,7 @@ export class LoginComponent {
 
     this.otpLoading = true;
     this.otpError   = '';
+    this.mark();
 
     this.userService.verifyOtp(this.pendingEmail, this.otp.value).subscribe({
       next: (res: any) => {
@@ -134,6 +139,7 @@ export class LoginComponent {
       error: (err) => {
         this.otpLoading = false;
         this.otpError   = err?.error?.message || 'Invalid or expired code.';
+        this.mark();
         this.triggerShake();
       }
     });
@@ -142,17 +148,24 @@ export class LoginComponent {
   resendOtp(): void {
     if (this.resendCooldown > 0) return;
     this.resendLoading = true;
+    this.mark();
 
     this.userService.resendOtp(this.pendingEmail).subscribe({
       next: () => {
         this.resendLoading  = false;
         this.resendCooldown = 60;
+        this.mark();
+
         const interval = setInterval(() => {
           this.resendCooldown--;
+          this.mark();
           if (this.resendCooldown <= 0) clearInterval(interval);
         }, 1000);
       },
-      error: () => { this.resendLoading = false; }
+      error: () => {
+        this.resendLoading = false;
+        this.mark();
+      }
     });
   }
 }

@@ -218,7 +218,8 @@
           <li class="feature-item"><span class="feature-dot"></span> One step to access</li>
         </ul>
         <p class="login-prompt">
-          Wrong email? <a (click)="showOtpStep = false" style="cursor:pointer">Go back</a>
+          <!-- ✅ FIX : appelle backToRegister() au lieu de showOtpStep = false directement -->
+          Wrong email? <a (click)="backToRegister()" style="cursor:pointer">Go back</a>
         </p>
       </div>
 
@@ -282,7 +283,8 @@
           </div>
 
           <!-- Back -->
-          <button type="button" class="back-otp-btn" (click)="showOtpStep = false">
+          <!-- ✅ FIX : appelle backToRegister() -->
+          <button type="button" class="back-otp-btn" (click)="backToRegister()">
             ← Back to Register
           </button>
 

@@ -4,7 +4,6 @@
     <!-- ================= HEADER ================= -->
     <div class="profile-header">
 
-      <!-- Input file caché -->
       <input
         type="file"
         id="photoUpload"
@@ -13,42 +12,7 @@
         (change)="onFileSelected($event)"
       />
 
-      <!-- Avatar cliquable → zoom -->
-      <div class="avatar-ring"
-           (click)="openZoom()"
-           [class.clickable]="true">
-
-        <div class="avatar-inner">
-          <img
-            *ngIf="photoPreview; else avatarPlaceholder"
-            [src]="photoPreview"
-            alt="Profile photo"
-            (error)="photoPreview = ''"
-          />
-          <ng-template #avatarPlaceholder>
-            <span class="avatar-placeholder">👤</span>
-          </ng-template>
-        </div>
-
-        <!-- Overlay hover -->
-        <div class="avatar-overlay">
-          <span>🔍</span>
-        </div>
-
-      </div>
-
-      <!-- Bouton change photo sous l'avatar -->
-  
-      <!-- Nom du fichier sélectionné -->
-      <div class="file-selected" *ngIf="selectedFile">
-        <span class="file-icon">📎</span>
-        {{ selectedFile.name }}
-      </div>
-
-      <div class="profile-title">
-        {{ currentUser?.fullName || 'My Profile' }}
-      </div>
-
+      <div class="profile-title">{{ currentUser?.fullName || 'My Profile' }}</div>
       <div class="profile-subtitle">Identity Config</div>
 
       <div class="unsaved-badge" *ngIf="hasChanges || selectedFile">
@@ -60,9 +24,60 @@
     <div class="divider"></div>
 
     <!-- ================= FORM ================= -->
-    <form class="profile-form"
-          *ngIf="currentUser"
-          (ngSubmit)="saveProfile()">
+    <form class="profile-form" *ngIf="currentUser" (ngSubmit)="saveProfile()">
+
+      <!-- ── Profile Photo ── -->
+      <div class="field-group">
+        <div class="field-label">
+          <span class="label-icon">🖼️</span> Profile Photo
+        </div>
+
+        <div class="photo-field">
+
+          <!-- Clic → zoom si photo, sinon → upload -->
+          <div class="photo-edit-zone"
+               [class.has-photo]="!!photoPreview"
+               (click)="photoPreview ? openZoom() : triggerUpload()">
+
+            <ng-container *ngIf="photoPreview">
+              <img class="photo-edit-img" [src]="photoPreview" alt="preview" />
+              <div class="photo-edit-overlay">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <span>Zoom</span>
+              </div>
+            </ng-container>
+
+            <ng-container *ngIf="!photoPreview">
+              <div class="photo-empty">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+                <span>Upload Photo</span>
+              </div>
+            </ng-container>
+
+          </div>
+
+          <div class="photo-meta">
+            <div class="photo-meta-name" *ngIf="selectedFile">{{ selectedFile.name }}</div>
+            <div class="photo-meta-hint" *ngIf="!selectedFile">JPG or PNG, max 5 MB</div>
+            <button type="button" class="photo-change-btn" (click)="triggerUpload()">
+              {{ photoPreview ? 'Change photo' : 'Choose a file' }}
+            </button>
+            <button
+              *ngIf="photoPreview"
+              type="button"
+              class="photo-remove-btn"
+              (click)="removePhoto()">
+              Remove
+            </button>
+          </div>
+
+        </div>
+      </div>
 
       <!-- Full Name -->
       <div class="field-group">
@@ -100,7 +115,7 @@
         </div>
       </div>
 
-      <!-- Role (read only) -->
+      <!-- Role -->
       <div class="field-group" *ngIf="currentUser.role">
         <div class="field-label">
           <span class="label-icon">🔰</span> Access Level
@@ -110,18 +125,16 @@
         </div>
       </div>
 
-      <!-- Status message -->
+      <!-- Status -->
       <div *ngIf="statusMessage"
            class="status-msg"
            [class.success]="isSuccess"
            [class.error]="!isSuccess">
-        <span>{{ isSuccess ? '✅' : '❌' }}</span>
-        {{ statusMessage }}
+        <span>{{ isSuccess ? '✅' : '❌' }}</span> {{ statusMessage }}
       </div>
 
       <!-- Buttons -->
       <div class="btn-row">
-
         <button
           *ngIf="hasChanges || selectedFile"
           type="button"
@@ -141,56 +154,29 @@
             <span>{{ saving ? 'SAVING...' : 'SAVE CHANGES' }}</span>
           </div>
         </button>
-
       </div>
 
     </form>
 
-    <!-- Account creation date -->
     <div class="meta-row" *ngIf="currentUser?.createdAt">
-      <span>⚡</span>
-      Account created:
-      {{ currentUser.createdAt | date:'mediumDate' }}
+      <span>⚡</span> Account created: {{ currentUser.createdAt | date:'mediumDate' }}
     </div>
 
   </div>
 </div>
 
-
 <!-- ================= ZOOM MODAL ================= -->
-<div class="zoom-modal"
-     *ngIf="zoomOpen"
-     (click)="closeZoom()">
-
-  <div class="zoom-content"
-       (click)="$event.stopPropagation()">
-
-    <!-- Close -->
-    <button class="zoom-close"
-            (click)="closeZoom()">✕</button>
-
-    <!-- Image -->
-    <img
-      [src]="photoPreview"
-      class="zoom-img"
-      alt="Profile photo" />
-
-    <!-- Actions -->
+<div class="zoom-modal" *ngIf="zoomOpen" (click)="closeZoom()">
+  <div class="zoom-content" (click)="$event.stopPropagation()">
+    <button class="zoom-close" (click)="closeZoom()">✕</button>
+    <img [src]="photoPreview" class="zoom-img" alt="Profile photo" />
     <div class="zoom-actions">
-
-      <!-- Télécharger -->
-      <button class="zoom-btn download-btn"
-              (click)="downloadPhoto()">
+      <button class="zoom-btn download-btn" (click)="downloadPhoto()">
         <span>⬇️</span> Download Photo
       </button>
-
-      <!-- Changer → ferme modal + ouvre input -->
-      <button class="zoom-btn change-btn"
-              (click)="changePhoto()">
+      <button class="zoom-btn change-btn" (click)="changePhoto()">
         <span>📁</span> Change Photo
       </button>
-
     </div>
-
   </div>
 </div>
