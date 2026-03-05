@@ -251,4 +251,16 @@ verifyOtp(email: string, otp: string): Observable<any> {
 resendOtp(email: string): Observable<any> {
   return this.http.post(`${this.baseUrl}/resend-otp`, { email });
 }
+
+
+
+uploadProfileImage(userId: number, file: File): Observable<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return this.http.post(
+    `${this.baseUrl}/${userId}/uploadPhoto`,
+    formData,
+    { responseType: 'text' }
+  );
+}
 }

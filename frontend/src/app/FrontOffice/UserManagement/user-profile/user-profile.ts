@@ -1,6 +1,5 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { UserService, User } from '../../../services/user.service';
-import { FileUploadService } from '../../../services/file-upload';
 import { DatePipe, CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -23,11 +22,9 @@ export class UserProfileComponent implements OnInit {
   selectedFile: File | null = null;
 
   // URL de base pour afficher les images depuis le backend
-  private imageBaseUrl = 'http://localhost:8081/uploads/';
 
   constructor(
     private userService: UserService,
-    private fileUploadService: FileUploadService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -55,14 +52,10 @@ export class UserProfileComponent implements OnInit {
   }
 
   // Construire l'URL complète de la photo
-  getPhotoUrl(photoUrl: string): string {
-    if (!photoUrl) return '';
-    // Si l'URL est déjà complète (commence par http)
-    if (photoUrl.startsWith('http')) return photoUrl;
-    // Sinon construire l'URL complète
-    return this.imageBaseUrl + photoUrl;
-  }
-
+getPhotoUrl(photoUrl: string): string {
+  if (!photoUrl) return '';
+  return photoUrl;
+}
   onFieldChange(): void {
     this.hasChanges =
       this.currentUser.fullName !== this.originalUser.fullName ||
@@ -92,31 +85,30 @@ export class UserProfileComponent implements OnInit {
       this.doSaveProfile(); // Sauvegarde directe si pas de fichier
     }
   }
+uploadImage(): void {
+  if (!this.selectedFile) return;
 
-  uploadImage(): void {
-    if (!this.selectedFile) return;
+  this.saving = true;
+  this.statusMessage = '';
+  this.cdr.detectChanges();
 
-    this.saving = true;
-    this.statusMessage = '';
-    this.cdr.detectChanges();
-
-    this.fileUploadService.uploadProfileImage(this.currentUser.id, this.selectedFile).subscribe({
-      next: (imageUrl: string) => {
-        // imageUrl = "http://localhost:8081/uploads/fichier.png"
-        this.currentUser.photoUrl = imageUrl;
-        this.photoPreview = imageUrl; // Afficher la nouvelle photo
-        this.selectedFile = null;
-        this.hasChanges = true;
-        this.doSaveProfile(); // Sauvegarder le profil avec la nouvelle URL
-      },
-      error: (err) => {
-        this.saving = false;
-        this.statusMessage = 'Image upload failed.';
-        this.isSuccess = false;
-        this.cdr.detectChanges();
-      }
-    });
-  }
+  // ✅ Utiliser userService directement
+  this.userService.uploadProfileImage(this.currentUser.id, this.selectedFile).subscribe({
+    next: (imageUrl: string) => {
+      this.currentUser.photoUrl = imageUrl;
+      this.photoPreview = imageUrl;
+      this.selectedFile = null;
+      this.hasChanges = true;
+      this.doSaveProfile();
+    },
+    error: () => {
+      this.saving = false;
+      this.statusMessage = 'Image upload failed.';
+      this.isSuccess = false;
+      this.cdr.detectChanges();
+    }
+  });
+}
 
   private doSaveProfile(): void {
     this.saving = true;
@@ -211,12 +203,18 @@ downloadPhoto(): void {
       window.open(this.photoPreview, '_blank');
     });
 }
-
-
-
-// ✅ Déclencher l'upload depuis le modal
+// ✅ Ouvrir input directement depuis le bouton sous l'avatar
 triggerUpload(): void {
   const input = document.getElementById('photoUpload') as HTMLInputElement;
   if (input) input.click();
+}
+
+// ✅ Fermer modal puis ouvrir input
+changePhoto(): void {
+  this.closeZoom();
+  setTimeout(() => {
+    const input = document.getElementById('photoUpload') as HTMLInputElement;
+    if (input) input.click();
+  }, 300);
 }
 }

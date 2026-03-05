@@ -16,7 +16,6 @@
             alt="Profile photo"
             (error)="photoPreview = ''"
           />
-
           <ng-template #avatarPlaceholder>
             <span class="avatar-placeholder">👤</span>
           </ng-template>
@@ -26,7 +25,24 @@
         <div class="avatar-overlay" *ngIf="photoPreview">
           <span>🔍</span>
         </div>
+
       </div>
+
+      <!-- ✅ Input file caché -->
+      <input
+        type="file"
+        id="photoUpload"
+        accept="image/*"
+        style="display:none"
+        (change)="onFileSelected($event)"
+      />
+
+      <!-- ✅ Bouton changer photo sous l'avatar -->
+      <button type="button"
+              class="change-photo-btn"
+              (click)="triggerUpload()">
+        📷 Change Photo
+      </button>
 
       <div class="profile-title">
         {{ currentUser?.fullName || 'My Profile' }}
@@ -52,7 +68,6 @@
         <div class="field-label">
           <span class="label-icon">🪪</span> Full Name
         </div>
-
         <div class="field-input-wrapper">
           <input
             class="field-input"
@@ -71,7 +86,6 @@
         <div class="field-label">
           <span class="label-icon">📡</span> Email Address
         </div>
-
         <div class="field-input-wrapper">
           <input
             class="field-input"
@@ -85,13 +99,11 @@
         </div>
       </div>
 
-
       <!-- Role (read only) -->
       <div class="field-group" *ngIf="currentUser.role">
         <div class="field-label">
           <span class="label-icon">🔰</span> Access Level
         </div>
-
         <div class="role-badge">
           <span>⬡</span> {{ currentUser.role | uppercase }}
         </div>
@@ -123,7 +135,6 @@
           type="submit"
           [disabled]="saving || (!hasChanges && !selectedFile)"
           [class.inactive]="!hasChanges && !selectedFile">
-
           <div class="btn-content">
             <span>{{ saving ? '⟳' : '💾' }}</span>
             <span>{{ saving ? 'SAVING...' : 'SAVE CHANGES' }}</span>
@@ -171,8 +182,9 @@
         <span>⬇️</span> Download Photo
       </button>
 
+      <!-- ✅ Change Photo → ferme modal + ouvre input -->
       <button class="zoom-btn change-btn"
-              (click)="closeZoom(); triggerUpload()">
+              (click)="changePhoto()">
         <span>📁</span> Change Photo
       </button>
 
