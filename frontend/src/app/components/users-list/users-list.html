@@ -6,185 +6,178 @@
   <span>{{ toast.message }}</span>
 </div>
 
-<div class="users-list-wrapper">
+<div class="dashboard-wrapper">
 
-  <!-- ── Stats Dashboard ────────────────────────── -->
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-value cyan">{{ totalUsers }}</div>
-      <div class="stat-label">Total Users</div>
+  <!-- ══ TOP BAR ══ -->
+  <div class="dash-topbar">
+    <div class="dash-topbar-left">
+      <span class="dash-logo">🧠</span>
+      <div>
+        <div class="dash-title">Users Management</div>
+        <div class="dash-subtitle">Monitor and control all accounts</div>
+      </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-value gold">{{ totalAdmins }}</div>
-      <div class="stat-label">Admins</div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-value red">{{ totalBlocked }}</div>
-      <div class="stat-label">Blocked</div>
+    <div class="dash-topbar-right">
+      <button class="btn-export" (click)="exportPdf()">
+        <span>📄</span> Export PDF
+      </button>
     </div>
   </div>
 
-  <!-- ── Toolbar ────────────────────────────────── -->
+  <!-- ══ STATS ══ -->
+  <div class="stats-grid">
+    <div class="stat-card stat-cyan">
+      <div class="stat-card-inner">
+        <div class="stat-icon">👥</div>
+        <div class="stat-data">
+          <div class="stat-value">{{ totalUsers }}</div>
+          <div class="stat-label">Total Users</div>
+        </div>
+      </div>
+      <div class="stat-bar" [style.width.%]="100"></div>
+    </div>
+    <div class="stat-card stat-gold">
+      <div class="stat-card-inner">
+        <div class="stat-icon">🔰</div>
+        <div class="stat-data">
+          <div class="stat-value">{{ totalAdmins }}</div>
+          <div class="stat-label">Admins</div>
+        </div>
+      </div>
+      <div class="stat-bar" [style.width.%]="totalUsers ? (totalAdmins / totalUsers) * 100 : 0"></div>
+    </div>
+    <div class="stat-card stat-green">
+      <div class="stat-card-inner">
+        <div class="stat-icon">✅</div>
+        <div class="stat-data">
+          <div class="stat-value">{{ totalUsers - totalBlocked }}</div>
+          <div class="stat-label">Active</div>
+        </div>
+      </div>
+      <div class="stat-bar" [style.width.%]="totalUsers ? ((totalUsers - totalBlocked) / totalUsers) * 100 : 0"></div>
+    </div>
+    <div class="stat-card stat-red">
+      <div class="stat-card-inner">
+        <div class="stat-icon">🔒</div>
+        <div class="stat-data">
+          <div class="stat-value">{{ totalBlocked }}</div>
+          <div class="stat-label">Blocked</div>
+        </div>
+      </div>
+      <div class="stat-bar" [style.width.%]="totalUsers ? (totalBlocked / totalUsers) * 100 : 0"></div>
+    </div>
+  </div>
+
+  <!-- ══ TOOLBAR ══ -->
   <div class="list-toolbar">
     <div class="toolbar-left">
-      <span class="list-title">
-        <span class="title-icon">👥</span>
-        <span>Users Management</span>
-      </span>
       <span class="user-count-badge">{{ filteredUsers.length }} users</span>
     </div>
     <div class="toolbar-right">
-
-      <!-- Search -->
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
-        <input class="search-input" type="text" placeholder="Search..." [(ngModel)]="searchQuery"
-          (input)="filterUsers()" />
+        <input class="search-input" type="text" placeholder="Search name, email..."
+          [(ngModel)]="searchQuery" (input)="filterUsers()" />
       </div>
-
-      <!-- Role filter -->
       <select class="filter-select" [(ngModel)]="roleFilter" (change)="applyFilters()">
         <option value="ALL">All Roles</option>
         <option value="USER">User</option>
         <option value="ADMIN">Admin</option>
       </select>
-
-      <!-- Status filter -->
       <select class="filter-select" [(ngModel)]="statusFilter" (change)="applyFilters()">
         <option value="ALL">All Status</option>
         <option value="ACTIVE">Active</option>
         <option value="BLOCKED">Blocked</option>
       </select>
-
-      <!-- Export PDF -->
-      <button class="btn-export" (click)="exportPdf()" title="Export PDF">
-        📄 Export PDF
-      </button>
-
     </div>
   </div>
 
-  <!-- Empty -->
+  <!-- ══ EMPTY ══ -->
   <div *ngIf="filteredUsers.length === 0" class="empty-state">
     <span class="empty-icon">{{ searchQuery ? '🔍' : '📭' }}</span>
     <p class="empty-title">{{ searchQuery ? 'No results for "' + searchQuery + '"' : 'No users found' }}</p>
   </div>
 
-  <!-- ── Table ──────────────────────────────────── -->
-  <div *ngIf="filteredUsers.length > 0" class="table-container">
-    <table class="users-table">
-      <thead>
-        <tr>
-          <th>User</th>
-          <th class="hide-sm">Email</th>
-          <th>Role</th>
-          <th class="hide-sm">Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let user of paginatedUsers; let i = index" class="user-row" [class.row-blocked]="user.blocked"
-          [style.animation-delay]="i * 0.04 + 's'">
+  <!-- ══ CARDS GRID ══ -->
+  <div class="users-grid" *ngIf="filteredUsers.length > 0">
+    <div class="user-card"
+         *ngFor="let user of paginatedUsers; let i = index"
+         [class.card-blocked]="user.blocked"
+         [style.animation-delay]="i * 0.06 + 's'">
 
-          <!-- ID -->
+      <div class="card-ribbon" *ngIf="user.blocked">BLOCKED</div>
 
-          <!-- User -->
-          <td>
-            <div class="user-info">
-              <div class="user-avatar" [style.background]="getAvatarColor(user.fullName)"
-                (click)="user.photoUrl && openZoom(user)" [class.clickable]="user.photoUrl">
-                <img *ngIf="user.photoUrl" [src]="user.photoUrl" alt="avatar" (error)="onImgError($event)" />
-                <span *ngIf="!user.photoUrl">{{ user.fullName?.charAt(0)?.toUpperCase() }}</span>
-                <!-- Overlay hover -->
-                <div class="avatar-overlay" *ngIf="user.photoUrl">
-                  <span>🔍</span>
-                </div>
-              </div>
-              <div class="user-details">
-                <span class="user-name">{{ user.fullName }}</span>
-                <span class="user-email-small">{{ user.email }}</span>
-              </div>
-            </div>
-          </td>
+      <div class="card-avatar-wrap">
+        <div class="card-avatar"
+             [style.background]="getAvatarColor(user.fullName)"
+             (click)="user.photoUrl && openZoom(user)"
+             [class.clickable]="user.photoUrl">
+          <img *ngIf="user.photoUrl" [src]="user.photoUrl" alt="avatar" (error)="onImgError($event)" />
+          <span *ngIf="!user.photoUrl">{{ user.fullName?.charAt(0)?.toUpperCase() }}</span>
+          <div class="card-avatar-overlay" *ngIf="user.photoUrl"><span>🔍</span></div>
+        </div>
+        <span class="card-status-dot"
+              [class.dot-active]="!user.blocked"
+              [class.dot-blocked]="user.blocked">
+        </span>
+      </div>
 
-          <!-- Email -->
-          <td class="hide-sm">
-            <a class="email-link" href="mailto:{{ user.email }}">{{ user.email }}</a>
-          </td>
+      <div class="card-info">
+        <div class="card-name">{{ user.fullName }}</div>
+        <div class="card-email">{{ user.email }}</div>
+        <div class="card-meta">
+          <div *ngIf="editingRoleId !== user.id">
+            <span class="role-badge" [ngClass]="'role-' + user.role?.toLowerCase()">{{ user.role }}</span>
+            <button class="btn-edit-role" (click)="startEditRole(user)" title="Change role">✏️</button>
+          </div>
+          <div *ngIf="editingRoleId === user.id" class="role-select-wrap">
+            <select class="role-select-inline" [value]="user.role"
+              (change)="changeRole(user, $any($event.target).value)">
+              <option value="USER">USER</option>
+              <option value="ADMIN">ADMIN</option>
+            </select>
+            <button class="btn-cancel-role" (click)="cancelEditRole()">✕</button>
+          </div>
+          <span class="card-joined" *ngIf="user.createdAt">
+            🗓 {{ user.createdAt | date:'MMM d, y' }}
+          </span>
+        </div>
+      </div>
 
-          <!-- Role — inline edit -->
-          <td>
-            <div *ngIf="editingRoleId !== user.id">
-              <span class="role-badge" [ngClass]="'role-' + user.role?.toLowerCase()">
-                {{ user.role }}
-              </span>
-              <button class="btn-edit-role" (click)="startEditRole(user)" title="Change role">✏️</button>
-            </div>
-            <div *ngIf="editingRoleId === user.id" class="role-select-wrap">
-              <select class="role-select-inline" [value]="user.role"
-                (change)="changeRole(user, $any($event.target).value)">
-                <option value="USER">USER</option>
-                <option value="ADMIN">ADMIN</option>
-              </select>
-              <button class="btn-cancel-role" (click)="cancelEditRole()">✕</button>
-            </div>
-          </td>
+      <div class="card-divider"></div>
 
-          <!-- Status -->
-          <td class="hide-sm">
-            <span class="status-badge" [ngClass]="user.blocked ? 'status-blocked' : 'status-active'">
-              <span class="status-dot"></span>
-              {{ user.blocked ? 'Blocked' : 'Active' }}
-            </span>
-          </td>
+      <div class="card-actions">
+        <button *ngIf="!user.blocked" class="btn-action btn-block"
+          (click)="confirmBlock(user)" [disabled]="blockingId === user.id">
+          <span>{{ blockingId === user.id ? '⟳' : '🔒' }}</span>
+          <span>Block</span>
+        </button>
+        <button *ngIf="user.blocked" class="btn-action btn-unblock"
+          (click)="unblockUser(user)" [disabled]="blockingId === user.id">
+          <span>{{ blockingId === user.id ? '⟳' : '🔓' }}</span>
+          <span>Unblock</span>
+        </button>
+      </div>
 
-          <!-- Actions -->
-          <td>
-            <div class="action-buttons">
-
-              <!-- 🔒 Block -->
-              <button *ngIf="!user.blocked" class="btn-action btn-block" (click)="confirmBlock(user)"
-                [disabled]="blockingId === user.id" title="Block user">
-                <span>{{ blockingId === user.id ? '⟳' : '🔒' }}</span>
-                <span class="btn-label">Block</span>
-              </button>
-
-              <!-- 🔓 Unblock -->
-              <button *ngIf="user.blocked" class="btn-action btn-unblock" (click)="unblockUser(user)"
-                [disabled]="blockingId === user.id" title="Unblock user">
-                <span>{{ blockingId === user.id ? '⟳' : '🔓' }}</span>
-                <span class="btn-label">Unblock</span>
-              </button>
-
-
-
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
-    <!-- ── Pagination ──────────────────────────── -->
-    <div class="pagination" *ngIf="totalPages > 1">
-      <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">‹</button>
-      <button class="page-btn" *ngFor="let p of pageNumbers" [class.active]="p === currentPage" (click)="goToPage(p)">{{
-        p }}</button>
-      <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">›</button>
     </div>
-
   </div>
+
+  <!-- ══ PAGINATION ══ -->
+  <div class="pagination" *ngIf="totalPages > 1">
+    <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">‹</button>
+    <button class="page-btn" *ngFor="let p of pageNumbers"
+      [class.active]="p === currentPage" (click)="goToPage(p)">{{ p }}</button>
+    <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">›</button>
+  </div>
+
 </div>
 
-<!-- ── Block Confirm Modal ─────────────────────── -->
+<!-- ══ BLOCK MODAL ══ -->
 <div class="modal-backdrop" *ngIf="userToBlock" (click)="cancelBlock()">
   <div class="confirm-modal modal-warning" (click)="$event.stopPropagation()">
     <div class="modal-icon">🔒</div>
     <h3 class="modal-title">Block User</h3>
-    <p class="modal-body">
-      You are about to block <strong>{{ userToBlock?.fullName }}</strong>.<br />
-      They will no longer be able to log in.
-    </p>
+    <p class="modal-body">You are about to block <strong>{{ userToBlock?.fullName }}</strong>.<br/>They will no longer be able to log in.</p>
     <div class="modal-actions">
       <button class="btn-cancel" (click)="cancelBlock()">Cancel</button>
       <button class="btn-confirm-block" (click)="blockUser(userToBlock!)">🔒 Block</button>
@@ -192,34 +185,28 @@
   </div>
 </div>
 
-<!-- ── Delete Confirm Modal ────────────────────── -->
+<!-- ══ DELETE MODAL ══ -->
 <div class="modal-backdrop" *ngIf="userToDelete" (click)="cancelDelete()">
   <div class="confirm-modal modal-danger" (click)="$event.stopPropagation()">
     <div class="modal-icon">⚠️</div>
     <h3 class="modal-title">Delete User</h3>
-    <p class="modal-body">
-      You are about to delete <strong>{{ userToDelete?.fullName }}</strong>.<br />
-      This action cannot be undone.
-    </p>
+    <p class="modal-body">You are about to delete <strong>{{ userToDelete?.fullName }}</strong>.<br/>This action cannot be undone.</p>
     <div class="modal-actions">
       <button class="btn-cancel" (click)="cancelDelete()">Cancel</button>
       <button class="btn-confirm-delete" (click)="deleteUser(userToDelete!.id!)">🗑️ Delete</button>
     </div>
   </div>
 </div>
-<!-- ── Zoom Modal ─────────────────────────────── -->
+
+<!-- ══ ZOOM MODAL ══ -->
 <div class="zoom-modal" *ngIf="zoomOpen" (click)="closeZoom()">
   <div class="zoom-content" (click)="$event.stopPropagation()">
-
     <button class="zoom-close" (click)="closeZoom()">✕</button>
-
-<img [src]="zoomedPhotoUrl" class="zoom-img" alt="Profile photo" 
-     style="image-rendering: auto; width: 100%; max-width: 400px; height: auto;" />
+    <img [src]="zoomedPhotoUrl" class="zoom-img" alt="Profile photo" />
     <div class="zoom-actions">
       <button class="zoom-btn download-btn" (click)="downloadPhoto()">
         <span>⬇️</span> Download Photo
       </button>
     </div>
-
   </div>
 </div>
