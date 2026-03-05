@@ -12,7 +12,6 @@ import esprit.edu.userservice1.services.EmailService;
 import esprit.edu.userservice1.services.TwoFaService;
 import esprit.edu.userservice1.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,12 +19,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
+
 import java.util.List;
 import java.util.Map;
 
@@ -43,8 +38,7 @@ public class UserController {
     private TwoFaService twoFaService;
     @Autowired
     private CloudinaryService cloudinaryService;
-    @Value("${file.upload-dir}")
-    private String uploadDir;
+
 
     public UserController(UserService service, JwtService jwtService,
                           PasswordEncoder passwordEncoder, EmailService emailService) {

@@ -707,3 +707,30 @@ body {
   font-size: 1rem;
   flex-shrink: 0;
 }
+/* ─── Change Photo Button ───────────────────────────── */
+.change-photo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 18px;
+  background: rgba(0, 255, 255, 0.06);
+  border: 1px dashed rgba(0, 255, 255, 0.35);
+  border-radius: 20px;
+  color: var(--text-muted);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.change-photo-btn:hover {
+  background: rgba(0, 255, 255, 0.12);
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: 0 0 16px rgba(0, 255, 255, 0.15);
+  transform: translateY(-1px);
+}

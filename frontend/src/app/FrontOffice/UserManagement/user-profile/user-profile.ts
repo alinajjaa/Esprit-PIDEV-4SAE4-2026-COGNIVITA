@@ -203,18 +203,18 @@ downloadPhoto(): void {
       window.open(this.photoPreview, '_blank');
     });
 }
-// ✅ Ouvrir input directement depuis le bouton sous l'avatar
+// Ouvrir input depuis bouton sous avatar
 triggerUpload(): void {
   const input = document.getElementById('photoUpload') as HTMLInputElement;
   if (input) input.click();
 }
 
-// ✅ Fermer modal puis ouvrir input
+// Fermer modal + ouvrir input
 changePhoto(): void {
   this.closeZoom();
   setTimeout(() => {
     const input = document.getElementById('photoUpload') as HTMLInputElement;
     if (input) input.click();
   }, 300);
-}
+};
 }

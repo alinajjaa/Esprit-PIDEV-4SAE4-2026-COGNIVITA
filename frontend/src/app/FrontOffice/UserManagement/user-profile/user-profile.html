@@ -4,10 +4,19 @@
     <!-- ================= HEADER ================= -->
     <div class="profile-header">
 
-      <!-- Avatar avec zoom -->
+      <!-- Input file caché -->
+      <input
+        type="file"
+        id="photoUpload"
+        accept="image/*"
+        style="display:none"
+        (change)="onFileSelected($event)"
+      />
+
+      <!-- Avatar cliquable → zoom -->
       <div class="avatar-ring"
            (click)="openZoom()"
-           [class.clickable]="photoPreview">
+           [class.clickable]="true">
 
         <div class="avatar-inner">
           <img
@@ -22,27 +31,19 @@
         </div>
 
         <!-- Overlay hover -->
-        <div class="avatar-overlay" *ngIf="photoPreview">
+        <div class="avatar-overlay">
           <span>🔍</span>
         </div>
 
       </div>
 
-      <!-- ✅ Input file caché -->
-      <input
-        type="file"
-        id="photoUpload"
-        accept="image/*"
-        style="display:none"
-        (change)="onFileSelected($event)"
-      />
-
-      <!-- ✅ Bouton changer photo sous l'avatar -->
-      <button type="button"
-              class="change-photo-btn"
-              (click)="triggerUpload()">
-        📷 Change Photo
-      </button>
+      <!-- Bouton change photo sous l'avatar -->
+  
+      <!-- Nom du fichier sélectionné -->
+      <div class="file-selected" *ngIf="selectedFile">
+        <span class="file-icon">📎</span>
+        {{ selectedFile.name }}
+      </div>
 
       <div class="profile-title">
         {{ currentUser?.fullName || 'My Profile' }}
@@ -50,7 +51,7 @@
 
       <div class="profile-subtitle">Identity Config</div>
 
-      <div class="unsaved-badge" *ngIf="hasChanges">
+      <div class="unsaved-badge" *ngIf="hasChanges || selectedFile">
         <span>●</span> Unsaved changes
       </div>
 
@@ -177,12 +178,13 @@
     <!-- Actions -->
     <div class="zoom-actions">
 
+      <!-- Télécharger -->
       <button class="zoom-btn download-btn"
               (click)="downloadPhoto()">
         <span>⬇️</span> Download Photo
       </button>
 
-      <!-- ✅ Change Photo → ferme modal + ouvre input -->
+      <!-- Changer → ferme modal + ouvre input -->
       <button class="zoom-btn change-btn"
               (click)="changePhoto()">
         <span>📁</span> Change Photo
