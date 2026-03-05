@@ -190,7 +190,11 @@ loadCurrentUser(): Observable<User> {
   isAdmin(): boolean {
     return this.getCurrentUser()?.role === 'ADMIN';
   }
-
+setSession(token: string, user: User): void {
+  localStorage.setItem(this.tokenKey, token);
+  localStorage.setItem(this.userKey, JSON.stringify(user));
+  this.currentUserSubject.next(user);
+}
   private loadUserFromStorage(): User | null {
     const raw = localStorage.getItem(this.userKey);
     return raw ? JSON.parse(raw) : null;

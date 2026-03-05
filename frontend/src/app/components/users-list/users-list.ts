@@ -15,22 +15,23 @@ export class UsersListComponent implements OnChanges {
   @Input() users: User[] = [];
 
   filteredUsers: User[] = [];
-  searchQuery = '';
-  roleFilter = 'ALL';
-  statusFilter = 'ALL';
-  error = '';
+  searchQuery    = '';
+  roleFilter     = 'ALL';
+  statusFilter   = 'ALL';
+  searchFocused  = false;   // ← new: drives search-box focused class
+  error          = '';
 
   // Modals
   userToDelete: User | null = null;
-  userToBlock: User | null = null;
+  userToBlock:  User | null = null;
 
   // Loading states
   promotingId: number | null = null;
-  blockingId: number | null = null;
+  blockingId:  number | null = null;
 
   // Pagination
   currentPage = 1;
-  pageSize = 5;
+  pageSize    = 8;
 
   // Toast
   toast: { message: string; type: 'success' | 'error' | 'warning' } | null = null;
@@ -39,9 +40,14 @@ export class UsersListComponent implements OnChanges {
   // Inline role edit
   editingRoleId: number | null = null;
 
-  private avatarColors = [
-    '#00ffff', '#ff00ff', '#00ff88', '#ffd700',
-    '#ff6b6b', '#4ecdc4', '#a855f7', '#f97316'
+  // Zoom modal
+  zoomOpen       = false;
+  zoomedPhotoUrl = '';
+  zoomedUserName = '';
+
+  private readonly avatarColors = [
+    '#22d3ee', '#f59e0b', '#10b981', '#818cf8',
+    '#f43f5e', '#fb923c', '#a78bfa', '#34d399'
   ];
 
   constructor(
@@ -56,9 +62,8 @@ export class UsersListComponent implements OnChanges {
   }
 
   // ── STATS ──────────────────────────────────────
-  get totalUsers(): number { return this.users.length; }
-  get totalAdmins(): number { return this.users.filter(u => u.role === 'ADMIN').length; }
-  get totalDoctors(): number { return this.users.filter(u => u.role === 'DOCTOR').length; }
+  get totalUsers():   number { return this.users.length; }
+  get totalAdmins():  number { return this.users.filter(u => u.role === 'ADMIN').length; }
   get totalBlocked(): number { return this.users.filter(u => u.blocked).length; }
 
   // ── FILTERS ────────────────────────────────────
@@ -85,14 +90,16 @@ export class UsersListComponent implements OnChanges {
     }
 
     this.filteredUsers = result;
-    this.currentPage = 1;
+    this.currentPage   = 1;
     this.cdr.detectChanges();
   }
 
   filterUsers(): void { this.applyFilters(); }
 
   // ── PAGINATION ─────────────────────────────────
-  get totalPages(): number { return Math.ceil(this.filteredUsers.length / this.pageSize); }
+  get totalPages(): number {
+    return Math.ceil(this.filteredUsers.length / this.pageSize);
+  }
   get paginatedUsers(): User[] {
     const start = (this.currentPage - 1) * this.pageSize;
     return this.filteredUsers.slice(start, start + this.pageSize);
@@ -119,12 +126,12 @@ export class UsersListComponent implements OnChanges {
   }
 
   // ── INLINE ROLE EDIT ───────────────────────────
-  startEditRole(user: User): void { this.editingRoleId = user.id; }
-  cancelEditRole(): void { this.editingRoleId = null; }
+  startEditRole(user: User): void  { this.editingRoleId = user.id; }
+  cancelEditRole(): void           { this.editingRoleId = null; }
 
   changeRole(user: User, newRole: string): void {
     if (newRole === user.role) { this.editingRoleId = null; return; }
-    this.promotingId = user.id;
+    this.promotingId  = user.id;
     this.editingRoleId = null;
 
     this.userService.update(user.id, { ...user, role: newRole }).subscribe({
@@ -143,10 +150,10 @@ export class UsersListComponent implements OnChanges {
 
   // ── BLOCK / UNBLOCK ────────────────────────────
   confirmBlock(user: User): void { this.userToBlock = user; }
-  cancelBlock(): void { this.userToBlock = null; }
+  cancelBlock():  void           { this.userToBlock = null; }
 
   blockUser(user: User): void {
-    this.blockingId = user.id;
+    this.blockingId  = user.id;
     this.userToBlock = null;
 
     this.userService.blockUser(user.id).subscribe({
@@ -182,13 +189,13 @@ export class UsersListComponent implements OnChanges {
 
   // ── DELETE ─────────────────────────────────────
   confirmDelete(user: User): void { this.userToDelete = user; }
-  cancelDelete(): void { this.userToDelete = null; }
+  cancelDelete():  void           { this.userToDelete = null; }
 
   deleteUser(userId: number): void {
     const name = this.userToDelete?.fullName;
     this.userService.delete(userId).subscribe({
       next: () => {
-        this.users = this.users.filter(u => u.id !== userId);
+        this.users        = this.users.filter(u => u.id !== userId);
         this.userToDelete = null;
         this.showToast(`${name} has been deleted`, 'warning');
         this.applyFilters();
@@ -202,133 +209,156 @@ export class UsersListComponent implements OnChanges {
 
   // ── EXPORT PDF ─────────────────────────────────
   async exportPdf(): Promise<void> {
-    const { jsPDF } = await import('jspdf');
-    const autoTable = (await import('jspdf-autotable')).default;
+    const { jsPDF }   = await import('jspdf');
+    const autoTable   = (await import('jspdf-autotable')).default;
 
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const doc   = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
     const pageH = doc.internal.pageSize.getHeight();
-    const now = new Date();
+    const now   = new Date();
 
-    // ── Background ──
-    doc.setFillColor(10, 10, 26);
+    // Background
+    doc.setFillColor(8, 12, 20);
     doc.rect(0, 0, pageW, pageH, 'F');
 
-    // ── Header bar ──
-    doc.setFillColor(0, 30, 40);
+    // Header bar
+    doc.setFillColor(13, 20, 32);
     doc.rect(0, 0, pageW, 28, 'F');
 
-    // ── Accent line ──
-    doc.setDrawColor(0, 255, 255);
-    doc.setLineWidth(0.8);
+    // Accent line
+    doc.setDrawColor(34, 211, 238);
+    doc.setLineWidth(0.6);
     doc.line(0, 28, pageW, 28);
 
-    // ── Title ──
+    // Brand
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(18);
-    doc.setTextColor(0, 255, 255);
-    doc.text('COGNIVITA', 14, 12);
+    doc.setFontSize(16);
+    doc.setTextColor(34, 211, 238);
+    doc.text('COGNIVITA', 14, 11);
 
-    doc.setFontSize(10);
-    doc.setTextColor(180, 220, 255);
+    doc.setFontSize(9);
+    doc.setTextColor(140, 180, 220);
     doc.text('Users Management Report', 14, 20);
 
-    // ── Date ──
+    // Date
     doc.setFontSize(8);
-    doc.setTextColor(100, 160, 200);
-    doc.text(`Generated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`, pageW - 14, 12, { align: 'right' });
-    doc.text(`Total: ${this.filteredUsers.length} users`, pageW - 14, 20, { align: 'right' });
+    doc.setTextColor(80, 130, 170);
+    doc.text(`Generated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`, pageW - 14, 11, { align: 'right' });
+    doc.text(`${this.filteredUsers.length} users exported`, pageW - 14, 20, { align: 'right' });
 
-    // ── Stats row ──
+    // Stats cards
     const stats = [
-      { label: 'Total Users', value: this.totalUsers, color: [0, 255, 255] },
-      { label: 'Admins', value: this.totalAdmins, color: [255, 215, 0] },
-      { label: 'Blocked', value: this.totalBlocked, color: [255, 50, 80] },
+      { label: 'Total Users', value: this.totalUsers,   color: [34, 211, 238] as [number,number,number] },
+      { label: 'Admins',      value: this.totalAdmins,  color: [245, 158, 11] as [number,number,number] },
+      { label: 'Blocked',     value: this.totalBlocked, color: [244, 63, 94]  as [number,number,number] },
     ];
-
-    const boxW = 50, boxH = 16, startX = 14, startY = 34, gap = 56;
+    const bW = 48, bH = 15, sX = 14, sY = 34, gap = 54;
     stats.forEach((s, i) => {
-      const x = startX + i * gap;
-      doc.setFillColor(0, 20, 30);
-      doc.setDrawColor(s.color[0], s.color[1], s.color[2]);
-      doc.setLineWidth(0.4);
-      doc.roundedRect(x, startY, boxW, boxH, 3, 3, 'FD');
+      const x = sX + i * gap;
+      doc.setFillColor(0, 15, 25);
+      doc.setDrawColor(...s.color);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(x, sY, bW, bH, 2.5, 2.5, 'FD');
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.setTextColor(s.color[0], s.color[1], s.color[2]);
-      doc.text(String(s.value), x + boxW / 2, startY + 9, { align: 'center' });
+      doc.setFontSize(13);
+      doc.setTextColor(...s.color);
+      doc.text(String(s.value), x + bW / 2, sY + 8.5, { align: 'center' });
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      doc.setTextColor(100, 160, 200);
-      doc.text(s.label, x + boxW / 2, startY + 14, { align: 'center' });
+      doc.setFontSize(6.5);
+      doc.setTextColor(80, 130, 170);
+      doc.text(s.label, x + bW / 2, sY + 13, { align: 'center' });
     });
 
-    // ── Table ──
-    const tableData = this.filteredUsers.map(u => [
-
+    // Table
+    const rows = this.filteredUsers.map(u => [
       u.fullName || '-',
-      u.email,
-      u.role,
+      u.email    || '-',
+      u.role     || '-',
       u.blocked ? 'Blocked' : 'Active',
       u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '-'
     ]);
 
     autoTable(doc, {
-      startY: 56,
-      head: [[ 'Full Name', 'Email', 'Role', 'Status', 'Created At']],
-      body: tableData,
-      theme: 'plain',
+      startY: 55,
+      head:   [['Full Name', 'Email', 'Role', 'Status', 'Created At']],
+      body:   rows,
+      theme:  'plain',
       styles: {
-        font: 'helvetica',
-        fontSize: 9,
-        textColor: [176, 224, 255],
+        font: 'helvetica', fontSize: 9,
+        textColor:   [176, 224, 255],
         cellPadding: { top: 4, bottom: 4, left: 6, right: 6 },
-        lineColor: [0, 50, 70],
-        lineWidth: 0.3,
-        fillColor: [10, 10, 26],
+        lineColor:   [0, 40, 60],
+        lineWidth:   0.25,
+        fillColor:   [8, 12, 20],
       },
       headStyles: {
-        fillColor: [0, 30, 50],
-        textColor: [0, 255, 255],
-        fontStyle: 'bold',
-        fontSize: 9,
-        lineColor: [0, 255, 255],
-        lineWidth: 0.4,
+        fillColor:  [13, 24, 40],
+        textColor:  [34, 211, 238],
+        fontStyle:  'bold',
+        fontSize:   8.5,
+        lineColor:  [34, 211, 238],
+        lineWidth:  0.4,
       },
-      alternateRowStyles: {
-        fillColor: [0, 15, 25],
+      alternateRowStyles: { fillColor: [0, 10, 18] },
+      didParseCell: (data: any) => {
+        if (data.section !== 'body') return;
+        if (data.column.index === 3) {
+          data.cell.styles.textColor = data.cell.raw === 'Blocked'
+            ? [244, 63, 94] : [16, 185, 129];
+        }
+        if (data.column.index === 2) {
+          data.cell.styles.textColor = data.cell.raw === 'ADMIN'
+            ? [245, 158, 11] : [34, 211, 238];
+        }
       },
-didParseCell: (data: any) => {
-  // Status — colonne index 3 (was 4)
-  if (data.column.index === 3 && data.section === 'body') {
-    if (data.cell.raw === 'Blocked') {
-      data.cell.styles.textColor = [255, 50, 80];
-    } else {
-      data.cell.styles.textColor = [0, 255, 136];
-    }
-  }
-  // Role — colonne index 2 (was 3)
-  if (data.column.index === 2 && data.section === 'body') {
-    if (data.cell.raw === 'ADMIN') data.cell.styles.textColor = [255, 215, 0];
-    else data.cell.styles.textColor = [0, 200, 255];
-  }
-},
     });
 
-    // ── Footer ──
-    const finalY = (doc as any).lastAutoTable?.finalY || pageH - 20;
-    doc.setDrawColor(0, 255, 255);
-    doc.setLineWidth(0.3);
-    doc.line(14, pageH - 10, pageW - 14, pageH - 10);
+    // Footer
+    doc.setDrawColor(34, 211, 238);
+    doc.setLineWidth(0.25);
+    doc.line(14, pageH - 9, pageW - 14, pageH - 9);
     doc.setFontSize(7);
-    doc.setTextColor(60, 120, 160);
-    doc.text('COGNIVITA — Confidential Report', 14, pageH - 6);
-    doc.text(`Page 1`, pageW - 14, pageH - 6, { align: 'right' });
+    doc.setTextColor(50, 100, 140);
+    doc.text('COGNIVITA — Confidential Report', 14, pageH - 5);
+    doc.text('Page 1', pageW - 14, pageH - 5, { align: 'right' });
 
     doc.save(`cognivita-users-${now.toISOString().slice(0, 10)}.pdf`);
     this.showToast('PDF exported successfully!', 'success');
+  }
+
+  // ── ZOOM MODAL ─────────────────────────────────
+  openZoom(user: any): void {
+    this.zoomedPhotoUrl = user.photoUrl;
+    this.zoomedUserName = user.fullName;
+    this.zoomOpen       = true;
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeZoom(): void {
+    this.zoomOpen       = false;
+    this.zoomedPhotoUrl = '';
+    document.body.style.overflow = '';
+  }
+
+  downloadPhoto(): void {
+    if (!this.zoomedPhotoUrl) return;
+    const fileName = `cognivita-profile-${this.zoomedUserName ?? 'photo'}.jpg`;
+
+    fetch(this.zoomedPhotoUrl)
+      .then(res => res.blob())
+      .then(blob => {
+        const url  = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href  = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      })
+      .catch(() => window.open(this.zoomedPhotoUrl, '_blank'));
   }
 
   // ── HELPERS ────────────────────────────────────
@@ -344,46 +374,4 @@ didParseCell: (data: any) => {
     if (!name) return this.avatarColors[0];
     return this.avatarColors[name.charCodeAt(0) % this.avatarColors.length];
   }
-
-
-  zoomOpen = false;
-zoomedPhotoUrl = '';
-zoomedUserName = '';
-
-openZoom(user: any): void {
-  this.zoomedPhotoUrl = user.photoUrl;
-  this.zoomedUserName = user.fullName;
-  this.zoomOpen = true;
-  document.body.style.overflow = 'hidden';
 }
-
-closeZoom(): void {
-  this.zoomOpen = false;
-  this.zoomedPhotoUrl = '';
-  document.body.style.overflow = '';
-}
-
-downloadPhoto(): void {
-  if (!this.zoomedPhotoUrl) return;
-
-  const fileName = `cognivita-profile-${this.zoomedUserName ?? 'photo'}.jpg`;
-
-  fetch(this.zoomedPhotoUrl)
-    .then(res => res.blob())
-    .then(blob => {
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
-    })
-    .catch(() => {
-      window.open(this.zoomedPhotoUrl, '_blank');
-    });
-}
-}
-//1497995858558203
-//d3e6322456486e9a4f6bbb0551f2da2c

@@ -20,7 +20,7 @@ public class CloudinaryService {
         Map result = cloudinary.uploader().upload(
                 file.getBytes(),
                 ObjectUtils.asMap(
-                        "folder", "cognivi/users",
+                        "folder", "cognivita/users",
                         "resource_type", "auto"
                 )
         );

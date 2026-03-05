@@ -12,7 +12,7 @@ import { UserService } from '../../../services/user.service';
 
 function passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
   const password = control.get('password');
-  const confirm  = control.get('confirmPassword');
+  const confirm = control.get('confirmPassword');
   if (password && confirm && password.value !== confirm.value) {
     confirm.setErrors({ mismatch: true });
     return { mismatch: true };
@@ -33,26 +33,26 @@ export class RegisterComponent {
   otpForm: FormGroup;
 
   // États
-  loading          = false;
-  error            = '';
-  success          = '';
-  showPassword     = false;
-  showConfirm      = false;
+  loading = false;
+  error = '';
+  success = '';
+  showPassword = false;
+  showConfirm = false;
 
   // ✅ Étape OTP
-  showOtpStep      = false;
-  pendingEmail     = '';
-  otpLoading       = false;
-  otpError         = '';
-  resendLoading    = false;
-  resendCooldown   = 0;
+  showOtpStep = false;
+  pendingEmail = '';
+  otpLoading = false;
+  otpError = '';
+  resendLoading = false;
+  resendCooldown = 0;
 
   // Animations
-  wrapperShake     = false;
-  wrapperSuccess   = false;
+  wrapperShake = false;
+  wrapperSuccess = false;
 
   // Password strength
-  passwordStrength      = 0;
+  passwordStrength = 0;
   passwordStrengthLabel = '';
   passwordStrengthColor = '';
 
@@ -62,13 +62,13 @@ export class RegisterComponent {
     private router: Router
   ) {
     this.form = this.fb.group({
-      firstName:       ['', [Validators.required, Validators.minLength(2)]],
-      lastName:        ['', [Validators.required, Validators.minLength(2)]],
-      email:           ['',
+      firstName: ['', [Validators.required, Validators.minLength(2)]],
+      lastName: ['', [Validators.required, Validators.minLength(2)]],
+      email: ['',
         [Validators.required, Validators.email],
         [this.emailExistsValidator()]
       ],
-      password:        ['', [
+      password: ['', [
         Validators.required,
         Validators.minLength(8),
         Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
@@ -102,13 +102,13 @@ export class RegisterComponent {
   }
 
   /* ── Getters ──────────────────────────────────────── */
-  get firstName()       { return this.form.get('firstName')!; }
-  get lastName()        { return this.form.get('lastName')!; }
-  get email()           { return this.form.get('email')!; }
-  get password()        { return this.form.get('password')!; }
+  get firstName() { return this.form.get('firstName')!; }
+  get lastName() { return this.form.get('lastName')!; }
+  get email() { return this.form.get('email')!; }
+  get password() { return this.form.get('password')!; }
   get confirmPassword() { return this.form.get('confirmPassword')!; }
-  get otp()             { return this.otpForm.get('otp')!; }
-  get emailChecking()   { return this.email.status === 'PENDING'; }
+  get otp() { return this.otpForm.get('otp')!; }
+  get emailChecking() { return this.email.status === 'PENDING'; }
 
   /* ── Password strength ────────────────────────────── */
   checkPasswordStrength(password: string): void {
@@ -119,10 +119,10 @@ export class RegisterComponent {
       return;
     }
     let strength = 0;
-    if (password.length >= 8)          strength++;
-    if (/[A-Z]/.test(password))        strength++;
-    if (/[a-z]/.test(password))        strength++;
-    if (/\d/.test(password))           strength++;
+    if (password.length >= 8) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/\d/.test(password)) strength++;
     if (/[^A-Za-z0-9]/.test(password)) strength++;
     this.passwordStrength = strength;
     if (strength <= 1) {
@@ -157,54 +157,57 @@ export class RegisterComponent {
     }
 
     this.loading = true;
-    this.error   = '';
+    this.error = '';
 
     this.userService.register({
       firstName: this.firstName.value,
-      lastName:  this.lastName.value,
-      email:     this.email.value,
-      password:  this.password.value
+      lastName: this.lastName.value,
+      email: this.email.value,
+      password: this.password.value
     }).subscribe({
       next: (res: any) => {
-        this.loading      = false;
+        this.loading = false;
         this.pendingEmail = res.email;
-        this.showOtpStep  = true; // ✅ Afficher étape OTP
+        this.showOtpStep = true; // ✅ Afficher étape OTP
         this.triggerSuccess();
       },
       error: (err) => {
         this.loading = false;
-        this.error   = err?.error?.message || 'Registration failed.';
+        this.error = err?.error?.message || 'Registration failed.';
         this.triggerShake();
       }
     });
   }
 
   /* ── Étape 2 : Vérifier OTP ───────────────────────── */
-  verifyRegister(): void {
-    if (this.otpForm.invalid) {
-      this.otpForm.markAllAsTouched();
-      this.triggerShake();
-      return;
-    }
-
-    this.otpLoading = true;
-    this.otpError   = '';
-
-    this.userService.verifyRegister(this.pendingEmail, this.otp.value).subscribe({
-      next: () => {
-        this.otpLoading = false;
-        this.triggerSuccess();
-        this.success = 'Account verified! Redirecting to login...';
-        setTimeout(() => this.router.navigate(['/login']), 2000);
-      },
-      error: (err) => {
-        this.otpLoading = false;
-        this.otpError   = err?.error?.message || 'Invalid or expired code.';
-        this.triggerShake();
-      }
-    });
+verifyRegister(): void {
+  if (this.otpForm.invalid) {
+    this.otpForm.markAllAsTouched();
+    this.triggerShake();
+    return;
   }
 
+  this.otpLoading = true;
+  this.otpError = '';
+
+  this.userService.verifyRegister(this.pendingEmail, this.otp.value).subscribe({
+    next: (res: any) => {
+      this.otpLoading = false;
+      this.triggerSuccess();
+
+      // ✅ Met à jour BehaviorSubject + localStorage
+      this.userService.setSession(res.token, res.user);
+
+      this.success = 'Account verified! Redirecting...';
+      setTimeout(() => this.router.navigate(['/home']), 1500);
+    },
+    error: (err) => {
+      this.otpLoading = false;
+      this.otpError = err?.error?.message || 'Invalid or expired code.';
+      this.triggerShake();
+    }
+  });
+}
   /* ── Renvoyer OTP ─────────────────────────────────── */
   resendOtp(): void {
     if (this.resendCooldown > 0) return;
@@ -212,7 +215,7 @@ export class RegisterComponent {
 
     this.userService.resendOtp(this.pendingEmail).subscribe({
       next: () => {
-        this.resendLoading  = false;
+        this.resendLoading = false;
         this.resendCooldown = 60;
         const interval = setInterval(() => {
           this.resendCooldown--;

@@ -6,6 +6,7 @@ import esprit.edu.userservice1.dto.RegisterRequest;
 import esprit.edu.userservice1.dto.UpdateUserRequest;
 import esprit.edu.userservice1.entities.role;
 import esprit.edu.userservice1.entities.user;
+import esprit.edu.userservice1.repositories.UserRepository;
 import esprit.edu.userservice1.security.JwtService;
 import esprit.edu.userservice1.services.CloudinaryService;
 import esprit.edu.userservice1.services.EmailService;
@@ -33,7 +34,8 @@ public class UserController {
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
-
+    @Autowired
+    private UserRepository userRepository;
     @Autowired
     private TwoFaService twoFaService;
     @Autowired
@@ -108,8 +110,26 @@ public class UserController {
             ));
         }
 
+        // ✅ Charger le user
+        user u = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // ✅ Générer le token avec rôle
+        String token = jwtService.generateToken(email, u.getRole().name());
+
         return ResponseEntity.ok(Map.of(
-                "message", "Account verified successfully! You can now login."
+                "message", "Account verified successfully!",
+                "token",   token,
+                "role",    u.getRole().name(),
+                "user", Map.of(
+                        "id",        u.getId(),
+                        "email",     u.getEmail(),
+                        "fullName",  u.getFullName(),
+                        "role",      u.getRole().name(),
+                        "photoUrl",  u.getPhotoUrl() != null ? u.getPhotoUrl() : "",
+                        "blocked",   u.isBlocked(),
+                        "createdAt", u.getCreatedAt().toString()
+                )
         ));
     }
 
