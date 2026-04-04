@@ -1166,3 +1166,113 @@ a[href*="facebook"] svg {
   transform: translateY(-2px);
   box-shadow: 0 6px 24px rgba(24,119,242,0.5);
 }
+/* Face step */
+.face-verifying {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  padding: 20px;
+  color: #7eb8f7;
+  font-size: 1rem;
+}
+
+.rotating {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+/* ✅ Forcer le fond sombre — évite que le parent écrase */
+html, body {
+  background: #0a0a1a !important;
+  min-height: 100vh;
+}
+
+.login-page {
+  background: #0a0a1a !important; /* déjà présent mais forcer */
+}
+/* ── Face Step amélioré ──────────────────────── */
+.face-step-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.face-scan-ring {
+  width: 340px;
+  height: 260px;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 255, 255, 0.4);
+  box-shadow:
+    0 0 30px rgba(0, 255, 255, 0.15),
+    inset 0 0 30px rgba(0, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Coins animés */
+.face-scan-ring::before {
+  content: '';
+  position: absolute;
+  top: 8px; left: 8px;
+  width: 24px; height: 24px;
+  border-top: 2px solid #00ffff;
+  border-left: 2px solid #00ffff;
+  border-radius: 4px 0 0 0;
+  box-shadow: 0 0 10px rgba(0,255,255,0.8);
+  animation: cornerPulse 1.5s ease-in-out infinite;
+}
+
+.face-scan-ring::after {
+  content: '';
+  position: absolute;
+  bottom: 8px; right: 8px;
+  width: 24px; height: 24px;
+  border-bottom: 2px solid #00ffff;
+  border-right: 2px solid #00ffff;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 0 10px rgba(0,255,255,0.8);
+  animation: cornerPulse 1.5s ease-in-out infinite 0.75s;
+}
+
+@keyframes cornerPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.face-verifying {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  padding: 20px;
+  color: #00ffff;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  background: rgba(0, 255, 255, 0.05);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 10px;
+  width: 100%;
+}
+
+.error-msg {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  background: rgba(255, 50, 80, 0.09);
+  border: 1px solid rgba(255, 50, 80, 0.35);
+  color: #ff3250;
+  width: 100%;
+  font-family: 'Rajdhani', sans-serif;
+}

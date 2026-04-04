@@ -1,8 +1,11 @@
-import { Component, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import {
+  Component, ChangeDetectionStrategy, ChangeDetectorRef
+} from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { UserService } from '../../../services/user.service';
+import { FaceCaptureComponent } from '../face-capture/face-capture';
 
 @Component({
   standalone: true,
@@ -10,7 +13,7 @@ import { UserService } from '../../../services/user.service';
   templateUrl: './login.html',
   styleUrls: ['./login.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule]
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, FaceCaptureComponent]
 })
 export class LoginComponent {
   form: FormGroup;
@@ -21,12 +24,19 @@ export class LoginComponent {
   isBlocked      = false;
   showPassword   = false;
 
+  // OTP step
   showOtpStep    = false;
   pendingEmail   = '';
   otpLoading     = false;
   otpError       = '';
   resendLoading  = false;
   resendCooldown = 0;
+
+  // ✅ NOUVEAU — Face step
+  showFaceStep   = false;
+  pendingUserId  : number | null = null;
+  faceLoading    = false;
+  faceError      = '';
 
   cardShake   = false;
   cardSuccess = false;
@@ -51,31 +61,26 @@ export class LoginComponent {
   get password() { return this.form.get('password')!; }
   get otp()      { return this.otpForm.get('otp')!; }
 
-  private mark(): void {
-    this.cdr.markForCheck();
-  }
+  private mark(): void { this.cdr.markForCheck(); }
 
   private triggerShake(): void {
-    this.cardShake = true;
-    this.mark();
+    this.cardShake = true; this.mark();
     setTimeout(() => { this.cardShake = false; this.mark(); }, 500);
   }
 
   private triggerSuccess(): void {
-    this.cardSuccess = true;
-    this.mark();
+    this.cardSuccess = true; this.mark();
     setTimeout(() => { this.cardSuccess = false; this.mark(); }, 800);
   }
 
+  // ══════════════════════════════════════════
+  // ÉTAPE 1 — Credentials
+  // ══════════════════════════════════════════
   login(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      this.triggerShake();
-      return;
-    }
+    if (this.form.invalid) { this.form.markAllAsTouched(); this.triggerShake(); return; }
 
-    this.loading   = true;
-    this.error     = '';
+    this.loading = true;
+    this.error   = '';
     this.isBlocked = false;
     this.mark();
 
@@ -86,42 +91,43 @@ export class LoginComponent {
       next: (res: any) => {
         this.loading = false;
 
+        if (res.step === 'face_required') {
+          // ✅ Spring Boot répond avec step: face_required → afficher face scan
+          this.pendingUserId = res.userId;
+          this.showFaceStep  = true;
+          this.mark();
+          return;
+        }
+
         if (res.twoFaRequired) {
           this.pendingEmail = res.email;
-          this.showOtpStep  = true;
-          this.mark();
-        } else {
-          this.triggerSuccess();
-          localStorage.setItem('jwt_token', res.token);
-          setTimeout(() => {
-            this.router.navigate(res.role === 'ADMIN' ? ['/admin'] : ['/home']);
-          }, 600);
-        }
-      },
-      error: (err) => {
-        this.loading = false;
-
-        if (err?.error?.error === 'email_not_verified') {
-          this.pendingEmail = err.error.email;
           this.showOtpStep  = true;
           this.mark();
           return;
         }
 
+        this.triggerSuccess();
+        localStorage.setItem('jwt_token', res.token);
+        setTimeout(() => {
+          this.router.navigate(res.role === 'ADMIN' ? ['/admin'] : ['/home']);
+        }, 600);
+      },
+      error: (err) => {
+        this.loading   = false;
         this.isBlocked = err.status === 403;
-        this.error = err?.error?.message || (this.isBlocked ? 'Your account has been blocked.' : 'Invalid credentials');
+        this.error     = err?.error?.message ||
+          (this.isBlocked ? 'Your account has been blocked.' : 'Invalid credentials');
         this.mark();
         this.triggerShake();
       }
     });
   }
 
+  // ══════════════════════════════════════════
+  // ÉTAPE 2 — OTP (si 2FA activé)
+  // ══════════════════════════════════════════
   verifyOtp(): void {
-    if (this.otpForm.invalid) {
-      this.otpForm.markAllAsTouched();
-      this.triggerShake();
-      return;
-    }
+    if (this.otpForm.invalid) { this.otpForm.markAllAsTouched(); this.triggerShake(); return; }
 
     this.otpLoading = true;
     this.otpError   = '';
@@ -130,6 +136,16 @@ export class LoginComponent {
     this.userService.verifyOtp(this.pendingEmail, this.otp.value).subscribe({
       next: (res: any) => {
         this.otpLoading = false;
+
+        // ✅ Après OTP → passer au face scan
+        if (res.step === 'face_required') {
+          this.pendingUserId = res.userId;
+          this.showOtpStep   = false;
+          this.showFaceStep  = true;
+          this.mark();
+          return;
+        }
+
         this.triggerSuccess();
         localStorage.setItem('jwt_token', res.token);
         setTimeout(() => {
@@ -145,6 +161,42 @@ export class LoginComponent {
     });
   }
 
+  // ══════════════════════════════════════════
+  // ÉTAPE 3 — Face ID
+  // ══════════════════════════════════════════
+onFaceEmbeddingReady(embedding: number[]): void {
+  if (!this.pendingUserId) return;
+
+  this.faceLoading = true;
+  this.faceError   = '';
+  this.mark();
+
+  this.userService.verifyFace(this.pendingUserId, embedding).subscribe({
+    next: (res: any) => {
+      this.faceLoading = false;
+      this.triggerSuccess();
+      this.userService.setSession(res.token, res.user); // ✅
+      localStorage.setItem('jwt_token', res.token);
+      setTimeout(() => {
+        this.router.navigate(res.role === 'ADMIN' ? ['/admin'] : ['/home']);
+      }, 600);
+    },
+    error: (err) => {
+      this.faceLoading = false;
+      this.faceError   = err?.error?.message || 'Face verification failed ❌';
+      this.mark();
+      this.triggerShake();
+    }
+  });
+}
+  onFaceCaptureError(error: string): void {
+    this.faceError = error;
+    this.mark();
+  }
+
+  // ══════════════════════════════════════════
+  // OTP helpers
+  // ══════════════════════════════════════════
   resendOtp(): void {
     if (this.resendCooldown > 0) return;
     this.resendLoading = true;
@@ -155,17 +207,13 @@ export class LoginComponent {
         this.resendLoading  = false;
         this.resendCooldown = 60;
         this.mark();
-
         const interval = setInterval(() => {
           this.resendCooldown--;
           this.mark();
           if (this.resendCooldown <= 0) clearInterval(interval);
         }, 1000);
       },
-      error: () => {
-        this.resendLoading = false;
-        this.mark();
-      }
+      error: () => { this.resendLoading = false; this.mark(); }
     });
   }
 }

@@ -178,10 +178,7 @@ export class Brain3dComponent implements AfterViewInit, OnChanges, OnDestroy {
     const loader = new GLTFLoader();
 
     const candidatePaths = [
-      '/assets/models/brain/scene.gltf',
-      'assets/models/brain/scene.gltf',
-      '/assets/brain/scene.gltf',
-      'assets/brain/scene.gltf'
+      '/assets/models/brain/scene.gltf'
     ];
 
     const tryNext = (index: number) => {

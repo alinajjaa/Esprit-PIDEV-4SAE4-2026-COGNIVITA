@@ -8,10 +8,7 @@ import esprit.edu.userservice1.entities.role;
 import esprit.edu.userservice1.entities.user;
 import esprit.edu.userservice1.repositories.UserRepository;
 import esprit.edu.userservice1.security.JwtService;
-import esprit.edu.userservice1.services.CloudinaryService;
-import esprit.edu.userservice1.services.EmailService;
-import esprit.edu.userservice1.services.TwoFaService;
-import esprit.edu.userservice1.services.UserService;
+import esprit.edu.userservice1.services.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -40,6 +37,8 @@ public class UserController {
     private TwoFaService twoFaService;
     @Autowired
     private CloudinaryService cloudinaryService;
+    @Autowired
+    private FaceAuthService faceAuthService;
 
 
     public UserController(UserService service, JwtService jwtService,
@@ -53,7 +52,16 @@ public class UserController {
     /* ══════════════════════════════════════════
        REGISTER
        ══════════════════════════════════════════ */
-
+    @GetMapping("/face-service-status")
+    public ResponseEntity<?> faceServiceStatus() {
+        boolean alive = faceAuthService.isPythonServiceAlive();
+        return ResponseEntity.ok(Map.of(
+                "pythonServiceAlive", alive,
+                "message", alive
+                        ? "✅ Face service is running"
+                        : "❌ Face service is DOWN — start app.py on port 5001"
+        ));
+    }
     @PostMapping
     public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
         if (req.email() == null || req.email().isBlank() ||
@@ -66,7 +74,6 @@ public class UserController {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
         }
 
-        // ✅ Créer le compte (non vérifié)
         user u = new user();
         u.setEmail(req.email());
         u.setPassword(passwordEncoder.encode(req.password()));
@@ -77,11 +84,15 @@ public class UserController {
         u.setFullName(fullName.trim().isEmpty() ? null : fullName.trim());
         u.setPhotoUrl(req.photoUrl());
         u.setRole(role.valueOf("USER"));
-        u.setEmailVerified(false); // ← pas encore vérifié
+        u.setEmailVerified(false);
 
         user saved = service.create(u);
 
-        // ✅ Envoyer OTP de vérification
+        // ❌ SUPPRIMER tout ce bloc — le visage n'existe pas encore ici
+        // if (req.embedding() != null && !req.embedding().isEmpty()) {
+        //     faceAuthService.registerFace(saved.getId(), req.embedding());
+        // }
+
         twoFaService.sendOtp(saved.getEmail());
 
         return ResponseEntity.ok(Map.of(
@@ -89,7 +100,6 @@ public class UserController {
                 "email", saved.getEmail()
         ));
     }
-
     /* ══════════════════════════════════════════
        VERIFY REGISTER OTP
        ══════════════════════════════════════════ */
@@ -110,26 +120,16 @@ public class UserController {
             ));
         }
 
-        // ✅ Charger le user
         user u = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // ✅ Générer le token avec rôle
-        String token = jwtService.generateToken(email, u.getRole().name());
+        // ✅ AJOUTER — marquer email comme vérifié
+        u.setEmailVerified(true);
+        userRepository.save(u);
 
         return ResponseEntity.ok(Map.of(
-                "message", "Account verified successfully!",
-                "token",   token,
-                "role",    u.getRole().name(),
-                "user", Map.of(
-                        "id",        u.getId(),
-                        "email",     u.getEmail(),
-                        "fullName",  u.getFullName(),
-                        "role",      u.getRole().name(),
-                        "photoUrl",  u.getPhotoUrl() != null ? u.getPhotoUrl() : "",
-                        "blocked",   u.isBlocked(),
-                        "createdAt", u.getCreatedAt().toString()
-                )
+                "step",   "face_required",
+                "userId", u.getId()
         ));
     }
 
@@ -153,12 +153,54 @@ public class UserController {
                     "Your account has been blocked. Please contact support.");
         }
 
+        // ✅ Étape 1 — Credentials OK → demander Face ID
+        return ResponseEntity.ok(Map.of(
+                "step", "face_required",
+                "userId", u.getId(),
+                "message", "Credentials verified. Please complete face authentication."
+        ));
+    }
 
 
-        // ✅ Pas de 2FA requis → JWT direct
-        String token = jwtService.generateToken(u.getEmail(), u.getRole().name());
-        u.setPassword(null);
-        return ResponseEntity.ok(new AuthResponse(token, u, u.getRole().name()));
+
+    /* ══════════════════════════════════════════
+   VERIFY FACE — LOGIN étape 2
+   ══════════════════════════════════════════ */
+    @PostMapping("/verify-face")
+    public ResponseEntity<?> verifyFace(@RequestBody Map<String, Object> body) {
+        try {
+            Long userId = Long.valueOf(body.get("userId").toString());
+            List<Double> embedding = (List<Double>) body.get("embedding");
+
+            if (userId == null || embedding == null || embedding.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "userId and embedding are required"
+                ));
+            }
+
+            // ✅ Vérifier le visage via Python
+            boolean match = faceAuthService.verifyFace(userId, embedding);
+
+            if (!match) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                        "error", "face_mismatch",
+                        "message", "Face not recognized ❌"
+                ));
+            }
+
+            // ✅ Visage reconnu → générer JWT
+            user u = service.getById(userId);
+            String token = jwtService.generateToken(u.getEmail(), u.getRole().name());
+            u.setPassword(null);
+
+            return ResponseEntity.ok(new AuthResponse(token, u, u.getRole().name()));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "error", "server_error",
+                    "message", e.getMessage()
+            ));
+        }
     }
 
     /* ══════════════════════════════════════════
@@ -410,6 +452,49 @@ public class UserController {
         return ResponseEntity.ok(updated);
     }
 
+
+    @PostMapping("/register-face")
+    public ResponseEntity<?> registerFaceOnly(@RequestBody Map<String, Object> body) {
+        try {
+            if (body.get("userId") == null || body.get("embedding") == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "userId and embedding are required"
+                ));
+            }
+
+            Long userId = Long.valueOf(body.get("userId").toString());
+            List<Double> embedding = (List<Double>) body.get("embedding");
+
+            if (embedding.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "embedding is empty"
+                ));
+            }
+
+            boolean registered = faceAuthService.registerFace(userId, embedding);
+
+            if (!registered) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                        "success", false,
+                        "message", "Face registration failed — check Python service"
+                ));
+            }
+
+            // ✅ JWT généré ICI seulement, après confirmation du visage
+            user u = service.getById(userId);
+            String token = jwtService.generateToken(u.getEmail(), u.getRole().name());
+            u.setPassword(null);
+
+            return ResponseEntity.ok(new AuthResponse(token, u, u.getRole().name()));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "error", "server_error",
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
     /* ══════════════════════════════════════════
        HELPERS
        ══════════════════════════════════════════ */
@@ -420,6 +505,9 @@ public class UserController {
         }
         return authorization.substring(7);
     }
+
+
+
 
 
 

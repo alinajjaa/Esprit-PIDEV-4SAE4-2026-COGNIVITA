@@ -748,3 +748,24 @@
   transform: translateY(-2px);
   box-shadow: 0 6px 24px rgba(24,119,242,0.5);
 }
+
+/* Face step */
+.face-verifying {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  padding: 20px;
+  color: #7eb8f7;
+  font-size: 1rem;
+}
+
+.rotating {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}

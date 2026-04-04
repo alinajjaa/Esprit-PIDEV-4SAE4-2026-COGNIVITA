@@ -1,0 +1,235 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+
+/* ── Container ───────────────────────────────────── */
+.face-capture-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0;
+  width: 100%;
+}
+
+/* ── Status message ──────────────────────────────── */
+.status-message {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.5px;
+  animation: fadeUp 0.3s ease;
+}
+
+.status-message.info {
+  background: rgba(0, 200, 255, 0.08);
+  border: 1px solid rgba(0, 200, 255, 0.3);
+  color: #7eb8f7;
+}
+
+.status-message.success {
+  background: rgba(0, 255, 157, 0.08);
+  border: 1px solid rgba(0, 255, 157, 0.35);
+  color: #00ff9d;
+}
+
+.status-message.error {
+  background: rgba(255, 50, 80, 0.08);
+  border: 1px solid rgba(255, 50, 80, 0.35);
+  color: #ff3250;
+}
+
+/* ── Video wrapper ───────────────────────────────── */
+.video-wrapper {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 255, 255, 0.28);
+  box-shadow:
+    0 0 24px rgba(0, 255, 255, 0.08),
+    0 0 0 1px rgba(0, 255, 255, 0.05) inset;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.video-wrapper:has(video) {
+  border-color: rgba(0, 255, 255, 0.5);
+  box-shadow:
+    0 0 32px rgba(0, 255, 255, 0.15),
+    0 0 0 1px rgba(0, 255, 255, 0.08) inset;
+}
+
+/* Coin scanners animés */
+.video-wrapper::before,
+.video-wrapper::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.video-wrapper::before {
+  top: 8px; left: 8px;
+  border-top: 2px solid #00ffff;
+  border-left: 2px solid #00ffff;
+  border-radius: 2px 0 0 0;
+  box-shadow: 0 0 8px rgba(0,255,255,0.6);
+}
+
+.video-wrapper::after {
+  bottom: 8px; right: 8px;
+  border-bottom: 2px solid #00ffff;
+  border-right: 2px solid #00ffff;
+  border-radius: 0 0 2px 0;
+  box-shadow: 0 0 8px rgba(0,255,255,0.6);
+}
+
+/* Ligne de scan animée */
+.video-wrapper .scan-line {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(0,255,255,0.8), transparent);
+  z-index: 10;
+  animation: scanLine 2.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes scanLine {
+  0%   { top: 0%;   opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+video {
+  width: 320px;
+  height: 240px;
+  display: block;
+  transform: scaleX(-1); /* miroir naturel */
+}
+
+canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  transform: scaleX(-1);
+}
+
+/* ── Actions ─────────────────────────────────────── */
+.face-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  width: 100%;
+}
+
+/* ── Boutons ─────────────────────────────────────── */
+.btn-camera,
+.btn-capture,
+.btn-retry {
+  padding: 12px 28px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-camera,
+.btn-capture,
+.btn-retry {
+  background: linear-gradient(135deg, rgba(0,255,255,0.12), rgba(255,0,255,0.12));
+  border: 1px solid rgba(0,255,255,0.5);
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(0,255,255,0.1);
+}
+
+/* Effet shimmer au hover */
+.btn-camera::before,
+.btn-capture::before,
+.btn-retry::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0,255,255,0.2), transparent);
+  transition: left 0.4s ease;
+}
+
+.btn-camera:hover::before,
+.btn-capture:hover::before,
+.btn-retry:hover::before { left: 100%; }
+
+.btn-camera:hover:not(:disabled),
+.btn-capture:hover:not(:disabled),
+.btn-retry:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 0 28px rgba(0,255,255,0.25), 0 6px 20px rgba(0,0,0,0.3);
+  border-color: #00ffff;
+}
+
+.btn-capture {
+  border-color: rgba(0,255,157,0.5);
+  box-shadow: 0 0 16px rgba(0,255,157,0.1);
+}
+
+.btn-capture:hover:not(:disabled) {
+  box-shadow: 0 0 28px rgba(0,255,157,0.25), 0 6px 20px rgba(0,0,0,0.3);
+  border-color: #00ff9d;
+}
+
+.btn-retry {
+  border-color: rgba(255,180,0,0.5);
+  box-shadow: 0 0 16px rgba(255,180,0,0.1);
+}
+
+.btn-retry:hover:not(:disabled) {
+  box-shadow: 0 0 28px rgba(255,180,0,0.25);
+  border-color: #ffb400;
+}
+
+button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* ── Animations ──────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(-5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.face-hint {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.82rem;
+  color: rgba(147, 197, 253, 0.6);
+  letter-spacing: 1px;
+  text-align: center;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.capture-success-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+  background: rgba(0, 255, 157, 0.15);
+  animation: fadeUp 0.3s ease;
+}

@@ -31,7 +31,6 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
 
-                // ✅ ALWAYS — pour que la session OAuth2 persiste
                 .sessionManagement(sm -> sm
                         .sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
                 )
@@ -40,18 +39,33 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
+
+                        // ── Auth classique
                         .requestMatchers("/api/users/forgot-password").permitAll()
                         .requestMatchers("/api/users/reset-password").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/users/by-email").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()
+                        .requestMatchers(HttpMethod.GET,  "/api/users/by-email").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users/verify-register").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users/verify-otp").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users/resend-otp").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/users/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/users/*/profile-score").authenticated()
+
+                        // ── ✅ Face Auth — public car appelé pendant login (pas encore de token)
+                        .requestMatchers(HttpMethod.POST, "/api/users/verify-face").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/users/register-face").permitAll()
+                        .requestMatchers(HttpMethod.GET,  "/api/users/face-service-status").permitAll()
+
+                        // ── Upload & profile
                         .requestMatchers("/api/users/*/uploadPhoto").permitAll()
+
+                        // ── Authentifié
+                        .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/users/*/profile-score").authenticated()
+
+                        // ── Wildcard POST (garder en dernier parmi les POST)
+                        .requestMatchers(HttpMethod.POST, "/api/users/**").permitAll()
+
+                        // ── OAuth2
                         .requestMatchers(
                                 "/login/oauth2/**",
                                 "/oauth2/**",
@@ -59,13 +73,13 @@ public class SecurityConfig {
                                 "/login"
                         ).permitAll()
                         .requestMatchers("/error").permitAll()
+
                         .anyRequest().authenticated()
                 )
 
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(a -> a
                                 .baseUri("/oauth2/authorization")
-                                // ✅ Stocker la requête OAuth2 en session HTTP
                                 .authorizationRequestRepository(
                                         new HttpSessionOAuth2AuthorizationRequestRepository()
                                 )
@@ -79,10 +93,11 @@ public class SecurityConfig {
                             response.sendRedirect(
                                     "http://localhost:4200/login?error=" +
                                             java.net.URLEncoder.encode(
-                                                    exception.getMessage() != null ? exception.getMessage() : "unknown",
+                                                    exception.getMessage() != null
+                                                            ? exception.getMessage()
+                                                            : "unknown",
                                                     "UTF-8"
-                                            )
-                            );
+                                            ));
                         })
                 )
 

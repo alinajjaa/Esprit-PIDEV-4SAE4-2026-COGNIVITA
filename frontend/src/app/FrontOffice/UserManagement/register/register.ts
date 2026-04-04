@@ -9,10 +9,11 @@ import { CommonModule } from '@angular/common';
 import { Observable, of, timer } from 'rxjs';
 import { map, catchError, switchMap } from 'rxjs/operators';
 import { UserService } from '../../../services/user.service';
+import { FaceCaptureComponent } from '../face-capture/face-capture';
 
 function passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
   const password = control.get('password');
-  const confirm  = control.get('confirmPassword');
+  const confirm = control.get('confirmPassword');
   if (password && confirm && password.value !== confirm.value) {
     confirm.setErrors({ mismatch: true });
     return { mismatch: true };
@@ -27,32 +28,35 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
   templateUrl: './register.html',
   styleUrls: ['./register.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule]
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, FaceCaptureComponent]
 })
 export class RegisterComponent {
   form: FormGroup;
   otpForm: FormGroup;
 
-  loading      = false;
-  error        = '';
-  success      = '';
+  loading = false;
+  error = '';
+  success = '';
   showPassword = false;
-  showConfirm  = false;
+  showConfirm = false;
 
-  showOtpStep    = false;
-  pendingEmail   = '';
-  otpLoading     = false;
-  otpError       = '';
-  resendLoading  = false;
+  showOtpStep = false;
+  pendingEmail = '';
+  otpLoading = false;
+  otpError = '';
+  resendLoading = false;
   resendCooldown = 0;
 
-  wrapperShake   = false;
+  wrapperShake = false;
   wrapperSuccess = false;
 
-  passwordStrength      = 0;
+  passwordStrength = 0;
   passwordStrengthLabel = '';
   passwordStrengthColor = '';
-
+  showFaceStep = false;
+  faceLoading = false;
+  faceError = '';
+  savedUserId: number | null = null;
   constructor(
     private fb: FormBuilder,
     private userService: UserService,
@@ -60,10 +64,10 @@ export class RegisterComponent {
     private cdr: ChangeDetectorRef
   ) {
     this.form = this.fb.group({
-      firstName:       ['', [Validators.required, Validators.minLength(2)]],
-      lastName:        ['', [Validators.required, Validators.minLength(2)]],
-      email:           ['', [Validators.required, Validators.email], [this.emailExistsValidator()]],
-      password:        ['', [Validators.required, Validators.minLength(8), Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)]],
+      firstName: ['', [Validators.required, Validators.minLength(2)]],
+      lastName: ['', [Validators.required, Validators.minLength(2)]],
+      email: ['', [Validators.required, Validators.email], [this.emailExistsValidator()]],
+      password: ['', [Validators.required, Validators.minLength(8), Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)]],
       confirmPassword: ['', Validators.required]
     }, { validators: passwordMatchValidator });
 
@@ -88,13 +92,13 @@ export class RegisterComponent {
     };
   }
 
-  get firstName()      { return this.form.get('firstName')!; }
-  get lastName()       { return this.form.get('lastName')!; }
-  get email()          { return this.form.get('email')!; }
-  get password()       { return this.form.get('password')!; }
-  get confirmPassword(){ return this.form.get('confirmPassword')!; }
-  get otp()            { return this.otpForm.get('otp')!; }
-  get emailChecking()  { return this.email.status === 'PENDING'; }
+  get firstName() { return this.form.get('firstName')!; }
+  get lastName() { return this.form.get('lastName')!; }
+  get email() { return this.form.get('email')!; }
+  get password() { return this.form.get('password')!; }
+  get confirmPassword() { return this.form.get('confirmPassword')!; }
+  get otp() { return this.otpForm.get('otp')!; }
+  get emailChecking() { return this.email.status === 'PENDING'; }
 
   private mark(): void {
     this.cdr.markForCheck();
@@ -102,16 +106,16 @@ export class RegisterComponent {
 
   checkPasswordStrength(password: string): void {
     if (!password) {
-      this.passwordStrength      = 0;
+      this.passwordStrength = 0;
       this.passwordStrengthLabel = '';
       this.passwordStrengthColor = '';
       return;
     }
     let strength = 0;
-    if (password.length >= 8)          strength++;
-    if (/[A-Z]/.test(password))        strength++;
-    if (/[a-z]/.test(password))        strength++;
-    if (/\d/.test(password))           strength++;
+    if (password.length >= 8) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/\d/.test(password)) strength++;
     if (/[^A-Za-z0-9]/.test(password)) strength++;
 
     this.passwordStrength = strength;
@@ -147,17 +151,17 @@ export class RegisterComponent {
     }
 
     this.loading = true;
-    this.error   = '';
+    this.error = '';
     this.mark();
 
     this.userService.register({
       firstName: this.firstName.value,
-      lastName:  this.lastName.value,
-      email:     this.email.value,
-      password:  this.password.value
+      lastName: this.lastName.value,
+      email: this.email.value,
+      password: this.password.value
     }).subscribe({
       next: (res: any) => {
-        this.loading      = false;
+        this.loading = false;
         this.pendingEmail = res.email;
 
         this.email.clearAsyncValidators();
@@ -168,42 +172,41 @@ export class RegisterComponent {
       },
       error: (err) => {
         this.loading = false;
-        this.error   = err?.error?.message || 'Registration failed.';
+        this.error = err?.error?.message || 'Registration failed.';
         this.mark();
         this.triggerShake();
       }
     });
   }
 
-  verifyRegister(): void {
-    if (this.otpForm.invalid) {
-      this.otpForm.markAllAsTouched();
+verifyRegister(): void {
+  if (this.otpForm.invalid) {
+    this.otpForm.markAllAsTouched();
+    this.triggerShake();
+    return;
+  }
+
+  this.otpLoading = true;
+  this.otpError   = '';
+  this.mark();
+
+  this.userService.verifyRegister(this.pendingEmail, this.otp.value).subscribe({
+    next: (res: any) => {
+      this.otpLoading  = false;
+      this.savedUserId = res.userId;  // ✅ plus de res.user
+      this.showOtpStep  = false;
+      this.showFaceStep = true;
+      this.triggerSuccess();
+      this.mark();
+    },
+    error: (err) => {
+      this.otpLoading = false;
+      this.otpError   = err?.error?.message || 'Invalid or expired code.';
+      this.mark();
       this.triggerShake();
-      return;
     }
-
-    this.otpLoading = true;
-    this.otpError   = '';
-    this.mark();
-
-    this.userService.verifyRegister(this.pendingEmail, this.otp.value).subscribe({
-      next: (res: any) => {
-        this.otpLoading = false;
-        this.triggerSuccess();
-        this.userService.setSession(res.token, res.user);
-        this.success = 'Account verified! Redirecting...';
-        this.mark();
-        setTimeout(() => this.router.navigate(['/home']), 1500);
-      },
-      error: (err) => {
-        this.otpLoading = false;
-        this.otpError   = err?.error?.message || 'Invalid or expired code.';
-        this.mark();
-        this.triggerShake();
-      }
-    });
-  }
-
+  });
+}
   resendOtp(): void {
     if (this.resendCooldown > 0) return;
     this.resendLoading = true;
@@ -211,7 +214,7 @@ export class RegisterComponent {
 
     this.userService.resendOtp(this.pendingEmail).subscribe({
       next: () => {
-        this.resendLoading  = false;
+        this.resendLoading = false;
         this.resendCooldown = 60;
         this.mark();
 
@@ -227,6 +230,43 @@ export class RegisterComponent {
       }
     });
   }
+  // Ajouter ces méthodes
+onFaceEmbeddingReady(embedding: number[]): void {
+  if (!this.savedUserId) return;
+
+  this.faceLoading = true;
+  this.faceError   = '';
+  this.mark();
+
+  this.userService.registerFace(this.savedUserId, embedding).subscribe({
+    next: (res: any) => {
+      this.faceLoading = false;
+      this.userService.setSession(res.token, res.user); // ✅ sauvegarder la session
+      this.triggerSuccess();
+      this.success = 'Account created & face registered! Redirecting...';
+      this.mark();
+      setTimeout(() => {
+        this.router.navigate(res.role === 'ADMIN' ? ['/admin'] : ['/home']);
+      }, 1500);
+    },
+    error: (err) => {
+      this.faceLoading = false;
+      this.faceError   = err?.error?.message || 'Face registration failed ❌';
+      this.mark();
+      this.triggerShake();
+    }
+  });
+}
+
+  onFaceCaptureError(error: string): void {
+    this.faceError = error;
+    this.mark();
+  }
+
+  skipFace(): void {
+    // Optionnel : permettre de sauter le face registration
+    this.router.navigate(['/home']);
+  }
 
   backToRegister(): void {
     this.email.setAsyncValidators([this.emailExistsValidator()]);
@@ -234,4 +274,7 @@ export class RegisterComponent {
     this.showOtpStep = false;
     this.mark();
   }
+
+
+
 }

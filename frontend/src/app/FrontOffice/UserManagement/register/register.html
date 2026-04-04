@@ -7,7 +7,8 @@
     <!-- ══════════════════════════════════════
          ÉTAPE 1 — Formulaire Register
          ══════════════════════════════════════ -->
-    <ng-container *ngIf="!showOtpStep">
+    <ng-container *ngIf="!showOtpStep && !showFaceStep">
+
 
       <!-- Left Panel -->
       <div class="panel-left">
@@ -292,6 +293,66 @@
       </div>
 
     </ng-container>
+
+
+    <!-- ══════════════════════════════════════
+     ÉTAPE 3 — Face Registration
+     ══════════════════════════════════════ -->
+<ng-container *ngIf="showFaceStep">
+
+  <!-- Left Panel -->
+  <div class="panel-left">
+    <div class="brand-icon">👁️</div>
+    <div class="brand-name">COGNIVITA</div>
+    <div class="brand-tagline">Face Registration</div>
+    <ul class="feature-list">
+      <li class="feature-item"><span class="feature-dot"></span> One-time setup</li>
+      <li class="feature-item"><span class="feature-dot"></span> Secure biometric</li>
+      <li class="feature-item"><span class="feature-dot"></span> Login in seconds</li>
+      <li class="feature-item"><span class="feature-dot"></span> No password needed</li>
+    </ul>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="panel-right">
+    <div class="form-header">
+      <div class="form-title">Register Your Face</div>
+      <div class="form-subtitle">This enables Face ID login</div>
+    </div>
+    <div class="form-divider"></div>
+
+    <!-- Spinner -->
+    <div *ngIf="faceLoading" class="face-verifying">
+      <span class="rotating">⟳</span> Saving your face...
+    </div>
+
+    <!-- Erreur -->
+    <div *ngIf="faceError && !faceLoading" class="status-msg error">
+      ❌ {{ faceError }}
+    </div>
+
+    <!-- Succès -->
+    <div *ngIf="success" class="status-msg success">
+      ✅ {{ success }}
+    </div>
+
+    <!-- Face Capture -->
+    <app-face-capture
+      *ngIf="!faceLoading && !success"
+      (embeddingReady)="onFaceEmbeddingReady($event)"
+      (captureError)="onFaceCaptureError($event)">
+    </app-face-capture>
+
+    <!-- Skip -->
+    <button type="button" class="back-otp-btn"
+      *ngIf="!faceLoading && !success"
+      (click)="skipFace()">
+      Skip for now →
+    </button>
+
+  </div>
+
+</ng-container>
 
   </div>
 </div>

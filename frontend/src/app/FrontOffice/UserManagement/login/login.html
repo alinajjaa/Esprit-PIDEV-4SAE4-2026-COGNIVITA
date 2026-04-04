@@ -7,7 +7,7 @@
     <!-- ══════════════════════════════════════
          ÉTAPE 1 — Login
          ══════════════════════════════════════ -->
-    <ng-container *ngIf="!showOtpStep">
+    <ng-container *ngIf="!showOtpStep && !showFaceStep">
 
       <div class="card-header">
         <div class="logo-wrap">
@@ -28,13 +28,9 @@
             <span class="lbl-icon">📡</span> Email Address
           </div>
           <div class="field-input-wrap">
-            <input class="field-input"
-              [class.input-error]="email.invalid && email.touched"
-              [class.input-success]="email.valid && email.touched"
-              type="email"
-              placeholder="you@example.com"
-              formControlName="email"
-            />
+            <input class="field-input" [class.input-error]="email.invalid && email.touched"
+              [class.input-success]="email.valid && email.touched" type="email" placeholder="you@example.com"
+              formControlName="email" />
             <span class="input-icon" *ngIf="email.valid && email.touched">✅</span>
           </div>
           <div class="field-error" *ngIf="email.touched && email.errors">
@@ -49,13 +45,9 @@
             <span class="lbl-icon">🔐</span> Password
           </div>
           <div class="field-input-wrap">
-            <input class="field-input"
-              [class.input-error]="password.invalid && password.touched"
-              [class.input-success]="password.valid && password.touched"
-              [type]="showPassword ? 'text' : 'password'"
-              placeholder="••••••••"
-              formControlName="password"
-            />
+            <input class="field-input" [class.input-error]="password.invalid && password.touched"
+              [class.input-success]="password.valid && password.touched" [type]="showPassword ? 'text' : 'password'"
+              placeholder="••••••••" formControlName="password" />
             <span class="toggle-password" (click)="showPassword = !showPassword">
               {{ showPassword ? '🙈' : '👁️' }}
             </span>
@@ -83,10 +75,14 @@
 
         <a class="google-btn" href="http://localhost:8081/oauth2/authorization/google">
           <svg width="18" height="18" viewBox="0 0 48 48">
-            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            <path fill="#EA4335"
+              d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+            <path fill="#4285F4"
+              d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+            <path fill="#FBBC05"
+              d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+            <path fill="#34A853"
+              d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
           </svg>
           <span>Continue with Google</span>
         </a>
@@ -128,15 +124,9 @@
             <span class="lbl-icon">🔑</span> Verification Code
           </div>
           <div class="field-input-wrap">
-            <input class="field-input otp-input"
-              [class.input-error]="otp.invalid && otp.touched"
-              [class.input-success]="otp.valid"
-              type="text"
-              maxlength="6"
-              placeholder="_ _ _ _ _ _"
-              formControlName="otp"
-              autocomplete="one-time-code"
-            />
+            <input class="field-input otp-input" [class.input-error]="otp.invalid && otp.touched"
+              [class.input-success]="otp.valid" type="text" maxlength="6" placeholder="_ _ _ _ _ _"
+              formControlName="otp" autocomplete="one-time-code" />
             <span class="input-icon" *ngIf="otp.valid">✅</span>
           </div>
           <div class="field-error" *ngIf="otp.touched && otp.errors">
@@ -161,12 +151,11 @@
         <!-- Resend -->
         <div class="resend-wrap">
           <span class="resend-text">Didn't receive the code?</span>
-          <button type="button" class="resend-btn"
-            (click)="resendOtp()"
+          <button type="button" class="resend-btn" (click)="resendOtp()"
             [disabled]="resendCooldown > 0 || resendLoading">
             {{ resendLoading ? 'Sending...' :
-               resendCooldown > 0 ? 'Resend in ' + resendCooldown + 's' :
-               'Resend Code' }}
+            resendCooldown > 0 ? 'Resend in ' + resendCooldown + 's' :
+            'Resend Code' }}
           </button>
         </div>
 
@@ -177,6 +166,42 @@
 
       </form>
     </ng-container>
+    <!-- ══════════════════════════════════════
+     ÉTAPE 3 — Face ID
+     ══════════════════════════════════════ -->
+    <ng-container *ngIf="showFaceStep">
 
+      <div class="card-header">
+        <div class="logo-wrap">
+          <span class="logo-icon">👁️</span>
+          <span class="logo-text">COGNIVITA</span>
+        </div>
+        <div class="card-title">Face Verification</div>
+        <div class="card-subtitle">Look at the camera to authenticate</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Spinner pendant la vérification -->
+      <div *ngIf="faceLoading" class="face-verifying">
+        <span class="rotating">⟳</span> Verifying your face...
+      </div>
+
+      <!-- Erreur face -->
+      <div *ngIf="faceError && !faceLoading" class="error-msg">
+        <span>❌</span> {{ faceError }}
+      </div>
+
+      <!-- Composant face capture -->
+      <app-face-capture *ngIf="!faceLoading" (embeddingReady)="onFaceEmbeddingReady($event)"
+        (captureError)="onFaceCaptureError($event)">
+      </app-face-capture>
+
+      <!-- Back -->
+      <button type="button" class="back-otp-btn" (click)="showFaceStep = false; showOtpStep = false">
+        ← Back to Login
+      </button>
+
+    </ng-container>
   </div>
 </div>

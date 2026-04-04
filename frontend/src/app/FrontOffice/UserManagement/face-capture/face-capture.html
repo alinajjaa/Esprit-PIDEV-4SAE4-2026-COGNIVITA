@@ -1,0 +1,48 @@
+<div class="face-capture-container">
+
+  <!-- STATUS MESSAGE -->
+  <div class="status-message" [ngClass]="statusType">
+    {{ statusMessage }}
+  </div>
+
+  <!-- VIDEO + CANVAS -->
+  <div class="video-wrapper" *ngIf="cameraActive || captured">
+    <div class="scan-line"></div>
+
+    <!-- Cercle de progression autour du visage -->
+    <div class="detection-ring" *ngIf="cameraActive && !captured"
+         [class.ring-active]="faceDetectedCount > 0"
+         [style.--progress]="(faceDetectedCount / 20) * 100 + '%'">
+    </div>
+
+    <video #videoEl autoplay muted playsinline
+           [style.display]="captured ? 'none' : 'block'">
+    </video>
+    <canvas #canvasEl></canvas>
+
+    <!-- Overlay succès -->
+    <div class="capture-success-overlay" *ngIf="captured">
+      ✅
+    </div>
+  </div>
+
+  <!-- Hint -->
+  <p class="face-hint" *ngIf="cameraActive && !captured">
+    Regardez droit vers la caméra...
+  </p>
+
+  <!-- Activer caméra -->
+  <button *ngIf="modelsLoaded && !cameraActive && !captured"
+          (click)="startCamera()"
+          class="btn-camera">
+    📷 Activer la caméra
+  </button>
+
+  <!-- Réessayer seulement -->
+  <button *ngIf="captured"
+          (click)="retry()"
+          class="btn-retry">
+    🔄 Réessayer
+  </button>
+
+</div>

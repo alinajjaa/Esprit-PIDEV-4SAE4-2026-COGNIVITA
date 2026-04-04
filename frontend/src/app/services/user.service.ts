@@ -44,7 +44,7 @@ export class UserService {
   private currentUserSubject = new BehaviorSubject<User | null>(this.loadUserFromStorage());
   public currentUser$ = this.currentUserSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   /* =========================
      LOGIN
@@ -52,19 +52,14 @@ export class UserService {
 login(credentials: { email: string, password: string }): Observable<any> {
   return this.http.post<any>(`${this.baseUrl}/login`, credentials).pipe(
     map(res => {
-      // ✅ Si 2FA requis → retourner directement sans stocker
-      if (res.twoFaRequired) {
-        return res;
-      }
+      if (res.twoFaRequired) return res;
+      if (res.step === 'face_required') return res; // ✅ pas de stockage
 
-      // ✅ Login direct → stocker token et user
       const mappedUser: User = this.mapUser(res.user);
       mappedUser.role = res.role;
-
       localStorage.setItem(this.tokenKey, res.token);
       localStorage.setItem(this.userKey, JSON.stringify(mappedUser));
       this.currentUserSubject.next(mappedUser);
-
       return res;
     })
   );
@@ -109,29 +104,29 @@ login(credentials: { email: string, password: string }): Observable<any> {
         })
       );
   }
-/* =========================
-   LOAD CURRENT USER — OAuth2
-   ========================= */
-loadCurrentUser(): Observable<User> {
-  return this.http.get<any>(`${this.baseUrl}/me`, { headers: this.authHeaders() })
-    .pipe(
-      map((user: any) => {
-        const mapped = this.mapUser(user);
-        localStorage.setItem(this.userKey, JSON.stringify(mapped));
-        this.currentUserSubject.next(mapped);
-        return mapped;
-      }),
-      catchError(() => {
-        // Fallback : utilise le storage si /me échoue
-        const stored = this.loadUserFromStorage();
-        if (stored) {
-          this.currentUserSubject.next(stored);
-          return of(stored);
-        }
-        throw new Error('User not found');
-      })
-    );
-}
+  /* =========================
+     LOAD CURRENT USER — OAuth2
+     ========================= */
+  loadCurrentUser(): Observable<User> {
+    return this.http.get<any>(`${this.baseUrl}/me`, { headers: this.authHeaders() })
+      .pipe(
+        map((user: any) => {
+          const mapped = this.mapUser(user);
+          localStorage.setItem(this.userKey, JSON.stringify(mapped));
+          this.currentUserSubject.next(mapped);
+          return mapped;
+        }),
+        catchError(() => {
+          // Fallback : utilise le storage si /me échoue
+          const stored = this.loadUserFromStorage();
+          if (stored) {
+            this.currentUserSubject.next(stored);
+            return of(stored);
+          }
+          throw new Error('User not found');
+        })
+      );
+  }
   /* =========================
      CRUD
      ========================= */
@@ -190,11 +185,11 @@ loadCurrentUser(): Observable<User> {
   isAdmin(): boolean {
     return this.getCurrentUser()?.role === 'ADMIN';
   }
-setSession(token: string, user: User): void {
-  localStorage.setItem(this.tokenKey, token);
-  localStorage.setItem(this.userKey, JSON.stringify(user));
-  this.currentUserSubject.next(user);
-}
+  setSession(token: string, user: User): void {
+    localStorage.setItem(this.tokenKey, token);
+    localStorage.setItem(this.userKey, JSON.stringify(user));
+    this.currentUserSubject.next(user);
+  }
   private loadUserFromStorage(): User | null {
     const raw = localStorage.getItem(this.userKey);
     return raw ? JSON.parse(raw) : null;
@@ -220,51 +215,64 @@ setSession(token: string, user: User): void {
 
 
   checkEmailExists(email: string): Observable<boolean> {
-  return this.http.get<any>(
-    `${this.baseUrl}/by-email?email=${encodeURIComponent(email)}`,
-    { headers: this.authHeaders() }
-  ).pipe(
-    map(user => !!user),           // si user trouvé → true
-    catchError(() => of(false))    // si 404 ou erreur → false
-  );
+    return this.http.get<any>(
+      `${this.baseUrl}/by-email?email=${encodeURIComponent(email)}`,
+      { headers: this.authHeaders() }
+    ).pipe(
+      map(user => !!user),           // si user trouvé → true
+      catchError(() => of(false))    // si 404 ou erreur → false
+    );
 
-  
+
+  }
+  blockUser(id: number): Observable<User> {
+    return this.http.put<any>(
+      `${this.baseUrl}/${id}/block`, {},
+      { headers: this.authHeaders() }
+    ).pipe(map(u => this.mapUser(u)));
+  }
+
+  unblockUser(id: number): Observable<User> {
+    return this.http.put<any>(
+      `${this.baseUrl}/${id}/unblock`, {},
+      { headers: this.authHeaders() }
+    ).pipe(map(u => this.mapUser(u)));
+  }
+  /* ── 2FA ──────────────────────────────────────────── */
+  verifyRegister(email: string, otp: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/verify-register`, { email, otp });
+  }
+
+  verifyOtp(email: string, otp: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/verify-otp`, { email, otp });
+  }
+
+  resendOtp(email: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/resend-otp`, { email });
+  }
+
+
+
+  uploadProfileImage(userId: number, file: File): Observable<string> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post(
+      `${this.baseUrl}/${userId}/uploadPhoto`,
+      formData,
+      { responseType: 'text' }
+    );
+  }
+registerFace(userId: number, embedding: number[]): Observable<any> {
+  return this.http.post(`${this.baseUrl}/register-face`, {
+    userId,
+    embedding
+  });
 }
-blockUser(id: number): Observable<User> {
-  return this.http.put<any>(
-    `${this.baseUrl}/${id}/block`, {},
-    { headers: this.authHeaders() }
-  ).pipe(map(u => this.mapUser(u)));
-}
 
-unblockUser(id: number): Observable<User> {
-  return this.http.put<any>(
-    `${this.baseUrl}/${id}/unblock`, {},
-    { headers: this.authHeaders() }
-  ).pipe(map(u => this.mapUser(u)));
-}
-/* ── 2FA ──────────────────────────────────────────── */
-verifyRegister(email: string, otp: string): Observable<any> {
-  return this.http.post(`${this.baseUrl}/verify-register`, { email, otp });
-}
-
-verifyOtp(email: string, otp: string): Observable<any> {
-  return this.http.post(`${this.baseUrl}/verify-otp`, { email, otp });
-}
-
-resendOtp(email: string): Observable<any> {
-  return this.http.post(`${this.baseUrl}/resend-otp`, { email });
-}
-
-
-
-uploadProfileImage(userId: number, file: File): Observable<string> {
-  const formData = new FormData();
-  formData.append('file', file);
-  return this.http.post(
-    `${this.baseUrl}/${userId}/uploadPhoto`,
-    formData,
-    { responseType: 'text' }
-  );
+verifyFace(userId: number, embedding: number[]): Observable<any> {
+  return this.http.post(`${this.baseUrl}/verify-face`, {
+    userId,
+    embedding
+  });
 }
 }

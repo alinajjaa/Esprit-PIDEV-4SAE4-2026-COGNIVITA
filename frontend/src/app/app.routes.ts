@@ -11,6 +11,7 @@ import { authGuard, adminGuard, publicGuard } from '../app/guards/auth.guard';
 import { ResetPasswordComponent } from './FrontOffice/UserManagement/reset-password/reset-password';
 import { ForgotPasswordComponent } from './FrontOffice/UserManagement/forgot-password/forgot-password';
 import { Oauth2Callback } from './FrontOffice/UserManagement/oauth2-callback/oauth2-callback';
+import { FaceCaptureComponent } from './FrontOffice/UserManagement/face-capture/face-capture';  
 export const routes: Routes = [
 
   // ✅ Redirect par défaut → login
@@ -69,6 +70,7 @@ export const routes: Routes = [
     { path: 'forgot-password', component: ForgotPasswordComponent },
   { path: 'reset-password',  component: ResetPasswordComponent  },
   { path: 'oauth2/callback', component: Oauth2Callback },
+  { path: 'face-capture',    component: FaceCaptureComponent    },
 
   // ── Fallback ───────────────────────────────────
   {
