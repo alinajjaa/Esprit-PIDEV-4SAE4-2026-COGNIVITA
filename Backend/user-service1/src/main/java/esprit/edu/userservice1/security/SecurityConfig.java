@@ -57,6 +57,7 @@ public class SecurityConfig {
 
                         // ── Upload & profile
                         .requestMatchers("/api/users/*/uploadPhoto").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/users/*/emotion").permitAll() // ✅ AJOUTER
 
                         // ── Authentifié
                         .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()

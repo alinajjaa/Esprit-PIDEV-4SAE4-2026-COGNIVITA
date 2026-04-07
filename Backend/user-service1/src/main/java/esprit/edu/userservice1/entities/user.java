@@ -63,6 +63,14 @@ public class user {
 
     @Column(name = "last_2fa_verified_at")
     private LocalDateTime last2faVerifiedAt;
+    @Column(name = "last_emotion")
+    private String lastEmotion;
+
+    @Column(name = "face_confidence")
+    private Float faceConfidence;
+
+    @Column(name = "face_confidence_level")
+    private String faceConfidenceLevel;
     /* ========= Getters & Setters ========= */
 
     public Long getId() { return id; }
@@ -106,6 +114,11 @@ public class user {
     public void setLast2faVerifiedAt(LocalDateTime last2faVerifiedAt) { this.last2faVerifiedAt = last2faVerifiedAt; }
     public Boolean getEmailVerified() { return emailVerified; }
     public void setEmailVerified(Boolean emailVerified) { this.emailVerified = emailVerified; }
-
+    public String getLastEmotion()              { return lastEmotion; }
+    public void setLastEmotion(String emotion)  { this.lastEmotion = emotion; }
+    public Float getFaceConfidence()                        { return faceConfidence; }
+    public void setFaceConfidence(Float faceConfidence)     { this.faceConfidence = faceConfidence; }
+    public String getFaceConfidenceLevel()                  { return faceConfidenceLevel; }
+    public void setFaceConfidenceLevel(String level)        { this.faceConfidenceLevel = level; }
 
 }

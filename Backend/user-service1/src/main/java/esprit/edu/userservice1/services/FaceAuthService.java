@@ -41,7 +41,7 @@ public class FaceAuthService {
         }
     }
 
-    public boolean verifyFace(Long userId, List<Double> embedding) {
+    public Map<String, Object> verifyFace(Long userId, List<Double> embedding) {
         try {
             Map<String, Object> body = Map.of(
                     "user_id",   userId,
@@ -57,13 +57,14 @@ public class FaceAuthService {
             );
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                return Boolean.TRUE.equals(response.getBody().get("match"));
+                return response.getBody(); // ✅ retourner Map complet
             }
-            return false;
+
+            return Map.of("match", false);
 
         } catch (Exception e) {
             System.err.println("❌ verifyFace error: " + e.getMessage());
-            return false;
+            return Map.of("match", false);
         }
     }
 

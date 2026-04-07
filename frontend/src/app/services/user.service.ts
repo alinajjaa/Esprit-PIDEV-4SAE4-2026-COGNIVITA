@@ -275,4 +275,12 @@ verifyFace(userId: number, embedding: number[]): Observable<any> {
     embedding
   });
 }
+
+updateEmotion(userId: number, emotion: string): Observable<any> {
+  return this.http.put(
+    `${this.baseUrl}/${userId}/emotion?emotion=${emotion}`,
+    {},
+    { headers: this.authHeaders() }
+  );
+}
 }

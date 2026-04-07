@@ -10,7 +10,6 @@ def verify_face():
     try:
         data = request.get_json()
 
-        # Vérifier les données reçues
         if not data or 'user_id' not in data or 'embedding' not in data:
             return jsonify({
                 'success': False,
@@ -18,9 +17,8 @@ def verify_face():
             }), 400
 
         user_id = data['user_id']
-        embedding_input = np.array(data['embedding'])  # embedding reçu d'Angular
+        embedding_input = np.array(data['embedding'])
 
-        # Connexion MySQL
         connection = get_connection()
         if not connection:
             return jsonify({
@@ -30,7 +28,6 @@ def verify_face():
 
         cursor = connection.cursor()
 
-        # Récupérer l'embedding stocké
         cursor.execute(
             "SELECT embedding FROM face_embeddings WHERE user_id = %s",
             (user_id,)
@@ -44,21 +41,33 @@ def verify_face():
                 'message': 'Aucun visage enregistré pour cet utilisateur'
             }), 404
 
-        # Comparer les embeddings
         embedding_stored = np.array(json.loads(result[0]))
 
         # Calcul de la distance euclidienne
         distance = np.linalg.norm(embedding_input - embedding_stored)
 
-        # Seuil de similarité (0.6 = valeur optimale)
         threshold = 0.6
         match = bool(distance < threshold)
+
+        # ✅ Score de confiance
+        score = round(max(0, (1 - distance) * 100), 1)
+
+        if score >= 80:
+            confidence_level = "HIGH"
+        elif score >= 60:
+            confidence_level = "MEDIUM"
+        elif score >= 40:
+            confidence_level = "LOW"
+        else:
+            confidence_level = "REFUSED"
 
         return jsonify({
             'success': True,
             'match': match,
             'distance': float(distance),
             'threshold': threshold,
+            'score': score,
+            'confidence_level': confidence_level,
             'message': 'Visage reconnu ✅' if match else 'Visage non reconnu ❌'
         }), 200
 

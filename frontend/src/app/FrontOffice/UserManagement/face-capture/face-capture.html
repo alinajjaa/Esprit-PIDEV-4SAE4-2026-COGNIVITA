@@ -7,7 +7,13 @@
 
   <!-- VIDEO + CANVAS -->
   <div class="video-wrapper" *ngIf="cameraActive || captured">
-    <div class="scan-line"></div>
+    <div class="scan-line">
+
+      <div class="emotion-badge" *ngIf="cameraActive && currentEmotion">
+  <span class="emotion-emoji">{{ emotionEmoji }}</span>
+  <span class="emotion-label">{{ currentEmotion }}</span>
+</div>
+    </div>
 
     <!-- Cercle de progression autour du visage -->
     <div class="detection-ring" *ngIf="cameraActive && !captured"

@@ -336,19 +336,22 @@
       ✅ {{ success }}
     </div>
 
-    <!-- Face Capture -->
-    <app-face-capture
-      *ngIf="!faceLoading && !success"
-      (embeddingReady)="onFaceEmbeddingReady($event)"
-      (captureError)="onFaceCaptureError($event)">
-    </app-face-capture>
+<!-- Face Capture -->
+<!-- ✅ APRÈS -->
+<app-face-capture
+  *ngIf="!faceLoading && !success"
+  (embeddingReady)="onFaceEmbeddingReady($event)"
+  (photoReady)="onPhotoReady($event)"
+  (emotionDetected)="onEmotionDetected($event)"
+  (captureError)="onFaceCaptureError($event)">
+</app-face-capture>
 
-    <!-- Skip -->
-    <button type="button" class="back-otp-btn"
-      *ngIf="!faceLoading && !success"
-      (click)="skipFace()">
-      Skip for now →
-    </button>
+<!-- Skip -->
+<button type="button" class="back-otp-btn"
+  *ngIf="!faceLoading && !success"
+  (click)="skipFace()">
+  Skip for now →
+</button>
 
   </div>
 

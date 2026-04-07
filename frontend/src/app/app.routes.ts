@@ -1,17 +1,6 @@
 import { Routes } from '@angular/router';
-import { HomeComponent } from './home/home.component';
-import { MMSETestComponent } from './mmse/mmse-test.component';
-import { CNNPredictionComponent } from './cnn/cnn-prediction.component';
-import { AdminDashboardComponent } from './admin/admin-dashboard/admin-dashboard.component';
-import { MedicalRecordsComponent } from './medical-records/medical-records.component';
-import { LoginComponent } from './FrontOffice/UserManagement/login/login';
-import { RegisterComponent } from './FrontOffice/UserManagement/register/register';
-import { UserProfileComponent } from './FrontOffice/UserManagement/user-profile/user-profile';
 import { authGuard, adminGuard, publicGuard } from '../app/guards/auth.guard';
-import { ResetPasswordComponent } from './FrontOffice/UserManagement/reset-password/reset-password';
-import { ForgotPasswordComponent } from './FrontOffice/UserManagement/forgot-password/forgot-password';
-import { Oauth2Callback } from './FrontOffice/UserManagement/oauth2-callback/oauth2-callback';
-import { FaceCaptureComponent } from './FrontOffice/UserManagement/face-capture/face-capture';  
+
 export const routes: Routes = [
 
   // ✅ Redirect par défaut → login
@@ -21,56 +10,92 @@ export const routes: Routes = [
     pathMatch: 'full'
   },
 
-  // ── Pages publiques (login/register) ──────────
-  // Si déjà connecté → redirige vers home
+  // ── Pages publiques ────────────────────────────
   {
     path: 'login',
-    component: LoginComponent,
+    loadComponent: () =>
+      import('./FrontOffice/UserManagement/login/login')
+        .then(m => m.LoginComponent),
     canActivate: [publicGuard]
   },
   {
     path: 'register',
-    component: RegisterComponent,
+    loadComponent: () =>
+      import('./FrontOffice/UserManagement/register/register')
+        .then(m => m.RegisterComponent),
     canActivate: [publicGuard]
   },
+  {
+    path: 'forgot-password',
+    loadComponent: () =>
+      import('./FrontOffice/UserManagement/forgot-password/forgot-password')
+        .then(m => m.ForgotPasswordComponent)
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./FrontOffice/UserManagement/reset-password/reset-password')
+        .then(m => m.ResetPasswordComponent)
+  },
+  {
+    path: 'oauth2/callback',
+    loadComponent: () =>
+      import('./FrontOffice/UserManagement/oauth2-callback/oauth2-callback')
+        .then(m => m.Oauth2Callback)
+  },
 
-  // ── Pages protégées (connecté requis) ─────────
+  // ── Pages protégées ────────────────────────────
   {
     path: 'home',
-    component: HomeComponent,
+    loadComponent: () =>
+      import('./home/home.component')
+        .then(m => m.HomeComponent),
     canActivate: [authGuard]
   },
   {
     path: 'mmse',
-    component: MMSETestComponent,
+    loadComponent: () =>
+      import('./mmse/mmse-test.component')
+        .then(m => m.MMSETestComponent),
     canActivate: [authGuard]
   },
   {
     path: 'cnn',
-    component: CNNPredictionComponent,
+    loadComponent: () =>
+      import('./cnn/cnn-prediction.component')
+        .then(m => m.CNNPredictionComponent),
     canActivate: [authGuard]
   },
   {
     path: 'medical-records',
-    component: MedicalRecordsComponent,
+    loadComponent: () =>
+      import('./medical-records/medical-records.component')
+        .then(m => m.MedicalRecordsComponent),
     canActivate: [authGuard]
   },
   {
     path: 'profile',
-    component: UserProfileComponent,
+    loadComponent: () =>
+      import('./FrontOffice/UserManagement/user-profile/user-profile')
+        .then(m => m.UserProfileComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'face-capture',
+    loadComponent: () =>
+      import('./FrontOffice/UserManagement/face-capture/face-capture')
+        .then(m => m.FaceCaptureComponent),
     canActivate: [authGuard]
   },
 
-  // ── Pages ADMIN uniquement ─────────────────────
+  // ── Pages ADMIN ────────────────────────────────
   {
     path: 'admin',
-    component: AdminDashboardComponent,
+    loadComponent: () =>
+      import('./admin/admin-dashboard/admin-dashboard.component')
+        .then(m => m.AdminDashboardComponent),
     canActivate: [adminGuard]
   },
-    { path: 'forgot-password', component: ForgotPasswordComponent },
-  { path: 'reset-password',  component: ResetPasswordComponent  },
-  { path: 'oauth2/callback', component: Oauth2Callback },
-  { path: 'face-capture',    component: FaceCaptureComponent    },
 
   // ── Fallback ───────────────────────────────────
   {

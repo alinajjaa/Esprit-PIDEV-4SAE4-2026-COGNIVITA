@@ -1186,93 +1186,96 @@ a[href*="facebook"] svg {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
-/* ✅ Forcer le fond sombre — évite que le parent écrase */
-html, body {
-  background: #0a0a1a !important;
-  min-height: 100vh;
-}
-
+/* ✅ Bloquer le vert du navbar derrière */
 .login-page {
-  background: #0a0a1a !important; /* déjà présent mais forcer */
-}
-/* ── Face Step amélioré ──────────────────────── */
-.face-step-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
+  background: #0a0a1a !important;
+  isolation: isolate;
 }
 
-.face-scan-ring {
-  width: 340px;
-  height: 260px;
-  border-radius: 16px;
-  border: 1px solid rgba(0, 255, 255, 0.4);
-  box-shadow:
-    0 0 30px rgba(0, 255, 255, 0.15),
-    inset 0 0 30px rgba(0, 255, 255, 0.05);
-  position: relative;
-  overflow: hidden;
-}
-
-/* Coins animés */
-.face-scan-ring::before {
+.login-page::after {
   content: '';
-  position: absolute;
-  top: 8px; left: 8px;
-  width: 24px; height: 24px;
-  border-top: 2px solid #00ffff;
-  border-left: 2px solid #00ffff;
-  border-radius: 4px 0 0 0;
-  box-shadow: 0 0 10px rgba(0,255,255,0.8);
-  animation: cornerPulse 1.5s ease-in-out infinite;
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 50%, #0a0a2a 100%);
+  z-index: 0;
+  pointer-events: none;
 }
 
-.face-scan-ring::after {
-  content: '';
-  position: absolute;
-  bottom: 8px; right: 8px;
-  width: 24px; height: 24px;
-  border-bottom: 2px solid #00ffff;
-  border-right: 2px solid #00ffff;
-  border-radius: 0 0 4px 0;
-  box-shadow: 0 0 10px rgba(0,255,255,0.8);
-  animation: cornerPulse 1.5s ease-in-out infinite 0.75s;
+/* Remonter le contenu au-dessus du overlay */
+.orb,
+
+
+/* ✅ Fix final */
+.login-page {
+  position: fixed !important;
+  inset: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 50%, #0a0a2a 100%) !important;
+  z-index: 10 !important;
+  overflow-y: auto !important;
+  padding: 20px !important;
 }
 
-@keyframes cornerPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
-.face-verifying {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  justify-content: center;
-  padding: 20px;
-  color: #00ffff;
-  font-family: 'Orbitron', sans-serif;
-  font-size: 0.8rem;
-  letter-spacing: 2px;
-  text-transform: uppercase;
+/* ── Confidence Score ────────────────────── */
+.confidence-card {
+  width: 100%;
+  padding: 14px 16px;
   background: rgba(0, 255, 255, 0.05);
   border: 1px solid rgba(0, 255, 255, 0.2);
-  border-radius: 10px;
-  width: 100%;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  animation: fadeUp 0.3s ease;
 }
 
-.error-msg {
+.confidence-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: 8px;
-  font-size: 0.86rem;
-  font-weight: 600;
-  background: rgba(255, 50, 80, 0.09);
-  border: 1px solid rgba(255, 50, 80, 0.35);
-  color: #ff3250;
-  width: 100%;
+  margin-bottom: 10px;
   font-family: 'Rajdhani', sans-serif;
+  font-size: 0.88rem;
+  color: #b0e0ff;
+}
+
+.confidence-badge {
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.confidence-badge.high     { background: rgba(0,255,157,0.15); color: #00ff9d; border: 1px solid rgba(0,255,157,0.4); }
+.confidence-badge.medium   { background: rgba(255,215,0,0.15);  color: #ffd700; border: 1px solid rgba(255,215,0,0.4); }
+.confidence-badge.low      { background: rgba(255,165,0,0.15);  color: #ffa500; border: 1px solid rgba(255,165,0,0.4); }
+.confidence-badge.refused  { background: rgba(255,50,80,0.15);  color: #ff3250; border: 1px solid rgba(255,50,80,0.4); }
+
+.confidence-bar-wrap {
+  width: 100%;
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.confidence-bar {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.8s ease;
+}
+
+.confidence-bar.high     { background: linear-gradient(90deg, #00ff9d, #00ffff); }
+.confidence-bar.medium   { background: linear-gradient(90deg, #ffd700, #ffaa00); }
+.confidence-bar.low      { background: linear-gradient(90deg, #ffa500, #ff6600); }
+.confidence-bar.refused  { background: linear-gradient(90deg, #ff3250, #ff0000); }
+
+.confidence-value {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.75rem;
+  color: var(--cyan);
+  text-align: right;
 }

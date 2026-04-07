@@ -169,35 +169,59 @@ public class UserController {
     @PostMapping("/verify-face")
     public ResponseEntity<?> verifyFace(@RequestBody Map<String, Object> body) {
         try {
-            Long userId = Long.valueOf(body.get("userId").toString());
-            List<Double> embedding = (List<Double>) body.get("embedding");
-
-            if (userId == null || embedding == null || embedding.isEmpty()) {
+            if (body.get("userId") == null || body.get("embedding") == null) {
                 return ResponseEntity.badRequest().body(Map.of(
                         "error", "userId and embedding are required"
                 ));
             }
 
-            // ✅ Vérifier le visage via Python
-            boolean match = faceAuthService.verifyFace(userId, embedding);
+            Long userId = Long.valueOf(body.get("userId").toString());
+            List<Double> embedding = (List<Double>) body.get("embedding");
 
-            if (!match) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                        "error", "face_mismatch",
-                        "message", "Face not recognized ❌"
+            if (embedding.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "embedding is empty"
                 ));
             }
 
-            // ✅ Visage reconnu → générer JWT
+            // ✅ Récupérer résultat complet depuis Python
+            Map<String, Object> result = faceAuthService.verifyFace(userId, embedding);
+            boolean match = Boolean.TRUE.equals(result.get("match"));
+
+            if (!match) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                        "error",            "face_mismatch",
+                        "message",          "Face not recognized ❌",
+                        "score",            result.getOrDefault("score", 0),
+                        "confidence_level", result.getOrDefault("confidence_level", "REFUSED")
+                ));
+            }
+
+            // ✅ Sauvegarder score en DB
             user u = service.getById(userId);
+            Double score = result.get("score") != null
+                    ? Double.valueOf(result.get("score").toString()) : 0.0;
+            String level = result.getOrDefault("confidence_level", "LOW").toString();
+
+            u.setFaceConfidence(score.floatValue());
+            u.setFaceConfidenceLevel(level);
+            service.update(userId, u);
+
+            // ✅ Générer JWT
             String token = jwtService.generateToken(u.getEmail(), u.getRole().name());
             u.setPassword(null);
 
-            return ResponseEntity.ok(new AuthResponse(token, u, u.getRole().name()));
+            return ResponseEntity.ok(Map.of(
+                    "token",            token,
+                    "user",             u,
+                    "role",             u.getRole().name(),
+                    "score",            score,
+                    "confidence_level", level
+            ));
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
-                    "error", "server_error",
+                    "error",   "server_error",
                     "message", e.getMessage()
             ));
         }
@@ -476,12 +500,23 @@ public class UserController {
             if (!registered) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                         "success", false,
-                        "message", "Face registration failed — check Python service"
+                        "message", "Face registration failed"
                 ));
             }
 
-            // ✅ JWT généré ICI seulement, après confirmation du visage
+            // ✅ Vérifier immédiatement pour obtenir le score initial
+            Map<String, Object> verifyResult = faceAuthService.verifyFace(userId, embedding);
+            Double score = verifyResult.get("score") != null
+                    ? Double.valueOf(verifyResult.get("score").toString()) : 100.0;
+            String level = verifyResult.getOrDefault("confidence_level", "HIGH").toString();
+
+            // ✅ Sauvegarder le score
             user u = service.getById(userId);
+            u.setFaceConfidence(score.floatValue());
+            u.setFaceConfidenceLevel(level);
+            service.update(userId, u);
+
+            // ✅ Générer JWT
             String token = jwtService.generateToken(u.getEmail(), u.getRole().name());
             u.setPassword(null);
 
@@ -494,7 +529,6 @@ public class UserController {
             ));
         }
     }
-
     /* ══════════════════════════════════════════
        HELPERS
        ══════════════════════════════════════════ */
@@ -505,7 +539,20 @@ public class UserController {
         }
         return authorization.substring(7);
     }
+    @PutMapping("/{id}/emotion")
+    public ResponseEntity<?> updateEmotion(
+            @PathVariable Long id,
+            @RequestParam String emotion) {
 
+        user u = service.getById(id);
+        if (u == null)
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+
+        u.setLastEmotion(emotion);
+        user updated = service.update(id, u);
+        updated.setPassword(null);
+        return ResponseEntity.ok(updated);
+    }
 
 
 

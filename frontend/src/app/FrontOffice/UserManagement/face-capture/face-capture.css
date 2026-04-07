@@ -233,3 +233,28 @@ button:disabled {
   background: rgba(0, 255, 157, 0.15);
   animation: fadeUp 0.3s ease;
 }
+.emotion-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(10, 10, 26, 0.75);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 4px 12px;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+  animation: fadeUp 0.3s ease;
+}
+
+.emotion-emoji { font-size: 1.2rem; }
+
+.emotion-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.65rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #00ffff;
+}

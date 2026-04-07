@@ -169,39 +169,44 @@
     <!-- ══════════════════════════════════════
      ÉTAPE 3 — Face ID
      ══════════════════════════════════════ -->
-    <ng-container *ngIf="showFaceStep">
+<ng-container *ngIf="showFaceStep">
 
-      <div class="card-header">
-        <div class="logo-wrap">
-          <span class="logo-icon">👁️</span>
-          <span class="logo-text">COGNIVITA</span>
-        </div>
-        <div class="card-title">Face Verification</div>
-        <div class="card-subtitle">Look at the camera to authenticate</div>
-      </div>
+  <div class="card-header">
+    <div class="logo-wrap">
+      <span class="logo-icon">👁️</span>
+      <span class="logo-text">COGNIVITA</span>
+    </div>
+    <div class="card-title">Face Verification</div>
+    <div class="card-subtitle">Look at the camera to authenticate</div>
+  </div>
 
-      <div class="divider"></div>
+  <div class="divider"></div>
 
-      <!-- Spinner pendant la vérification -->
-      <div *ngIf="faceLoading" class="face-verifying">
-        <span class="rotating">⟳</span> Verifying your face...
-      </div>
+  <!-- Spinner pendant la vérification -->
+  <div *ngIf="faceLoading" class="face-verifying">
+    <span class="rotating">⟳</span> Verifying your face...
+  </div>
 
-      <!-- Erreur face -->
-      <div *ngIf="faceError && !faceLoading" class="error-msg">
-        <span>❌</span> {{ faceError }}
-      </div>
 
-      <!-- Composant face capture -->
-      <app-face-capture *ngIf="!faceLoading" (embeddingReady)="onFaceEmbeddingReady($event)"
-        (captureError)="onFaceCaptureError($event)">
-      </app-face-capture>
 
-      <!-- Back -->
-      <button type="button" class="back-otp-btn" (click)="showFaceStep = false; showOtpStep = false">
-        ← Back to Login
-      </button>
+  <!-- Erreur face -->
+  <div *ngIf="faceError && !faceLoading" class="error-msg">
+    <span>❌</span> {{ faceError }}
+  </div>
 
-    </ng-container>
+  <!-- Composant face capture -->
+  <app-face-capture *ngIf="!faceLoading && faceScore === null"
+    (embeddingReady)="onFaceEmbeddingReady($event)"
+    (emotionDetected)="onEmotionDetected($event)"
+    (captureError)="onFaceCaptureError($event)">
+  </app-face-capture>
+
+  <!-- Back -->
+  <button type="button" class="back-otp-btn"
+    (click)="showFaceStep = false; showOtpStep = false">
+    ← Back to Login
+  </button>
+
+</ng-container>
   </div>
 </div>

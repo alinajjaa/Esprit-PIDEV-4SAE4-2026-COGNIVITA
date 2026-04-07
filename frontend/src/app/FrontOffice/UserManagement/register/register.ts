@@ -179,34 +179,34 @@ export class RegisterComponent {
     });
   }
 
-verifyRegister(): void {
-  if (this.otpForm.invalid) {
-    this.otpForm.markAllAsTouched();
-    this.triggerShake();
-    return;
-  }
-
-  this.otpLoading = true;
-  this.otpError   = '';
-  this.mark();
-
-  this.userService.verifyRegister(this.pendingEmail, this.otp.value).subscribe({
-    next: (res: any) => {
-      this.otpLoading  = false;
-      this.savedUserId = res.userId;  // ✅ plus de res.user
-      this.showOtpStep  = false;
-      this.showFaceStep = true;
-      this.triggerSuccess();
-      this.mark();
-    },
-    error: (err) => {
-      this.otpLoading = false;
-      this.otpError   = err?.error?.message || 'Invalid or expired code.';
-      this.mark();
+  verifyRegister(): void {
+    if (this.otpForm.invalid) {
+      this.otpForm.markAllAsTouched();
       this.triggerShake();
+      return;
     }
-  });
-}
+
+    this.otpLoading = true;
+    this.otpError = '';
+    this.mark();
+
+    this.userService.verifyRegister(this.pendingEmail, this.otp.value).subscribe({
+      next: (res: any) => {
+        this.otpLoading = false;
+        this.savedUserId = res.userId;  // ✅ plus de res.user
+        this.showOtpStep = false;
+        this.showFaceStep = true;
+        this.triggerSuccess();
+        this.mark();
+      },
+      error: (err) => {
+        this.otpLoading = false;
+        this.otpError = err?.error?.message || 'Invalid or expired code.';
+        this.mark();
+        this.triggerShake();
+      }
+    });
+  }
   resendOtp(): void {
     if (this.resendCooldown > 0) return;
     this.resendLoading = true;
@@ -231,33 +231,32 @@ verifyRegister(): void {
     });
   }
   // Ajouter ces méthodes
-onFaceEmbeddingReady(embedding: number[]): void {
-  if (!this.savedUserId) return;
+  onFaceEmbeddingReady(embedding: number[]): void {
+    if (!this.savedUserId) return;
 
-  this.faceLoading = true;
-  this.faceError   = '';
-  this.mark();
+    this.faceLoading = true;
+    this.faceError = '';
+    this.mark();
 
-  this.userService.registerFace(this.savedUserId, embedding).subscribe({
-    next: (res: any) => {
-      this.faceLoading = false;
-      this.userService.setSession(res.token, res.user); // ✅ sauvegarder la session
-      this.triggerSuccess();
-      this.success = 'Account created & face registered! Redirecting...';
-      this.mark();
-      setTimeout(() => {
-        this.router.navigate(res.role === 'ADMIN' ? ['/admin'] : ['/home']);
-      }, 1500);
-    },
-    error: (err) => {
-      this.faceLoading = false;
-      this.faceError   = err?.error?.message || 'Face registration failed ❌';
-      this.mark();
-      this.triggerShake();
-    }
-  });
-}
-
+    this.userService.registerFace(this.savedUserId, embedding).subscribe({
+      next: (res: any) => {
+        this.faceLoading = false;
+        this.userService.setSession(res.token, res.user);
+        this.triggerSuccess();
+        this.success = 'Account created & face registered! Redirecting...';
+        this.mark();
+        setTimeout(() => {
+          this.router.navigate(res.role === 'ADMIN' ? ['/admin'] : ['/home']);
+        }, 1500);
+      },
+      error: (err) => {
+        this.faceLoading = false;
+        this.faceError = err?.error?.message || 'Face registration failed ❌';
+        this.mark();
+        this.triggerShake();
+      }
+    });
+  }
   onFaceCaptureError(error: string): void {
     this.faceError = error;
     this.mark();
@@ -275,6 +274,38 @@ onFaceEmbeddingReady(embedding: number[]): void {
     this.mark();
   }
 
+  onPhotoReady(photoBase64: string): void {
+    if (!this.savedUserId) return;
+
+    const blob = this.base64ToBlob(photoBase64, 'image/jpeg');
+    const file = new File([blob], 'profile.jpg', { type: 'image/jpeg' });
+
+    this.userService.uploadProfileImage(this.savedUserId, file).subscribe({
+      next: (url: string) => {
+        console.log('✅ Photo profil sauvegardée sur Cloudinary:', url);
+      },
+      error: (err) => {
+        console.error('❌ Upload Cloudinary failed:', err);
+      }
+    });
+  }
+
+  private base64ToBlob(base64: string, type: string): Blob {
+    const byteString = atob(base64.split(',')[1]);
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type });
+  }
+  onEmotionDetected(emotion: string): void {
+    if (!this.savedUserId) return;
+    this.userService.updateEmotion(this.savedUserId, emotion).subscribe({
+      next: () => console.log('✅ Émotion sauvegardée:', emotion),
+      error: (err) => console.error('❌ Erreur:', err)
+    });
+  }
 
 
 }

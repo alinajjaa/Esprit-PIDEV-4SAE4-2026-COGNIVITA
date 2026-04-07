@@ -20,20 +20,25 @@ export class FaceCaptureComponent implements OnInit, OnDestroy {
   @ViewChild('canvasEl', { static: false }) canvasEl!: ElementRef<HTMLCanvasElement>;
 
   @Output() embeddingReady = new EventEmitter<number[]>();
-  @Output() captureError   = new EventEmitter<string>();
+  @Output() captureError = new EventEmitter<string>();
+  @Output() photoReady = new EventEmitter<string>();
+  @Output() emotionDetected = new EventEmitter<string>();
 
-  modelsLoaded      = false;
-  cameraActive      = false;
-  capturing         = false;
-  captured          = false;
+
+  modelsLoaded = false;
+  cameraActive = false;
+  capturing = false;
+  captured = false;
   faceDetectedCount = 0;       // ✅ compteur auto-détection
-  statusMessage     = 'Chargement des modèles...';
+  statusMessage = 'Chargement des modèles...';
   statusType: 'info' | 'success' | 'error' = 'info';
+  currentEmotion = '';
+emotionEmoji   = '😐';
 
   private stream?: MediaStream | null = null;
   private detectionInterval?: ReturnType<typeof setInterval>;
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor(private cdr: ChangeDetectorRef) { }
 
   async ngOnInit(): Promise<void> {
     await this.loadModels();
@@ -48,31 +53,32 @@ export class FaceCaptureComponent implements OnInit, OnDestroy {
   // ══════════════════════════════════════════
   // CHARGER LES MODÈLES
   // ══════════════════════════════════════════
-  async loadModels(): Promise<void> {
-    try {
-      this.statusMessage = 'Chargement des modèles IA...';
-      this.statusType = 'info';
-      this.mark();
+async loadModels(): Promise<void> {
+  try {
+    this.statusMessage = 'Chargement des modèles IA...';
+    this.statusType = 'info';
+    this.mark();
 
-      const MODEL_URL = '/models';
-      await Promise.all([
-        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-      ]);
+    const MODEL_URL = '/models';
+    await Promise.all([
+      faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+      faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+      faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+      faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL) // ✅ AJOUTER
+    ]);
 
-      this.modelsLoaded = true;
-      this.statusMessage = 'Modèles chargés ✅ Activez la caméra';
-      this.statusType = 'success';
-      this.mark();
+    this.modelsLoaded = true;
+    this.statusMessage = 'Modèles chargés ✅ Activez la caméra';
+    this.statusType = 'success';
+    this.mark();
 
-    } catch (err) {
-      this.statusMessage = 'Erreur chargement modèles ❌';
-      this.statusType = 'error';
-      this.captureError.emit('Erreur chargement modèles');
-      this.mark();
-    }
+  } catch (err) {
+    this.statusMessage = 'Erreur chargement modèles ❌';
+    this.statusType = 'error';
+    this.captureError.emit('Erreur chargement modèles');
+    this.mark();
   }
+}
 
   // ══════════════════════════════════════════
   // ACTIVER LA CAMÉRA + démarrer boucle auto
@@ -108,96 +114,110 @@ export class FaceCaptureComponent implements OnInit, OnDestroy {
   // ══════════════════════════════════════════
   // BOUCLE AUTO-DÉTECTION (toutes les 100ms)
   // ══════════════════════════════════════════
-  private startDetectionLoop(): void {
-    this.detectionInterval = setInterval(async () => {
-      if (!this.videoEl?.nativeElement || this.capturing || this.captured) return;
+private startDetectionLoop(): void {
+  this.detectionInterval = setInterval(async () => {
+    if (!this.videoEl?.nativeElement || this.capturing || this.captured) return;
 
-      const detection = await faceapi
-        .detectSingleFace(this.videoEl.nativeElement, new faceapi.TinyFaceDetectorOptions())
-        .withFaceLandmarks();
+    const detection = await faceapi
+      .detectSingleFace(this.videoEl.nativeElement, new faceapi.TinyFaceDetectorOptions())
+      .withFaceLandmarks()
+      .withFaceExpressions(); // ✅ AJOUTER
 
-      if (detection) {
-        this.faceDetectedCount++;
-        const pct = Math.round((this.faceDetectedCount / 20) * 100);
-        this.statusMessage = `Visage détecté — Maintien... ${pct}%`;
-        this.statusType = 'success';
+    if (detection) {
+      this.faceDetectedCount++;
 
-        // ✅ 20 frames consécutives (~2s) → capture automatique
-        if (this.faceDetectedCount >= 20) {
-          clearInterval(this.detectionInterval);
-          await this.captureFace();
-        }
-      } else {
-        this.faceDetectedCount = 0;
-        this.statusMessage = 'Placez votre visage dans le cadre...';
-        this.statusType = 'info';
+      // ✅ Analyser l'émotion dominante
+      const expressions = detection.expressions as any;
+      const dominant = Object.entries(expressions)
+        .sort((a: any, b: any) => b[1] - a[1])[0][0] as string;
+      this.currentEmotion = dominant;
+      this.emotionEmoji   = this.getEmoji(dominant);
+      this.updateEmotionMessage(dominant);
+
+      if (this.faceDetectedCount >= 20) {
+        clearInterval(this.detectionInterval);
+        await this.captureFace();
       }
+    } else {
+      this.faceDetectedCount = 0;
+      this.statusMessage = 'Placez votre visage dans le cadre...';
+      this.statusType = 'info';
+    }
 
-      this.mark();
-    }, 100);
-  }
+    this.mark();
+  }, 100);
+}
 
   // ══════════════════════════════════════════
   // CAPTURE AUTO
   // ══════════════════════════════════════════
-  async captureFace(): Promise<void> {
-    if (!this.videoEl?.nativeElement || this.capturing) return;
+async captureFace(): Promise<void> {
+  if (!this.videoEl?.nativeElement || this.capturing) return;
 
-    this.capturing = true;
-    this.statusMessage = 'Extraction du visage...';
-    this.statusType = 'info';
-    this.mark();
+  this.capturing = true;
+  this.statusMessage = 'Extraction du visage...';
+  this.statusType = 'info';
+  this.mark();
 
-    try {
-      const detection = await faceapi
-        .detectSingleFace(this.videoEl.nativeElement, new faceapi.TinyFaceDetectorOptions())
-        .withFaceLandmarks()
-        .withFaceDescriptor();
+  try {
+    const detection = await faceapi
+      .detectSingleFace(this.videoEl.nativeElement, new faceapi.TinyFaceDetectorOptions())
+      .withFaceLandmarks()
+      .withFaceDescriptor();
 
-      if (!detection) {
-        this.capturing = false;
-        this.faceDetectedCount = 0;
-        this.statusMessage = 'Aucun visage détecté ❌ Réessayez';
-        this.statusType = 'error';
-        this.startDetectionLoop(); // reprendre la boucle
-        this.mark();
-        return;
-      }
-
-      const embedding = Array.from(detection.descriptor);
-
-      this.captured  = true;
-      this.capturing = false;
-      this.statusMessage = 'Visage capturé ✅';
-      this.statusType = 'success';
-      this.mark();
-
-      this.drawDetection(detection);
-      this.embeddingReady.emit(embedding);
-      this.stopAll();
-
-    } catch (err) {
+    if (!detection) {
       this.capturing = false;
       this.faceDetectedCount = 0;
-      this.statusMessage = 'Erreur de détection ❌';
+      this.statusMessage = 'Aucun visage détecté ❌ Réessayez';
       this.statusType = 'error';
-      this.captureError.emit('Erreur détection visage');
+      this.startDetectionLoop();
       this.mark();
+      return;
     }
-  }
 
+    const embedding = Array.from(detection.descriptor);
+
+    this.captured  = true;
+    this.capturing = false;
+    this.statusMessage = 'Visage capturé ✅';
+    this.statusType = 'success';
+    this.mark();
+
+    this.drawDetection(detection);
+
+    // ✅ Capturer la photo
+    const snapCanvas = document.createElement('canvas');
+    snapCanvas.width  = this.videoEl.nativeElement.videoWidth;
+    snapCanvas.height = this.videoEl.nativeElement.videoHeight;
+    snapCanvas.getContext('2d')?.drawImage(this.videoEl.nativeElement, 0, 0);
+    const photoBase64 = snapCanvas.toDataURL('image/jpeg', 0.85);
+
+    this.embeddingReady.emit(embedding);    // ✅ une seule fois
+    this.photoReady.emit(photoBase64);
+    this.emotionDetected.emit(this.currentEmotion); // ✅ émettre émotion
+    this.stopAll();
+
+  } catch (err) {
+    this.capturing = false;
+    this.faceDetectedCount = 0;
+    this.statusMessage = 'Erreur de détection ❌';
+    this.statusType = 'error';
+    this.captureError.emit('Erreur détection visage');
+    this.mark();
+  }
+}
   // ══════════════════════════════════════════
   // DESSINER LA DÉTECTION
   // ══════════════════════════════════════════
   private drawDetection(detection: any): void {
     const canvas = this.canvasEl?.nativeElement;
-    const video  = this.videoEl?.nativeElement;
+    const video = this.videoEl?.nativeElement;
     if (!canvas || !video) return;
 
-    canvas.width  = video.videoWidth;
+    canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    const dims    = faceapi.matchDimensions(canvas, video, true);
+    const dims = faceapi.matchDimensions(canvas, video, true);
     const resized = faceapi.resizeResults(detection, dims);
     faceapi.draw.drawDetections(canvas, resized);
     faceapi.draw.drawFaceLandmarks(canvas, resized);
@@ -207,11 +227,11 @@ export class FaceCaptureComponent implements OnInit, OnDestroy {
   // RÉESSAYER
   // ══════════════════════════════════════════
   retry(): void {
-    this.captured          = false;
-    this.cameraActive      = false;
+    this.captured = false;
+    this.cameraActive = false;
     this.faceDetectedCount = 0;
-    this.statusMessage     = 'Modèles chargés ✅ Activez la caméra';
-    this.statusType        = 'success';
+    this.statusMessage = 'Modèles chargés ✅ Activez la caméra';
+    this.statusType = 'success';
     this.mark();
     this.startCamera();
   }
@@ -226,6 +246,35 @@ export class FaceCaptureComponent implements OnInit, OnDestroy {
     this.cameraActive = false;
     this.mark();
   }
+  // ✅ Méthodes à ajouter
+private getEmoji(emotion: string): string {
+  const map: { [key: string]: string } = {
+    happy: '😊', neutral: '😐', sad: '😢',
+    angry: '😠', fearful: '😨', disgusted: '🤢', surprised: '😮'
+  };
+  return map[emotion] || '😐';
+}
+
+private updateEmotionMessage(emotion: string): void {
+  const pct = Math.round((this.faceDetectedCount / 20) * 100);
+  switch (emotion) {
+    case 'happy':
+      this.statusMessage = `😊 Parfait ! Maintien... ${pct}%`;
+      this.statusType = 'success'; break;
+    case 'neutral':
+      this.statusMessage = `😐 Détecté — Maintien... ${pct}%`;
+      this.statusType = 'success'; break;
+    case 'sad': case 'fearful': case 'disgusted':
+      this.statusMessage = `⚠️ Semblez contraint — continuez si vous êtes libre`;
+      this.statusType = 'error'; break;
+    case 'surprised':
+      this.statusMessage = `😮 Détecté — Restez naturel... ${pct}%`;
+      this.statusType = 'info'; break;
+    default:
+      this.statusMessage = `Visage détecté — Maintien... ${pct}%`;
+      this.statusType = 'success';
+  }
+}
 
   stopCamera(): void { this.stopAll(); }
 }

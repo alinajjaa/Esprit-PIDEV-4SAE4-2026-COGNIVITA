@@ -7,6 +7,7 @@ import { CommonModule } from '@angular/common';
 import { UserService } from '../../../services/user.service';
 import { FaceCaptureComponent } from '../face-capture/face-capture';
 
+
 @Component({
   standalone: true,
   selector: 'app-login',
@@ -19,27 +20,29 @@ export class LoginComponent {
   form: FormGroup;
   otpForm: FormGroup;
 
-  loading        = false;
-  error          = '';
-  isBlocked      = false;
-  showPassword   = false;
+  loading = false;
+  error = '';
+  isBlocked = false;
+  showPassword = false;
 
   // OTP step
-  showOtpStep    = false;
-  pendingEmail   = '';
-  otpLoading     = false;
-  otpError       = '';
-  resendLoading  = false;
+  showOtpStep = false;
+  pendingEmail = '';
+  otpLoading = false;
+  otpError = '';
+  resendLoading = false;
   resendCooldown = 0;
 
   // ✅ NOUVEAU — Face step
-  showFaceStep   = false;
-  pendingUserId  : number | null = null;
-  faceLoading    = false;
-  faceError      = '';
+  showFaceStep = false;
+  pendingUserId: number | null = null;
+  faceLoading = false;
+  faceError = '';
 
-  cardShake   = false;
+  cardShake = false;
   cardSuccess = false;
+  faceScore: number | null = null;
+  faceConfidence: string = '';
 
   constructor(
     private fb: FormBuilder,
@@ -48,7 +51,7 @@ export class LoginComponent {
     private cdr: ChangeDetectorRef
   ) {
     this.form = this.fb.group({
-      email:    ['', [Validators.required, Validators.email]],
+      email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required]
     });
 
@@ -57,9 +60,9 @@ export class LoginComponent {
     });
   }
 
-  get email()    { return this.form.get('email')!; }
+  get email() { return this.form.get('email')!; }
   get password() { return this.form.get('password')!; }
-  get otp()      { return this.otpForm.get('otp')!; }
+  get otp() { return this.otpForm.get('otp')!; }
 
   private mark(): void { this.cdr.markForCheck(); }
 
@@ -80,12 +83,12 @@ export class LoginComponent {
     if (this.form.invalid) { this.form.markAllAsTouched(); this.triggerShake(); return; }
 
     this.loading = true;
-    this.error   = '';
+    this.error = '';
     this.isBlocked = false;
     this.mark();
 
     this.userService.login({
-      email:    this.email.value,
+      email: this.email.value,
       password: this.password.value
     }).subscribe({
       next: (res: any) => {
@@ -94,14 +97,14 @@ export class LoginComponent {
         if (res.step === 'face_required') {
           // ✅ Spring Boot répond avec step: face_required → afficher face scan
           this.pendingUserId = res.userId;
-          this.showFaceStep  = true;
+          this.showFaceStep = true;
           this.mark();
           return;
         }
 
         if (res.twoFaRequired) {
           this.pendingEmail = res.email;
-          this.showOtpStep  = true;
+          this.showOtpStep = true;
           this.mark();
           return;
         }
@@ -113,9 +116,9 @@ export class LoginComponent {
         }, 600);
       },
       error: (err) => {
-        this.loading   = false;
+        this.loading = false;
         this.isBlocked = err.status === 403;
-        this.error     = err?.error?.message ||
+        this.error = err?.error?.message ||
           (this.isBlocked ? 'Your account has been blocked.' : 'Invalid credentials');
         this.mark();
         this.triggerShake();
@@ -130,7 +133,7 @@ export class LoginComponent {
     if (this.otpForm.invalid) { this.otpForm.markAllAsTouched(); this.triggerShake(); return; }
 
     this.otpLoading = true;
-    this.otpError   = '';
+    this.otpError = '';
     this.mark();
 
     this.userService.verifyOtp(this.pendingEmail, this.otp.value).subscribe({
@@ -140,8 +143,8 @@ export class LoginComponent {
         // ✅ Après OTP → passer au face scan
         if (res.step === 'face_required') {
           this.pendingUserId = res.userId;
-          this.showOtpStep   = false;
-          this.showFaceStep  = true;
+          this.showOtpStep = false;
+          this.showFaceStep = true;
           this.mark();
           return;
         }
@@ -154,7 +157,7 @@ export class LoginComponent {
       },
       error: (err) => {
         this.otpLoading = false;
-        this.otpError   = err?.error?.message || 'Invalid or expired code.';
+        this.otpError = err?.error?.message || 'Invalid or expired code.';
         this.mark();
         this.triggerShake();
       }
@@ -173,17 +176,24 @@ onFaceEmbeddingReady(embedding: number[]): void {
 
   this.userService.verifyFace(this.pendingUserId, embedding).subscribe({
     next: (res: any) => {
-      this.faceLoading = false;
+      this.faceLoading    = false;
+      this.faceScore      = res.score;
+      this.faceConfidence = res.confidence_level;
+      this.mark();
+
       this.triggerSuccess();
-      this.userService.setSession(res.token, res.user); // ✅
+      this.userService.setSession(res.token, res.user);
       localStorage.setItem('jwt_token', res.token);
+
       setTimeout(() => {
         this.router.navigate(res.role === 'ADMIN' ? ['/admin'] : ['/home']);
-      }, 600);
+      }, 1500);
     },
     error: (err) => {
-      this.faceLoading = false;
-      this.faceError   = err?.error?.message || 'Face verification failed ❌';
+      this.faceLoading    = false;
+      this.faceScore      = err?.error?.score ?? null;
+      this.faceConfidence = err?.error?.confidence_level ?? '';
+      this.faceError      = err?.error?.message || 'Face verification failed ❌';
       this.mark();
       this.triggerShake();
     }
@@ -204,7 +214,7 @@ onFaceEmbeddingReady(embedding: number[]): void {
 
     this.userService.resendOtp(this.pendingEmail).subscribe({
       next: () => {
-        this.resendLoading  = false;
+        this.resendLoading = false;
         this.resendCooldown = 60;
         this.mark();
         const interval = setInterval(() => {
@@ -214,6 +224,15 @@ onFaceEmbeddingReady(embedding: number[]): void {
         }, 1000);
       },
       error: () => { this.resendLoading = false; this.mark(); }
+    });
+  }
+
+
+  onEmotionDetected(emotion: string): void {
+    if (!this.pendingUserId) return;
+    this.userService.updateEmotion(this.pendingUserId, emotion).subscribe({
+      next: () => console.log('✅ Émotion sauvegardée:', emotion),
+      error: (err) => console.error('❌ Erreur:', err)
     });
   }
 }
