@@ -315,8 +315,21 @@ export class UsersListComponent implements OnChanges {
     (event.target as HTMLElement).style.display = 'none';
   }
 
-  getAvatarColor(name: string | undefined): string {
-    if (!name) return this.avatarColors[0];
-    return this.avatarColors[name.charCodeAt(0) % this.avatarColors.length];
-  }
+getEmoji(emotion: string): string {
+  const map: { [key: string]: string } = {
+    happy:     '😊',
+    neutral:   '😐',
+    sad:       '😢',
+    angry:     '😠',
+    fearful:   '😨',
+    disgusted: '🤢',
+    surprised: '😮'
+  };
+  return map[emotion] || '😐';
+}
+
+getAvatarColor(name: string | undefined): string {
+  if (!name) return this.avatarColors[0];
+  return this.avatarColors[name.charCodeAt(0) % this.avatarColors.length];
+}
 }

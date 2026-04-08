@@ -38,7 +38,7 @@ export class LoginComponent {
   pendingUserId: number | null = null;
   faceLoading = false;
   faceError = '';
-
+  detectedEmotion: string = 'neutral';
   cardShake = false;
   cardSuccess = false;
   faceScore: number | null = null;
@@ -167,38 +167,48 @@ export class LoginComponent {
   // ══════════════════════════════════════════
   // ÉTAPE 3 — Face ID
   // ══════════════════════════════════════════
-onFaceEmbeddingReady(embedding: number[]): void {
-  if (!this.pendingUserId) return;
+  onFaceEmbeddingReady(embedding: number[]): void {
+    if (!this.pendingUserId) return;
 
-  this.faceLoading = true;
-  this.faceError   = '';
-  this.mark();
+    this.faceLoading = true;
+    this.faceError = '';
+    this.mark();
 
-  this.userService.verifyFace(this.pendingUserId, embedding).subscribe({
-    next: (res: any) => {
-      this.faceLoading    = false;
-      this.faceScore      = res.score;
-      this.faceConfidence = res.confidence_level;
-      this.mark();
+    this.userService.verifyFace(this.pendingUserId, embedding).subscribe({
+      next: (res: any) => {
+        this.faceLoading = false;
+        this.faceScore = res.score;
+        this.faceConfidence = res.confidence_level;
+        this.mark();
 
-      this.triggerSuccess();
-      this.userService.setSession(res.token, res.user);
-      localStorage.setItem('jwt_token', res.token);
+        this.triggerSuccess();
+        this.userService.setSession(res.token, res.user);
+        localStorage.setItem('jwt_token', res.token);
 
-      setTimeout(() => {
-        this.router.navigate(res.role === 'ADMIN' ? ['/admin'] : ['/home']);
-      }, 1500);
-    },
-    error: (err) => {
-      this.faceLoading    = false;
-      this.faceScore      = err?.error?.score ?? null;
-      this.faceConfidence = err?.error?.confidence_level ?? '';
-      this.faceError      = err?.error?.message || 'Face verification failed ❌';
-      this.mark();
-      this.triggerShake();
-    }
-  });
-}
+        // ✅ Sauvegarder l'émotion
+        const userId = res.user?.id;
+        const emotion = this.detectedEmotion || 'neutral'; // ← ton champ émotion
+        if (userId && emotion) {
+          this.userService.updateEmotion(userId, emotion).subscribe({
+            next: () => console.log('✅ Émotion sauvegardée:', emotion),
+            error: (err) => console.error('❌ Erreur émotion:', err)
+          });
+        }
+
+        setTimeout(() => {
+          this.router.navigate(res.role === 'ADMIN' ? ['/admin'] : ['/home']);
+        }, 1500);
+      },
+      error: (err) => {
+        this.faceLoading = false;
+        this.faceScore = err?.error?.score ?? null;
+        this.faceConfidence = err?.error?.confidence_level ?? '';
+        this.faceError = err?.error?.message || 'Face verification failed ❌';
+        this.mark();
+        this.triggerShake();
+      }
+    });
+  }
   onFaceCaptureError(error: string): void {
     this.faceError = error;
     this.mark();
@@ -228,11 +238,7 @@ onFaceEmbeddingReady(embedding: number[]): void {
   }
 
 
-  onEmotionDetected(emotion: string): void {
-    if (!this.pendingUserId) return;
-    this.userService.updateEmotion(this.pendingUserId, emotion).subscribe({
-      next: () => console.log('✅ Émotion sauvegardée:', emotion),
-      error: (err) => console.error('❌ Erreur:', err)
-    });
-  }
+onEmotionDetected(emotion: string): void {
+  this.detectedEmotion = emotion; // ← juste stocker, pas appeler l'API
+}
 }

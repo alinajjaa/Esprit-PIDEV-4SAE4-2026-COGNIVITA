@@ -370,3 +370,19 @@
   .users-grid { grid-template-columns: 1fr; }
   .dashboard-wrapper { padding: 14px; }
 }
+.card-emotion {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.emotion-emoji {
+  font-size: 14px;
+}
+
+.emotion-label {
+  font-size: 11px;
+  color: #00ffcc;
+  text-transform: capitalize;
+}

@@ -76,8 +76,8 @@
     <div class="toolbar-right">
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
-        <input class="search-input" type="text" placeholder="Search name, email..."
-          [(ngModel)]="searchQuery" (input)="filterUsers()" />
+        <input class="search-input" type="text" placeholder="Search name, email..." [(ngModel)]="searchQuery"
+          (input)="filterUsers()" />
       </div>
       <select class="filter-select" [(ngModel)]="roleFilter" (change)="applyFilters()">
         <option value="ALL">All Roles</option>
@@ -100,25 +100,19 @@
 
   <!-- ══ CARDS GRID ══ -->
   <div class="users-grid" *ngIf="filteredUsers.length > 0">
-    <div class="user-card"
-         *ngFor="let user of paginatedUsers; let i = index"
-         [class.card-blocked]="user.blocked"
-         [style.animation-delay]="i * 0.06 + 's'">
+    <div class="user-card" *ngFor="let user of paginatedUsers; let i = index" [class.card-blocked]="user.blocked"
+      [style.animation-delay]="i * 0.06 + 's'">
 
       <div class="card-ribbon" *ngIf="user.blocked">BLOCKED</div>
 
       <div class="card-avatar-wrap">
-        <div class="card-avatar"
-             [style.background]="getAvatarColor(user.fullName)"
-             (click)="user.photoUrl && openZoom(user)"
-             [class.clickable]="user.photoUrl">
+        <div class="card-avatar" [style.background]="getAvatarColor(user.fullName)"
+          (click)="user.photoUrl && openZoom(user)" [class.clickable]="user.photoUrl">
           <img *ngIf="user.photoUrl" [src]="user.photoUrl" alt="avatar" (error)="onImgError($event)" />
           <span *ngIf="!user.photoUrl">{{ user.fullName?.charAt(0)?.toUpperCase() }}</span>
           <div class="card-avatar-overlay" *ngIf="user.photoUrl"><span>🔍</span></div>
         </div>
-        <span class="card-status-dot"
-              [class.dot-active]="!user.blocked"
-              [class.dot-blocked]="user.blocked">
+        <span class="card-status-dot" [class.dot-active]="!user.blocked" [class.dot-blocked]="user.blocked">
         </span>
       </div>
 
@@ -129,6 +123,11 @@
           <div *ngIf="editingRoleId !== user.id">
             <span class="role-badge" [ngClass]="'role-' + user.role?.toLowerCase()">{{ user.role }}</span>
             <button class="btn-edit-role" (click)="startEditRole(user)" title="Change role">✏️</button>
+          </div>
+          <!-- ✅ Émotion -->
+          <div class="card-emotion" *ngIf="user.lastEmotion">
+            <span class="emotion-emoji">{{ getEmoji(user.lastEmotion) }}</span>
+            <span class="emotion-label">{{ user.lastEmotion }}</span>
           </div>
           <div *ngIf="editingRoleId === user.id" class="role-select-wrap">
             <select class="role-select-inline" [value]="user.role"
@@ -147,13 +146,13 @@
       <div class="card-divider"></div>
 
       <div class="card-actions">
-        <button *ngIf="!user.blocked" class="btn-action btn-block"
-          (click)="confirmBlock(user)" [disabled]="blockingId === user.id">
+        <button *ngIf="!user.blocked" class="btn-action btn-block" (click)="confirmBlock(user)"
+          [disabled]="blockingId === user.id">
           <span>{{ blockingId === user.id ? '⟳' : '🔒' }}</span>
           <span>Block</span>
         </button>
-        <button *ngIf="user.blocked" class="btn-action btn-unblock"
-          (click)="unblockUser(user)" [disabled]="blockingId === user.id">
+        <button *ngIf="user.blocked" class="btn-action btn-unblock" (click)="unblockUser(user)"
+          [disabled]="blockingId === user.id">
           <span>{{ blockingId === user.id ? '⟳' : '🔓' }}</span>
           <span>Unblock</span>
         </button>
@@ -165,8 +164,8 @@
   <!-- ══ PAGINATION ══ -->
   <div class="pagination" *ngIf="totalPages > 1">
     <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">‹</button>
-    <button class="page-btn" *ngFor="let p of pageNumbers"
-      [class.active]="p === currentPage" (click)="goToPage(p)">{{ p }}</button>
+    <button class="page-btn" *ngFor="let p of pageNumbers" [class.active]="p === currentPage" (click)="goToPage(p)">{{ p
+      }}</button>
     <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">›</button>
   </div>
 
@@ -177,7 +176,8 @@
   <div class="confirm-modal modal-warning" (click)="$event.stopPropagation()">
     <div class="modal-icon">🔒</div>
     <h3 class="modal-title">Block User</h3>
-    <p class="modal-body">You are about to block <strong>{{ userToBlock?.fullName }}</strong>.<br/>They will no longer be able to log in.</p>
+    <p class="modal-body">You are about to block <strong>{{ userToBlock?.fullName }}</strong>.<br />They will no longer
+      be able to log in.</p>
     <div class="modal-actions">
       <button class="btn-cancel" (click)="cancelBlock()">Cancel</button>
       <button class="btn-confirm-block" (click)="blockUser(userToBlock!)">🔒 Block</button>
@@ -190,7 +190,8 @@
   <div class="confirm-modal modal-danger" (click)="$event.stopPropagation()">
     <div class="modal-icon">⚠️</div>
     <h3 class="modal-title">Delete User</h3>
-    <p class="modal-body">You are about to delete <strong>{{ userToDelete?.fullName }}</strong>.<br/>This action cannot be undone.</p>
+    <p class="modal-body">You are about to delete <strong>{{ userToDelete?.fullName }}</strong>.<br />This action cannot
+      be undone.</p>
     <div class="modal-actions">
       <button class="btn-cancel" (click)="cancelDelete()">Cancel</button>
       <button class="btn-confirm-delete" (click)="deleteUser(userToDelete!.id!)">🗑️ Delete</button>

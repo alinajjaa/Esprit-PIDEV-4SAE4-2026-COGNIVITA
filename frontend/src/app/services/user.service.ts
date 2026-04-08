@@ -14,6 +14,8 @@ export interface User {
   role: string;
   createdAt: string;
   blocked: boolean;
+  lastEmotion?: string; // ✅
+
 }
 
 export interface RegisterRequest {
@@ -49,21 +51,21 @@ export class UserService {
   /* =========================
      LOGIN
      ========================= */
-login(credentials: { email: string, password: string }): Observable<any> {
-  return this.http.post<any>(`${this.baseUrl}/login`, credentials).pipe(
-    map(res => {
-      if (res.twoFaRequired) return res;
-      if (res.step === 'face_required') return res; // ✅ pas de stockage
+  login(credentials: { email: string, password: string }): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/login`, credentials).pipe(
+      map(res => {
+        if (res.twoFaRequired) return res;
+        if (res.step === 'face_required') return res; // ✅ pas de stockage
 
-      const mappedUser: User = this.mapUser(res.user);
-      mappedUser.role = res.role;
-      localStorage.setItem(this.tokenKey, res.token);
-      localStorage.setItem(this.userKey, JSON.stringify(mappedUser));
-      this.currentUserSubject.next(mappedUser);
-      return res;
-    })
-  );
-}
+        const mappedUser: User = this.mapUser(res.user);
+        mappedUser.role = res.role;
+        localStorage.setItem(this.tokenKey, res.token);
+        localStorage.setItem(this.userKey, JSON.stringify(mappedUser));
+        this.currentUserSubject.next(mappedUser);
+        return res;
+      })
+    );
+  }
 
   /* =========================
      LOGOUT
@@ -203,8 +205,8 @@ login(credentials: { email: string, password: string }): Observable<any> {
       photoUrl: user.photoUrl ?? user.photo_url ?? '',
       role: user.role ?? '',
       createdAt: user.createdAt ?? user.created_at ?? '',
-      blocked: user.blocked ?? false, // ← AJOUTER
-
+      blocked: user.blocked ?? false,
+      lastEmotion: user.lastEmotion ?? undefined, // ✅
     };
   }
 
@@ -262,25 +264,25 @@ login(credentials: { email: string, password: string }): Observable<any> {
       { responseType: 'text' }
     );
   }
-registerFace(userId: number, embedding: number[]): Observable<any> {
-  return this.http.post(`${this.baseUrl}/register-face`, {
-    userId,
-    embedding
-  });
-}
+  registerFace(userId: number, embedding: number[]): Observable<any> {
+    return this.http.post(`${this.baseUrl}/register-face`, {
+      userId,
+      embedding
+    });
+  }
 
-verifyFace(userId: number, embedding: number[]): Observable<any> {
-  return this.http.post(`${this.baseUrl}/verify-face`, {
-    userId,
-    embedding
-  });
-}
+  verifyFace(userId: number, embedding: number[]): Observable<any> {
+    return this.http.post(`${this.baseUrl}/verify-face`, {
+      userId,
+      embedding
+    });
+  }
 
-updateEmotion(userId: number, emotion: string): Observable<any> {
-  return this.http.put(
-    `${this.baseUrl}/${userId}/emotion?emotion=${emotion}`,
-    {},
-    { headers: this.authHeaders() }
-  );
-}
+  updateEmotion(userId: number, emotion: string): Observable<any> {
+    return this.http.put(
+      `${this.baseUrl}/${userId}/emotion?emotion=${emotion}`,
+      {},
+      { headers: this.authHeaders() }
+    );
+  }
 }

@@ -50,11 +50,14 @@ public class UserServiceImpl implements UserService {
     public user update(Long id, user updated) {
         user existing = getById(id);
 
-        if (updated.getFullName() != null) existing.setFullName(updated.getFullName());
-        if (updated.getEmail() != null) existing.setEmail(updated.getEmail());
-        if (updated.getPassword() != null) existing.setPassword(updated.getPassword());
-        if (updated.getRole() != null) existing.setRole(updated.getRole());
-        if (updated.getPhotoUrl() != null) existing.setPhotoUrl(updated.getPhotoUrl());
+        if (updated.getFullName()            != null) existing.setFullName(updated.getFullName());
+        if (updated.getEmail()               != null) existing.setEmail(updated.getEmail());
+        if (updated.getPassword()            != null) existing.setPassword(updated.getPassword());
+        if (updated.getRole()                != null) existing.setRole(updated.getRole());
+        if (updated.getPhotoUrl()            != null) existing.setPhotoUrl(updated.getPhotoUrl());
+        if (updated.getLastEmotion()         != null) existing.setLastEmotion(updated.getLastEmotion());
+        if (updated.getFaceConfidence()      != null) existing.setFaceConfidence(updated.getFaceConfidence());
+        if (updated.getFaceConfidenceLevel() != null) existing.setFaceConfidenceLevel(updated.getFaceConfidenceLevel());
 
         // ✅ Toujours mettre à jour le champ blocked
         existing.setBlocked(updated.isBlocked());
