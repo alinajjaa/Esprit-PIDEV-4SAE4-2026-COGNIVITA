@@ -6,7 +6,13 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "e2e:real": "cypress run --spec 'cypress/e2e/**/*.cy.ts'",
+    "e2e:real:open": "cypress open",
+    "e2e:auth": "cypress run --spec 'cypress/e2e/auth/*.cy.ts'",
+    "e2e:users": "cypress run --spec 'cypress/e2e/users/*.cy.ts'",
+    "e2e:nav": "cypress run --spec 'cypress/e2e/navigation/*.cy.ts'",
+    "e2e:admin": "cypress run --spec 'cypress/e2e/admin/*.cy.ts'"
   },
   "prettier": {
     "printWidth": 100,
@@ -44,6 +50,7 @@
     "@angular/cli": "^21.1.1",
     "@angular/compiler-cli": "^21.1.0",
     "@types/three": "^0.182.0",
+    "cypress": "^15.13.1",
     "jsdom": "^27.1.0",
     "typescript": "~5.9.2",
     "vitest": "^4.0.8"
