@@ -1,0 +1,83 @@
+<div class="suivi-container">
+  <div class="header">
+    <div>
+      <h2>Plan de suivi</h2>
+
+      <div class="patient-meta">
+        <ng-container *ngIf="!patientLoading && patient; else patientLoadingTpl">
+          <div class="patient-line">
+            <b>{{ patient.nomPatient }} </b>
+          </div>
+          <div class="patient-line muted">
+            📞 {{ patient.telephone || '—' }}
+          </div>
+        </ng-container>
+
+        <ng-template #patientLoadingTpl>
+          <div class="muted">Chargement patient...</div>
+        </ng-template>
+
+        <div *ngIf="patientError" class="muted error-inline">
+          {{ patientError }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="info">Chargement...</div>
+  <div *ngIf="errorMsg" class="alert error">{{ errorMsg }}</div>
+
+  <div *ngIf="!loading && plans.length === 0" class="empty">
+    Aucun plan de suivi trouvé.
+  </div>
+
+  <div class="plan-card" *ngFor="let p of plans">
+    <div class="plan-header">
+      <div>
+        <div class="plan-sub">
+          RDV: {{ p.rdvDate | date:'short' }} • Status: <b>{{ p.status }}</b>
+        </div>
+      </div>
+    </div>
+
+    <div class="steps">
+      <table class="steps-table" *ngIf="p.etapes?.length">
+        <thead>
+        <tr>
+          <th>Date</th>
+          <th>Titre</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        <tr *ngFor="let s of p.etapes">
+          <td>{{ s.scheduledDate | date:'short' }}</td>
+          <td>{{ s.title }}</td>
+          <td>{{ s.type }}</td>
+          <td>
+            <span class="pill" [ngClass]="'st-' + (s.status || '').toLowerCase()">
+              {{ s.status }}
+            </span>
+          </td>
+          <td>
+            <button
+              class="btn-done"
+              (click)="markStepDone(s.id)"
+              [disabled]="s.status === 'DONE'"
+            >
+              Marquer fait
+            </button>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+
+      <div class="empty" *ngIf="!p.etapes || p.etapes.length === 0">
+        Aucune étape.
+      </div>
+    </div>
+  </div>
+</div>
