@@ -1,0 +1,198 @@
+SET FOREIGN_KEY_CHECKS = 0;
+DELETE FROM tracking_alerts;
+DELETE FROM patient_locations;
+DELETE FROM appointments;
+DELETE FROM mmse_test;
+DELETE FROM medical_records;
+ALTER TABLE tracking_alerts AUTO_INCREMENT = 1;
+ALTER TABLE patient_locations AUTO_INCREMENT = 1;
+ALTER TABLE appointments AUTO_INCREMENT = 1;
+ALTER TABLE mmse_test AUTO_INCREMENT = 1;
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- 1) medical_records: 5 distinct risk profiles
+INSERT INTO medical_records (id, risk_level) VALUES
+(1, 'LOW'),
+(2, 'HIGH'),
+(3, 'CRITICAL'),
+(4, 'MEDIUM'),
+(5, 'LOW');
+
+-- 2) tracking_alerts: 50 rows over last 7 days, mixed read/unread and alert distribution
+INSERT INTO tracking_alerts (patient_id, type, message, created_at, is_read) VALUES
+(1,'NO_MOVEMENT','Short inactivity period detected',DATE_SUB(NOW(), INTERVAL 6 DAY) + INTERVAL 9 HOUR,1),
+(1,'OUT_OF_ZONE','Temporary geofence exit detected',DATE_SUB(NOW(), INTERVAL 5 DAY) + INTERVAL 11 HOUR,1),
+(1,'NO_MOVEMENT','Short inactivity period detected',DATE_SUB(NOW(), INTERVAL 4 DAY) + INTERVAL 10 HOUR,0),
+(1,'NO_MOVEMENT','Short inactivity period detected',DATE_SUB(NOW(), INTERVAL 2 DAY) + INTERVAL 14 HOUR,1),
+(1,'OUT_OF_ZONE','Temporary geofence exit detected',DATE_SUB(NOW(), INTERVAL 1 DAY) + INTERVAL 16 HOUR,1),
+
+(2,'OUT_OF_ZONE','Patient left safe geofence perimeter',DATE_SUB(NOW(), INTERVAL 6 DAY) + INTERVAL 7 HOUR,0),
+(2,'OUT_OF_ZONE','Patient left safe geofence perimeter',DATE_SUB(NOW(), INTERVAL 6 DAY) + INTERVAL 12 HOUR,0),
+(2,'NO_MOVEMENT','Reduced movement after roaming event',DATE_SUB(NOW(), INTERVAL 6 DAY) + INTERVAL 20 HOUR,1),
+(2,'OUT_OF_ZONE','Patient left safe geofence perimeter',DATE_SUB(NOW(), INTERVAL 5 DAY) + INTERVAL 8 HOUR,0),
+(2,'OUT_OF_ZONE','Patient left safe geofence perimeter',DATE_SUB(NOW(), INTERVAL 5 DAY) + INTERVAL 13 HOUR,1),
+(2,'OUT_OF_ZONE','Patient left safe geofence perimeter',DATE_SUB(NOW(), INTERVAL 5 DAY) + INTERVAL 18 HOUR,0),
+(2,'NO_MOVEMENT','Reduced movement after roaming event',DATE_SUB(NOW(), INTERVAL 4 DAY) + INTERVAL 7 HOUR,1),
+(2,'OUT_OF_ZONE','Patient left safe geofence perimeter',DATE_SUB(NOW(), INTERVAL 4 DAY) + INTERVAL 11 HOUR,0),
+(2,'OUT_OF_ZONE','Patient left safe geofence perimeter',DATE_SUB(NOW(), INTERVAL 4 DAY) + INTERVAL 17 HOUR,0),
+(2,'OUT_OF_ZONE','Patient left safe geofence perimeter',DATE_SUB(NOW(), INTERVAL 3 DAY) + INTERVAL 9 HOUR,1),
+(2,'NO_MOVEMENT','Reduced movement after roaming event',DATE_SUB(NOW(), INTERVAL 3 DAY) + INTERVAL 22 HOUR,0),
+(2,'OUT_OF_ZONE','Patient left safe geofence perimeter',DATE_SUB(NOW(), INTERVAL 2 DAY) + INTERVAL 8 HOUR,0),
+(2,'OUT_OF_ZONE','Patient left safe geofence perimeter',DATE_SUB(NOW(), INTERVAL 2 DAY) + INTERVAL 12 HOUR,1),
+(2,'OUT_OF_ZONE','Patient left safe geofence perimeter',DATE_SUB(NOW(), INTERVAL 1 DAY) + INTERVAL 10 HOUR,0),
+(2,'NO_MOVEMENT','Reduced movement after roaming event',DATE_SUB(NOW(), INTERVAL 1 DAY) + INTERVAL 21 HOUR,1),
+(2,'OUT_OF_ZONE','Patient left safe geofence perimeter',DATE_SUB(NOW(), INTERVAL 0 DAY) + INTERVAL 9 HOUR,0),
+(2,'NO_MOVEMENT','Reduced movement after roaming event',DATE_SUB(NOW(), INTERVAL 0 DAY) + INTERVAL 19 HOUR,1),
+
+(3,'NO_MOVEMENT','Prolonged inactivity threshold exceeded',DATE_SUB(NOW(), INTERVAL 6 DAY) + INTERVAL 8 HOUR,0),
+(3,'NO_MOVEMENT','Prolonged inactivity threshold exceeded',DATE_SUB(NOW(), INTERVAL 6 DAY) + INTERVAL 15 HOUR,0),
+(3,'OUT_OF_ZONE','Unexpected movement outside safe zone',DATE_SUB(NOW(), INTERVAL 6 DAY) + INTERVAL 21 HOUR,0),
+(3,'NO_MOVEMENT','Prolonged inactivity threshold exceeded',DATE_SUB(NOW(), INTERVAL 5 DAY) + INTERVAL 9 HOUR,1),
+(3,'NO_MOVEMENT','Prolonged inactivity threshold exceeded',DATE_SUB(NOW(), INTERVAL 5 DAY) + INTERVAL 16 HOUR,0),
+(3,'NO_MOVEMENT','Prolonged inactivity threshold exceeded',DATE_SUB(NOW(), INTERVAL 4 DAY) + INTERVAL 8 HOUR,0),
+(3,'NO_MOVEMENT','Prolonged inactivity threshold exceeded',DATE_SUB(NOW(), INTERVAL 4 DAY) + INTERVAL 14 HOUR,0),
+(3,'OUT_OF_ZONE','Unexpected movement outside safe zone',DATE_SUB(NOW(), INTERVAL 4 DAY) + INTERVAL 20 HOUR,1),
+(3,'NO_MOVEMENT','Prolonged inactivity threshold exceeded',DATE_SUB(NOW(), INTERVAL 3 DAY) + INTERVAL 7 HOUR,0),
+(3,'NO_MOVEMENT','Prolonged inactivity threshold exceeded',DATE_SUB(NOW(), INTERVAL 3 DAY) + INTERVAL 13 HOUR,1),
+(3,'NO_MOVEMENT','Prolonged inactivity threshold exceeded',DATE_SUB(NOW(), INTERVAL 2 DAY) + INTERVAL 8 HOUR,0),
+(3,'NO_MOVEMENT','Prolonged inactivity threshold exceeded',DATE_SUB(NOW(), INTERVAL 2 DAY) + INTERVAL 19 HOUR,1),
+(3,'OUT_OF_ZONE','Unexpected movement outside safe zone',DATE_SUB(NOW(), INTERVAL 1 DAY) + INTERVAL 22 HOUR,0),
+(3,'NO_MOVEMENT','Prolonged inactivity threshold exceeded',DATE_SUB(NOW(), INTERVAL 0 DAY) + INTERVAL 11 HOUR,0),
+
+(4,'OUT_OF_ZONE','Irregular route detected',DATE_SUB(NOW(), INTERVAL 6 DAY) + INTERVAL 10 HOUR,1),
+(4,'NO_MOVEMENT','Inactivity monitor warning',DATE_SUB(NOW(), INTERVAL 5 DAY) + INTERVAL 12 HOUR,1),
+(4,'OUT_OF_ZONE','Irregular route detected',DATE_SUB(NOW(), INTERVAL 5 DAY) + INTERVAL 18 HOUR,0),
+(4,'NO_MOVEMENT','Inactivity monitor warning',DATE_SUB(NOW(), INTERVAL 4 DAY) + INTERVAL 11 HOUR,1),
+(4,'OUT_OF_ZONE','Irregular route detected',DATE_SUB(NOW(), INTERVAL 3 DAY) + INTERVAL 9 HOUR,0),
+(4,'NO_MOVEMENT','Inactivity monitor warning',DATE_SUB(NOW(), INTERVAL 2 DAY) + INTERVAL 14 HOUR,1),
+(4,'OUT_OF_ZONE','Irregular route detected',DATE_SUB(NOW(), INTERVAL 1 DAY) + INTERVAL 17 HOUR,1),
+(4,'NO_MOVEMENT','Inactivity monitor warning',DATE_SUB(NOW(), INTERVAL 0 DAY) + INTERVAL 8 HOUR,1),
+(4,'OUT_OF_ZONE','Irregular route detected',DATE_SUB(NOW(), INTERVAL 0 DAY) + INTERVAL 20 HOUR,0),
+
+(5,'NO_MOVEMENT','Low daily mobility pattern',DATE_SUB(NOW(), INTERVAL 6 DAY) + INTERVAL 13 HOUR,1),
+(5,'OUT_OF_ZONE','Brief geofence boundary crossing',DATE_SUB(NOW(), INTERVAL 3 DAY) + INTERVAL 15 HOUR,0),
+(5,'NO_MOVEMENT','Low daily mobility pattern',DATE_SUB(NOW(), INTERVAL 1 DAY) + INTERVAL 12 HOUR,1),
+(5,'NO_MOVEMENT','Low daily mobility pattern',DATE_SUB(NOW(), INTERVAL 0 DAY) + INTERVAL 16 HOUR,1);
+
+-- 3) patient_locations: 90 rows (18 per patient), behavior-specific motion patterns
+INSERT INTO patient_locations (patient_id, latitude, longitude, `timestamp`, motion_state)
+SELECT 1, 36.8065 + (n * 0.00008), 10.1815 + (n * 0.00006),
+       DATE_SUB(NOW(), INTERVAL (6 - FLOOR(n / 3)) DAY) + INTERVAL ((n * 2) % 24) HOUR,
+       CASE WHEN n IN (2,5,8,11,14,17) THEN 'stationary' ELSE 'moving' END
+FROM (
+    SELECT 0 AS n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL
+    SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL
+    SELECT 10 UNION ALL SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL
+    SELECT 15 UNION ALL SELECT 16 UNION ALL SELECT 17
+) seq;
+
+INSERT INTO patient_locations (patient_id, latitude, longitude, `timestamp`, motion_state)
+SELECT 2, 36.8120 + (n * 0.00018), 10.1950 + (n * 0.00015),
+       DATE_SUB(NOW(), INTERVAL (6 - FLOOR(n / 3)) DAY) + INTERVAL ((n * 3) % 24) HOUR,
+       CASE WHEN n IN (4,9,15,17) THEN 'stationary' ELSE 'moving' END
+FROM (
+    SELECT 0 AS n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL
+    SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL
+    SELECT 10 UNION ALL SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL
+    SELECT 15 UNION ALL SELECT 16 UNION ALL SELECT 17
+) seq;
+
+INSERT INTO patient_locations (patient_id, latitude, longitude, `timestamp`, motion_state)
+SELECT 3, 36.7990 + (n * 0.00003), 10.1700 + (n * 0.00002),
+       DATE_SUB(NOW(), INTERVAL (6 - FLOOR(n / 3)) DAY) + INTERVAL ((n * 2 + 1) % 24) HOUR,
+       CASE WHEN n IN (6,12,16) THEN 'moving' ELSE 'stationary' END
+FROM (
+    SELECT 0 AS n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL
+    SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL
+    SELECT 10 UNION ALL SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL
+    SELECT 15 UNION ALL SELECT 16 UNION ALL SELECT 17
+) seq;
+
+INSERT INTO patient_locations (patient_id, latitude, longitude, `timestamp`, motion_state)
+SELECT 4, 36.8040 + (n * 0.00011), 10.1860 + (n * 0.00009),
+       DATE_SUB(NOW(), INTERVAL (6 - FLOOR(n / 3)) DAY) + INTERVAL ((n * 4) % 24) HOUR,
+       CASE WHEN MOD(n, 2) = 0 THEN 'moving' ELSE 'stationary' END
+FROM (
+    SELECT 0 AS n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL
+    SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL
+    SELECT 10 UNION ALL SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL
+    SELECT 15 UNION ALL SELECT 16 UNION ALL SELECT 17
+) seq;
+
+INSERT INTO patient_locations (patient_id, latitude, longitude, `timestamp`, motion_state)
+SELECT 5, 36.8010 + (n * 0.00004), 10.1765 + (n * 0.00003),
+       DATE_SUB(NOW(), INTERVAL (6 - FLOOR(n / 3)) DAY) + INTERVAL ((n * 3 + 2) % 24) HOUR,
+       CASE WHEN n IN (3,7,13,17) THEN 'moving' ELSE 'stationary' END
+FROM (
+    SELECT 0 AS n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL
+    SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL
+    SELECT 10 UNION ALL SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL
+    SELECT 15 UNION ALL SELECT 16 UNION ALL SELECT 17
+) seq;
+
+-- 4) appointments: 30 rows over last 20 days, varied compliance by patient
+INSERT INTO appointments
+(medical_record_id, doctor_name, specialty, appointment_type, scheduled_at, status, location, completed_at, reminder_sent, created_at)
+VALUES
+(1,'Dr. Karim','Neurology','FOLLOW_UP', DATE_SUB(NOW(), INTERVAL 18 DAY), 'COMPLETED','Memory Clinic A', DATE_SUB(NOW(), INTERVAL 18 DAY) + INTERVAL 2 HOUR, 1, DATE_SUB(NOW(), INTERVAL 19 DAY)),
+(1,'Dr. Karim','Neurology','GENERAL', DATE_SUB(NOW(), INTERVAL 15 DAY), 'COMPLETED','Memory Clinic A', DATE_SUB(NOW(), INTERVAL 15 DAY) + INTERVAL 1 HOUR, 1, DATE_SUB(NOW(), INTERVAL 16 DAY)),
+(1,'Dr. Karim','Neurology','NEUROLOGIST', DATE_SUB(NOW(), INTERVAL 12 DAY), 'COMPLETED','Memory Clinic A', DATE_SUB(NOW(), INTERVAL 12 DAY) + INTERVAL 2 HOUR, 1, DATE_SUB(NOW(), INTERVAL 13 DAY)),
+(1,'Dr. Karim','Neurology','FOLLOW_UP', DATE_SUB(NOW(), INTERVAL 9 DAY), 'COMPLETED','Memory Clinic A', DATE_SUB(NOW(), INTERVAL 9 DAY) + INTERVAL 2 HOUR, 1, DATE_SUB(NOW(), INTERVAL 10 DAY)),
+(1,'Dr. Karim','Neurology','GENERAL', DATE_SUB(NOW(), INTERVAL 6 DAY), 'CANCELLED','Memory Clinic A', NULL, 1, DATE_SUB(NOW(), INTERVAL 7 DAY)),
+(1,'Dr. Karim','Neurology','FOLLOW_UP', DATE_SUB(NOW(), INTERVAL 3 DAY), 'COMPLETED','Memory Clinic A', DATE_SUB(NOW(), INTERVAL 3 DAY) + INTERVAL 1 HOUR, 1, DATE_SUB(NOW(), INTERVAL 4 DAY)),
+
+(2,'Dr. Sami','Neurology','NEUROLOGIST', DATE_SUB(NOW(), INTERVAL 19 DAY), 'MISSED','Clinic B', NULL, 1, DATE_SUB(NOW(), INTERVAL 20 DAY)),
+(2,'Dr. Sami','Neurology','FOLLOW_UP', DATE_SUB(NOW(), INTERVAL 16 DAY), 'CANCELLED','Clinic B', NULL, 1, DATE_SUB(NOW(), INTERVAL 17 DAY)),
+(2,'Dr. Sami','Neurology','GENERAL', DATE_SUB(NOW(), INTERVAL 13 DAY), 'COMPLETED','Clinic B', DATE_SUB(NOW(), INTERVAL 13 DAY) + INTERVAL 3 HOUR, 1, DATE_SUB(NOW(), INTERVAL 14 DAY)),
+(2,'Dr. Sami','Neurology','FOLLOW_UP', DATE_SUB(NOW(), INTERVAL 10 DAY), 'MISSED','Clinic B', NULL, 1, DATE_SUB(NOW(), INTERVAL 11 DAY)),
+(2,'Dr. Sami','Neurology','GENERAL', DATE_SUB(NOW(), INTERVAL 7 DAY), 'CANCELLED','Clinic B', NULL, 1, DATE_SUB(NOW(), INTERVAL 8 DAY)),
+(2,'Dr. Sami','Neurology','NEUROLOGIST', DATE_SUB(NOW(), INTERVAL 4 DAY), 'COMPLETED','Clinic B', DATE_SUB(NOW(), INTERVAL 4 DAY) + INTERVAL 2 HOUR, 1, DATE_SUB(NOW(), INTERVAL 5 DAY)),
+
+(3,'Dr. Nadia','Geriatrics','FOLLOW_UP', DATE_SUB(NOW(), INTERVAL 20 DAY), 'MISSED','Home Visit', NULL, 1, DATE_SUB(NOW(), INTERVAL 21 DAY)),
+(3,'Dr. Nadia','Geriatrics','GENERAL', DATE_SUB(NOW(), INTERVAL 17 DAY), 'MISSED','Home Visit', NULL, 1, DATE_SUB(NOW(), INTERVAL 18 DAY)),
+(3,'Dr. Nadia','Geriatrics','NEUROLOGIST', DATE_SUB(NOW(), INTERVAL 14 DAY), 'CANCELLED','Home Visit', NULL, 1, DATE_SUB(NOW(), INTERVAL 15 DAY)),
+(3,'Dr. Nadia','Geriatrics','FOLLOW_UP', DATE_SUB(NOW(), INTERVAL 11 DAY), 'MISSED','Home Visit', NULL, 1, DATE_SUB(NOW(), INTERVAL 12 DAY)),
+(3,'Dr. Nadia','Geriatrics','GENERAL', DATE_SUB(NOW(), INTERVAL 8 DAY), 'COMPLETED','Home Visit', DATE_SUB(NOW(), INTERVAL 8 DAY) + INTERVAL 4 HOUR, 1, DATE_SUB(NOW(), INTERVAL 9 DAY)),
+(3,'Dr. Nadia','Geriatrics','FOLLOW_UP', DATE_SUB(NOW(), INTERVAL 5 DAY), 'MISSED','Home Visit', NULL, 1, DATE_SUB(NOW(), INTERVAL 6 DAY)),
+
+(4,'Dr. Youssef','Neurology','GENERAL', DATE_SUB(NOW(), INTERVAL 18 DAY), 'COMPLETED','Clinic C', DATE_SUB(NOW(), INTERVAL 18 DAY) + INTERVAL 2 HOUR, 1, DATE_SUB(NOW(), INTERVAL 19 DAY)),
+(4,'Dr. Youssef','Neurology','FOLLOW_UP', DATE_SUB(NOW(), INTERVAL 15 DAY), 'MISSED','Clinic C', NULL, 1, DATE_SUB(NOW(), INTERVAL 16 DAY)),
+(4,'Dr. Youssef','Neurology','NEUROLOGIST', DATE_SUB(NOW(), INTERVAL 12 DAY), 'COMPLETED','Clinic C', DATE_SUB(NOW(), INTERVAL 12 DAY) + INTERVAL 1 HOUR, 1, DATE_SUB(NOW(), INTERVAL 13 DAY)),
+(4,'Dr. Youssef','Neurology','FOLLOW_UP', DATE_SUB(NOW(), INTERVAL 9 DAY), 'CANCELLED','Clinic C', NULL, 1, DATE_SUB(NOW(), INTERVAL 10 DAY)),
+(4,'Dr. Youssef','Neurology','GENERAL', DATE_SUB(NOW(), INTERVAL 6 DAY), 'MISSED','Clinic C', NULL, 1, DATE_SUB(NOW(), INTERVAL 7 DAY)),
+(4,'Dr. Youssef','Neurology','FOLLOW_UP', DATE_SUB(NOW(), INTERVAL 3 DAY), 'COMPLETED','Clinic C', DATE_SUB(NOW(), INTERVAL 3 DAY) + INTERVAL 2 HOUR, 1, DATE_SUB(NOW(), INTERVAL 4 DAY)),
+
+(5,'Dr. Lina','Primary Care','GENERAL', DATE_SUB(NOW(), INTERVAL 17 DAY), 'COMPLETED','Clinic D', DATE_SUB(NOW(), INTERVAL 17 DAY) + INTERVAL 1 HOUR, 1, DATE_SUB(NOW(), INTERVAL 18 DAY)),
+(5,'Dr. Lina','Primary Care','FOLLOW_UP', DATE_SUB(NOW(), INTERVAL 14 DAY), 'COMPLETED','Clinic D', DATE_SUB(NOW(), INTERVAL 14 DAY) + INTERVAL 1 HOUR, 1, DATE_SUB(NOW(), INTERVAL 15 DAY)),
+(5,'Dr. Lina','Primary Care','GENERAL', DATE_SUB(NOW(), INTERVAL 11 DAY), 'COMPLETED','Clinic D', DATE_SUB(NOW(), INTERVAL 11 DAY) + INTERVAL 2 HOUR, 1, DATE_SUB(NOW(), INTERVAL 12 DAY)),
+(5,'Dr. Lina','Primary Care','FOLLOW_UP', DATE_SUB(NOW(), INTERVAL 8 DAY), 'CANCELLED','Clinic D', NULL, 1, DATE_SUB(NOW(), INTERVAL 9 DAY)),
+(5,'Dr. Lina','Primary Care','GENERAL', DATE_SUB(NOW(), INTERVAL 5 DAY), 'MISSED','Clinic D', NULL, 1, DATE_SUB(NOW(), INTERVAL 6 DAY)),
+(5,'Dr. Lina','Primary Care','FOLLOW_UP', DATE_SUB(NOW(), INTERVAL 2 DAY), 'COMPLETED','Clinic D', DATE_SUB(NOW(), INTERVAL 2 DAY) + INTERVAL 1 HOUR, 1, DATE_SUB(NOW(), INTERVAL 3 DAY));
+
+-- 5) mmse_test: 35 rows across ~3 months
+-- patient 1 improving, 2 declining, 3 stable, 4 mild decline, 5 severe-low baseline
+INSERT INTO mmse_test (patient_id, total_score, test_date) VALUES
+(1,18, DATE_SUB(CURDATE(), INTERVAL 84 DAY)), (1,19, DATE_SUB(CURDATE(), INTERVAL 72 DAY)),
+(1,20, DATE_SUB(CURDATE(), INTERVAL 60 DAY)), (1,21, DATE_SUB(CURDATE(), INTERVAL 48 DAY)),
+(1,22, DATE_SUB(CURDATE(), INTERVAL 36 DAY)), (1,23, DATE_SUB(CURDATE(), INTERVAL 24 DAY)),
+(1,24, DATE_SUB(CURDATE(), INTERVAL 12 DAY)),
+
+(2,26, DATE_SUB(CURDATE(), INTERVAL 84 DAY)), (2,24, DATE_SUB(CURDATE(), INTERVAL 72 DAY)),
+(2,22, DATE_SUB(CURDATE(), INTERVAL 60 DAY)), (2,20, DATE_SUB(CURDATE(), INTERVAL 48 DAY)),
+(2,18, DATE_SUB(CURDATE(), INTERVAL 36 DAY)), (2,16, DATE_SUB(CURDATE(), INTERVAL 24 DAY)),
+(2,14, DATE_SUB(CURDATE(), INTERVAL 12 DAY)),
+
+(3,17, DATE_SUB(CURDATE(), INTERVAL 84 DAY)), (3,17, DATE_SUB(CURDATE(), INTERVAL 72 DAY)),
+(3,18, DATE_SUB(CURDATE(), INTERVAL 60 DAY)), (3,17, DATE_SUB(CURDATE(), INTERVAL 48 DAY)),
+(3,17, DATE_SUB(CURDATE(), INTERVAL 36 DAY)), (3,18, DATE_SUB(CURDATE(), INTERVAL 24 DAY)),
+(3,17, DATE_SUB(CURDATE(), INTERVAL 12 DAY)),
+
+(4,23, DATE_SUB(CURDATE(), INTERVAL 84 DAY)), (4,22, DATE_SUB(CURDATE(), INTERVAL 72 DAY)),
+(4,22, DATE_SUB(CURDATE(), INTERVAL 60 DAY)), (4,21, DATE_SUB(CURDATE(), INTERVAL 48 DAY)),
+(4,20, DATE_SUB(CURDATE(), INTERVAL 36 DAY)), (4,20, DATE_SUB(CURDATE(), INTERVAL 24 DAY)),
+(4,19, DATE_SUB(CURDATE(), INTERVAL 12 DAY)),
+
+(5,12, DATE_SUB(CURDATE(), INTERVAL 84 DAY)), (5,11, DATE_SUB(CURDATE(), INTERVAL 72 DAY)),
+(5,11, DATE_SUB(CURDATE(), INTERVAL 60 DAY)), (5,10, DATE_SUB(CURDATE(), INTERVAL 48 DAY)),
+(5,10, DATE_SUB(CURDATE(), INTERVAL 36 DAY)), (5,9, DATE_SUB(CURDATE(), INTERVAL 24 DAY)),
+(5,9, DATE_SUB(CURDATE(), INTERVAL 12 DAY));
