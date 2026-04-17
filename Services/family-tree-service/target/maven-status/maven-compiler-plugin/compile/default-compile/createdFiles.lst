@@ -1,0 +1,12 @@
+com\alzheimer\familytree\controller\FamilyTreeController.class
+com\alzheimer\familytree\repository\FamilyMemberRepository.class
+com\alzheimer\familytree\config\CorsConfig.class
+com\alzheimer\familytree\FamilyTreeApplication.class
+com\alzheimer\familytree\service\FamilyTreeService$1.class
+com\alzheimer\familytree\entity\FamilyGender.class
+com\alzheimer\familytree\entity\FamilyMember.class
+com\alzheimer\familytree\entity\Relationship.class
+com\alzheimer\familytree\config\CorsConfig$1.class
+com\alzheimer\familytree\dto\ApiResponse.class
+com\alzheimer\familytree\dto\FamilyTreeNode.class
+com\alzheimer\familytree\service\FamilyTreeService.class

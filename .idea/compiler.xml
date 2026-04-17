@@ -7,19 +7,43 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="content-service" />
+        <module name="health-prevention-service" />
+        <module name="dashboard-service" />
         <module name="eureka" />
         <module name="gateway-service" />
         <module name="api-gateway" />
+        <module name="family-tree-service" />
+        <module name="planSuivi" />
         <module name="backend" />
+        <module name="user-service" />
         <module name="demo" />
-        <module name="Community-service" />
+        <module name="medical-records-service" />
+      </profile>
+      <profile name="Annotation profile for content-service" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.36/lombok-1.18.36.jar" />
+        </processorPath>
+        <module name="content-service" />
+      </profile>
+      <profile name="Annotation profile for tracking-service" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.42/lombok-1.18.42.jar" />
+        </processorPath>
+        <module name="tracking-service" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="api-gateway" target="17" />
+      <module name="Community-service" target="17" />
       <module name="demo" target="17" />
       <module name="gateway" target="17" />
+      <module name="pi" target="21" />
     </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
@@ -28,10 +52,18 @@
       <module name="api-gateway" options="-parameters" />
       <module name="backend" options="-parameters" />
       <module name="content-service" options="-parameters" />
+      <module name="dashboard-service" options="-parameters" />
       <module name="demo" options="-parameters" />
       <module name="eureka" options="-parameters" />
+      <module name="family-tree-service" options="-parameters" />
       <module name="gateway" options="-parameters" />
       <module name="gateway-service" options="-parameters" />
+      <module name="health-prevention-service" options="-parameters" />
+      <module name="medical-records-service" options="-parameters" />
+      <module name="pi" options="-parameters" />
+      <module name="planSuivi" options="-parameters" />
+      <module name="tracking-service" options="-parameters" />
+      <module name="user-service" options="-parameters" />
     </option>
   </component>
 </project>

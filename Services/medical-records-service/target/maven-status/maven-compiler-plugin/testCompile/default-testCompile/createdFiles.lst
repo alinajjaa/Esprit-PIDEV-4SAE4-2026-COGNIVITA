@@ -1,0 +1,4 @@
+com\alzheimer\medicalrecords\AppointmentServiceTest.class
+com\alzheimer\medicalrecords\RiskScoreServiceTest.class
+com\alzheimer\medicalrecords\RiskTrendServiceTest.class
+com\alzheimer\medicalrecords\MedicationInteractionServiceTest.class

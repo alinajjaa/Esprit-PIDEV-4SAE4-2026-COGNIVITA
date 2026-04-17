@@ -1,6 +1,8 @@
 package com.cognivita.contentservice.service.impl;
 
+import com.cognivita.contentservice.entity.Community;
 import com.cognivita.contentservice.entity.Post;
+import com.cognivita.contentservice.repository.CommunityRepository;
 import com.cognivita.contentservice.repository.PostRepository;
 import com.cognivita.contentservice.security.ForumUserRegistry;
 import com.cognivita.contentservice.service.PostService;
@@ -12,15 +14,24 @@ import java.util.List;
 public class PostServiceImpl implements PostService {
 
     private final PostRepository repository;
+    private final CommunityRepository communityRepository;
     private final ForumUserRegistry userRegistry;
 
-    public PostServiceImpl(PostRepository repository, ForumUserRegistry userRegistry) {
+    public PostServiceImpl(PostRepository repository,
+                           CommunityRepository communityRepository,
+                           ForumUserRegistry userRegistry) {
         this.repository = repository;
+        this.communityRepository = communityRepository;
         this.userRegistry = userRegistry;
     }
 
     @Override
     public Post create(Post post) {
+        Long communityId = post.getCommunity() != null ? post.getCommunity().getId() : null;
+        if (communityId == null) {
+            throw new IllegalArgumentException("communityId is required");
+        }
+        post.setCommunity(resolveCommunity(communityId));
         post.setAuthor(userRegistry.requireValidUser(post.getAuthor(), "author"));
         return repository.save(post);
     }
@@ -38,7 +49,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public List<Post> findByCommunityId(Long communityId) {
-        return repository.findByCommunityId(communityId);
+        return repository.findByCommunity_Id(communityId);
     }
 
     @Override
@@ -51,8 +62,8 @@ public class PostServiceImpl implements PostService {
 
         boolean changed = false;
 
-        if (post.getCommunityId() != null) {
-            existing.setCommunityId(post.getCommunityId());
+        if (post.getCommunity() != null && post.getCommunity().getId() != null) {
+            existing.setCommunity(resolveCommunity(post.getCommunity().getId()));
             changed = true;
         }
         if (post.getTitle() != null) {
@@ -83,5 +94,10 @@ public class PostServiceImpl implements PostService {
             throw new SecurityException("Only the post owner can delete this post");
         }
         repository.deleteById(id);
+    }
+
+    private Community resolveCommunity(Long communityId) {
+        return communityRepository.findById(communityId)
+                .orElseThrow(() -> new IllegalArgumentException("Community not found with id: " + communityId));
     }
 }

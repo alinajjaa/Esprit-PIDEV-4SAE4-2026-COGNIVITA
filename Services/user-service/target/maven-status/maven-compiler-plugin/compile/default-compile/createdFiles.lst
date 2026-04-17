@@ -1,0 +1,6 @@
+com\alzheimer\backend\user\UserRepository.class
+com\alzheimer\backend\user\UserService.class
+com\alzheimer\userservice\UserServiceApplication.class
+com\alzheimer\backend\user\User.class
+com\alzheimer\backend\user\UserRole.class
+com\alzheimer\backend\user\UserController.class

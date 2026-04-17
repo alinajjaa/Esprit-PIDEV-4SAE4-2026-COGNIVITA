@@ -1,0 +1,163 @@
+package com.alzheimer.familytree.controller;
+
+import com.alzheimer.familytree.dto.ApiResponse;
+import com.alzheimer.familytree.entity.FamilyMember;
+import com.alzheimer.familytree.dto.FamilyTreeNode;
+import com.alzheimer.familytree.messaging.RiskUpdatePublisher;
+import com.alzheimer.familytree.service.FamilyTreeService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+
+/**
+ * FamilyTreeController — CRUD + risk analysis endpoints.
+ *
+ * CHANGE: Cross-service risk propagation is now fully asynchronous via RabbitMQ.
+ * The old approach made two blocking HTTP calls to medical-records-service on every
+ * write (add / update / delete), causing slow responses when that service was
+ * busy, cold-starting, or temporarily unavailable.
+ *
+ * New flow:
+ *   1. Save the family member  (fast DB write)
+ *   2. Calculate hereditary risk score (in-memory)
+ *   3. Publish a RiskUpdateEvent to RabbitMQ  (non-blocking, fire-and-forget)
+ *   4. Return HTTP 200/201 immediately
+ *   → medical-records-service consumes the event asynchronously via @RabbitListener
+ */
+@RestController
+@RequestMapping("/api/family-tree")
+public class FamilyTreeController {
+
+    private final FamilyTreeService   service;
+    private final RiskUpdatePublisher riskPublisher;
+
+    public FamilyTreeController(FamilyTreeService service,
+                                RiskUpdatePublisher riskPublisher) {
+        this.service       = service;
+        this.riskPublisher = riskPublisher;
+    }
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<ApiResponse<List<FamilyMember>>> getMembers(@PathVariable Long userId) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Family members retrieved",
+                    service.getAllMembers(userId)));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to retrieve family members", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/user/{userId}/tree")
+    public ResponseEntity<ApiResponse<List<FamilyTreeNode>>> getTree(@PathVariable Long userId) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Family tree built",
+                    service.buildTree(userId)));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to build family tree", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/user/{userId}/risk-analysis")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getRiskAnalysis(@PathVariable Long userId) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Hereditary risk analysis complete",
+                    service.calculateHereditaryRisk(userId)));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to calculate hereditary risk", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/user/{userId}/stats")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getStats(@PathVariable Long userId) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Statistics retrieved",
+                    service.getTreeStatistics(userId)));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to retrieve stats", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/global-stats")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getGlobalStats() {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Global stats retrieved",
+                    service.getGlobalTreeStatistics()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to retrieve global stats", e.getMessage()));
+        }
+    }
+
+    @PostMapping
+    @Transactional
+    public ResponseEntity<ApiResponse<FamilyMember>> addMember(@RequestBody FamilyMember member) {
+        try {
+            FamilyMember saved = service.addMember(member);
+            publishRiskAsync(saved.getUserId());
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.success("Family member added", saved));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to add family member", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{id}")
+    @Transactional
+    public ResponseEntity<ApiResponse<FamilyMember>> updateMember(
+            @PathVariable Long id, @RequestBody FamilyMember member) {
+        try {
+            FamilyMember updated = service.updateMember(id, member);
+            publishRiskAsync(updated.getUserId());
+            return ResponseEntity.ok(ApiResponse.success("Family member updated", updated));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("Family member not found", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to update family member", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> deleteMember(@PathVariable Long id) {
+        try {
+            java.util.Optional<FamilyMember> memberOpt = service.findById(id);
+            service.deleteMember(id);
+            memberOpt.ifPresent(m -> publishRiskAsync(m.getUserId()));
+            return ResponseEntity.ok(ApiResponse.success("Family member deleted", null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to delete family member", e.getMessage()));
+        }
+    }
+
+    /**
+     * Calculates the updated hereditary risk for the given user and publishes it
+     * asynchronously to RabbitMQ. Never throws — failure here must not affect
+     * the caller's HTTP response.
+     */
+    private void publishRiskAsync(Long userId) {
+        if (userId == null) return;
+        try {
+            Map<String, Object> risk = service.calculateHereditaryRisk(userId);
+            double score = risk.get("hereditaryRiskScore") != null
+                    ? ((Number) risk.get("hereditaryRiskScore")).doubleValue()
+                    : 0.0;
+            riskPublisher.publishRiskUpdate(userId, score);
+        } catch (Exception e) {
+            System.err.println("[FamilyTree] Could not publish risk update for userId="
+                    + userId + ": " + e.getMessage());
+        }
+    }
+}

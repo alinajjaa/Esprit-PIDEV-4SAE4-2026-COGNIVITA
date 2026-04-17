@@ -14,10 +14,20 @@
         <option value="$PROJECT_DIR$/Services/Comunity-services/pom.xml" />
         <option value="$PROJECT_DIR$/Services/Community-service/pom.xml" />
         <option value="$PROJECT_DIR$/Services/content-service/pom.xml" />
+        <option value="$PROJECT_DIR$/Services/tracking-service/pom.xml" />
+        <option value="$PROJECT_DIR$/Services/family-tree-service/pom.xml" />
+        <option value="$PROJECT_DIR$/Services/health-prevention-service/pom.xml" />
+        <option value="$PROJECT_DIR$/Services/medical-records-service/pom.xml" />
+        <option value="$PROJECT_DIR$/Services/user-service/pom.xml" />
+        <option value="$PROJECT_DIR$/Services/Ronder-vous/pi/pom.xml" />
+        <option value="$PROJECT_DIR$/Services/ronder-vouz/pom.xml" />
+        <option value="$PROJECT_DIR$/Services/planSuivi/pom.xml" />
+        <option value="$PROJECT_DIR$/Services/dashboard-service/pom.xml" />
       </list>
     </option>
     <option name="ignoredFiles">
       <set>
+        <option value="$PROJECT_DIR$/Services/Community-service/pom.xml" />
         <option value="$PROJECT_DIR$/Services/gateway/pom.xml" />
         <option value="$PROJECT_DIR$/demo/pom.xml" />
       </set>

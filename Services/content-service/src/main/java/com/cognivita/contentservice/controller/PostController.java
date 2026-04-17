@@ -1,7 +1,11 @@
 package com.cognivita.contentservice.controller;
 
+import com.cognivita.contentservice.dto.PostRequestDto;
+import com.cognivita.contentservice.dto.PostResponseDto;
+import com.cognivita.contentservice.entity.Community;
 import com.cognivita.contentservice.entity.Post;
 import com.cognivita.contentservice.service.PostService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -30,30 +34,31 @@ public class PostController {
     }
 
     @PostMapping
-    public ResponseEntity<Post> create(@RequestBody Post post) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.create(post));
+    public ResponseEntity<PostResponseDto> create(@Valid @RequestBody PostRequestDto request) {
+        Post created = service.create(toEntity(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(created));
     }
 
     @GetMapping
-    public ResponseEntity<List<Post>> findAll(@RequestParam(required = false) Long communityId) {
+    public ResponseEntity<List<PostResponseDto>> findAll(@RequestParam(required = false) Long communityId) {
         if (communityId != null) {
-            return ResponseEntity.ok(service.findByCommunityId(communityId));
+            return ResponseEntity.ok(service.findByCommunityId(communityId).stream().map(this::toResponse).toList());
         }
-        return ResponseEntity.ok(service.findAll());
+        return ResponseEntity.ok(service.findAll().stream().map(this::toResponse).toList());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Post> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(service.findById(id));
+    public ResponseEntity<PostResponseDto> findById(@PathVariable Long id) {
+        return ResponseEntity.ok(toResponse(service.findById(id)));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Post> update(
+    public ResponseEntity<PostResponseDto> update(
             @PathVariable Long id,
-            @RequestBody Post post,
+            @RequestBody PostRequestDto request,
             @RequestHeader("X-User") String actingUser
     ) {
-        return ResponseEntity.ok(service.update(id, post, actingUser));
+        return ResponseEntity.ok(toResponse(service.update(id, toEntity(request), actingUser)));
     }
 
     @DeleteMapping("/{id}")
@@ -74,5 +79,29 @@ public class PostController {
         Map<String, String> body = new HashMap<>();
         body.put("error", ex.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
+    private Post toEntity(PostRequestDto request) {
+        Post post = new Post();
+        if (request.getCommunityId() != null) {
+            Community community = new Community();
+            community.setId(request.getCommunityId());
+            post.setCommunity(community);
+        }
+        post.setTitle(request.getTitle());
+        post.setContent(request.getContent());
+        post.setAuthor(request.getAuthor());
+        return post;
+    }
+
+    private PostResponseDto toResponse(Post post) {
+        Long communityId = post.getCommunity() != null ? post.getCommunity().getId() : null;
+        return new PostResponseDto(
+                post.getId(),
+                communityId,
+                post.getTitle(),
+                post.getContent(),
+                post.getAuthor()
+        );
     }
 }
