@@ -1,0 +1,37 @@
+# ── Secrets — NEVER commit these ─────────────────────────────────
+.env
+*.env.local
+
+# ── AI Model ──────────────────────────────────────────────────────
+ai-model/
+
+# ── Java / Maven ──────────────────────────────────────────────────
+**/target/
+**/.mvn/wrapper/maven-wrapper.jar
+**/mvnw
+**/mvnw.cmd
+*.class
+*.jar
+*.war
+
+# ── Node / Angular ────────────────────────────────────────────────
+**/node_modules/
+**/dist/
+**/.angular/
+
+# ── IDE ───────────────────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+.DS_Store
+
+# ── Logs ──────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Docker ────────────────────────────────────────────────────────
+docker-compose.override.yml

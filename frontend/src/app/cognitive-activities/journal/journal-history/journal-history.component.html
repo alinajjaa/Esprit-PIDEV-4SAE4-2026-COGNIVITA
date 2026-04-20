@@ -1,0 +1,48 @@
+<!-- src/app/cognitive-activities/journal/journal-history/journal-history.component.html -->
+<div class="history-container">
+  <div class="header">
+    <h2>📔 Journal Entries</h2>
+    <a routerLink="/journal/new" class="btn-primary">➕ New Entry</a>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-small">
+    <div class="spinner-small"></div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && entries.length === 0" class="empty-state">
+    <p>No journal entries yet. Start tracking your mood!</p>
+    <a routerLink="/journal/new" class="btn-primary">Create First Entry</a>
+  </div>
+
+  <!-- Entries List -->
+  <div *ngIf="!loading && entries.length > 0" class="entries-list">
+    <div *ngFor="let entry of entries" class="entry-card">
+      <div class="entry-header">
+        <span class="entry-date">{{ formatDate(entry.date) }}</span>
+        <div class="entry-actions">
+          <a [routerLink]="['/journal/edit', entry.id]" class="btn-edit">✏️</a>
+          <button class="btn-delete" (click)="deleteEntry(entry.id!)">🗑️</button>
+        </div>
+      </div>
+
+      <div class="entry-mood">
+        <span class="mood-emoji">{{ getMoodEmoji(entry.mood) }}</span>
+        <div class="mood-stats">
+          <span>⚡ Energy: {{ entry.energy }}/5</span>
+          <span>😰 Stress: {{ entry.stress }}/5</span>
+          <span>😴 Sleep: {{ entry.sleepHours }}h</span>
+        </div>
+      </div>
+
+      <div *ngIf="entry.activities.length > 0" class="entry-activities">
+        <span *ngFor="let activity of entry.activities" class="activity-tag">
+          {{ activity }}
+        </span>
+      </div>
+
+      <p *ngIf="entry.notes" class="entry-notes">📝 {{ entry.notes }}</p>
+    </div>
+  </div>
+</div>

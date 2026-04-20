@@ -1,0 +1,98 @@
+<!-- src/app/cognitive-activities/progressive-challenges/progressive-challenges.component.html -->
+<div class="challenges-container">
+  <!-- Header -->
+  <div class="challenges-header">
+    <h2>🏆 Défis Progressifs</h2>
+    <p>Complète des exercices pour débloquer des récompenses !</p>
+  </div>
+
+  <!-- Stats -->
+  <div *ngIf="progression" class="stats-banner">
+    <div class="stat-item">
+      <span class="stat-value">{{ progression.totalCount }}</span>
+      <span class="stat-label">Exercices</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value">{{ progression.totalPoints }}</span>
+      <span class="stat-label">Points</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value">{{ progression.badges.length }}</span>
+      <span class="stat-label">Badges</span>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="challenges-tabs">
+    <button class="tab-btn"
+            [class.active]="activeTab === 'ALL'"
+            (click)="setActiveTab('ALL')">
+      🏆 Tous
+    </button>
+    <button class="tab-btn"
+            [class.active]="activeTab === 'MEMORY'"
+            (click)="setActiveTab('MEMORY')">
+      🧠 Mémoire
+    </button>
+    <button class="tab-btn"
+            [class.active]="activeTab === 'ATTENTION'"
+            (click)="setActiveTab('ATTENTION')">
+      👀 Attention
+    </button>
+    <button class="tab-btn"
+            [class.active]="activeTab === 'LOGIC'"
+            (click)="setActiveTab('LOGIC')">
+      🔢 Logique
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-small">
+    <div class="spinner-small"></div>
+  </div>
+
+  <!-- Challenges List -->
+  <div *ngIf="!loading" class="challenges-list">
+    <div *ngFor="let challenge of getFilteredChallenges()"
+         class="challenge-card"
+         [class.completed]="challenge.completed">
+
+      <div class="challenge-header">
+        <div class="challenge-icon">{{ challenge.icon }}</div>
+        <div class="challenge-info">
+          <h3>{{ challenge.title }}</h3>
+          <span class="challenge-level">{{ getLevelLabel(challenge.level) }}</span>
+        </div>
+        <div class="challenge-reward">
+          <span class="reward-points">+{{ challenge.rewardPoints }}</span>
+          <span *ngIf="challenge.rewardBadge" class="reward-badge">
+            {{ challenge.rewardBadge }}
+          </span>
+        </div>
+      </div>
+
+      <p class="challenge-description">{{ challenge.description }}</p>
+
+      <div class="challenge-progress">
+        <div class="progress-label">
+          <span>Progression: {{ challenge.currentCount }}/{{ challenge.targetCount }}</span>
+          <span>{{ getProgressPercentage(challenge).toFixed(0) }}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill"
+               [style.width.%]="getProgressPercentage(challenge)"
+               [style.background-color]="getProgressColor(challenge)"></div>
+        </div>
+      </div>
+
+      <div *ngIf="challenge.completed" class="completed-badge">
+        ✅ Complété le {{ challenge.completedAt | date:'dd/MM/yyyy' }}
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div *ngIf="getFilteredChallenges().length === 0" class="empty-state">
+      <p>Aucun défi dans cette catégorie</p>
+    </div>
+  </div>
+</div>

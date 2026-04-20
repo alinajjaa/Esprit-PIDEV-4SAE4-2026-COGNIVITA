@@ -1,0 +1,391 @@
+<div class="ft-page">
+
+  <!-- CONTEXT BANNER (shown when navigated from Medical Records) -->
+  <div class="context-banner" *ngIf="userName">
+    <button class="back-btn" (click)="goBackToMedicalRecords()">← Back to Medical Records</button>
+    <span class="context-label">Viewing family tree for: <strong>{{ userName }}</strong> (User ID: {{ userId }})</span>
+  </div>
+
+  <!-- HEADER -->
+  <div class="ft-header">
+    <div class="header-left">
+      <div class="header-icon">🧬</div>
+      <div>
+        <h1>Family Tree</h1>
+        <p>Hereditary Alzheimer's Risk Analysis — BFS/DFS Algorithm</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-pdf" (click)="downloadPdf()" [disabled]="generatingPdf">
+        {{ generatingPdf ? '⏳ Generating...' : '📄 PDF Report' }}
+      </button>
+      <button class="btn-add-member" (click)="openAddForm()">＋ Add Member</button>
+    </div>
+  </div>
+
+  <!-- ALERTS -->
+  <div *ngIf="successMessage" class="alert alert-success">✅ {{ successMessage }}</div>
+  <div *ngIf="errorMessage" class="alert alert-error">❌ {{ errorMessage }}
+    <button (click)="errorMessage=''" class="close-btn-x">×</button>
+  </div>
+  <div *ngIf="isLoading && !showForm" class="loading-wrap">
+    <div class="spinner"></div><span>Loading family tree...</span>
+  </div>
+
+  <!-- RISK SUMMARY -->
+  <div *ngIf="riskAnalysis && !isLoading" class="risk-summary">
+    <div class="risk-card main-risk" [style.background]="getRiskGradient(riskAnalysis.hereditaryRiskScore)">
+      <div class="risk-score">{{ riskAnalysis.hereditaryRiskScore | number:'1.0-0' }}%</div>
+      <div class="risk-label">Hereditary Risk</div>
+      <div class="risk-level">{{ riskAnalysis.riskLevel }}</div>
+    </div>
+    <div class="stat-card"><div class="stat-number">{{ riskAnalysis.totalFamilyMembers }}</div><div class="stat-label">Members</div></div>
+    <div class="stat-card affected"><div class="stat-number">{{ riskAnalysis.affectedMembers }}</div><div class="stat-label">Affected</div></div>
+    <div class="stat-card"><div class="stat-number">{{ riskAnalysis.firstDegreeAffected }}</div><div class="stat-label">1st Degree</div></div>
+    <div class="stat-card" [class.multi]="riskAnalysis.multiGenerational">
+      <div class="stat-number">{{ riskAnalysis.multiGenerational ? '⚠️' : '✓' }}</div>
+      <div class="stat-label">Multi-Gen</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tab-bar">
+    <button [class.active]="activeTab === 'tree'" (click)="setTab('tree')">🌳 Visual Tree</button>
+    <button [class.active]="activeTab === 'members'" (click)="setTab('members')">👥 Members</button>
+    <button [class.active]="activeTab === 'analysis'" (click)="setTab('analysis')">📊 Analysis</button>
+  </div>
+
+  <!-- ══════════════════════════════
+       VISUAL TREE TAB
+  ══════════════════════════════ -->
+  <div *ngIf="activeTab === 'tree'" class="tab-content">
+
+    <div *ngIf="members.length === 0 && !isLoading" class="empty-state">
+      <div class="empty-icon">🌱</div>
+      <h2>Start Building Your Family Tree</h2>
+      <p>Add family members to visualize hereditary Alzheimer's risk patterns across generations.</p>
+      <button class="btn-primary" (click)="openAddForm()">＋ Add First Member</button>
+    </div>
+
+    <div *ngIf="members.length > 0" class="family-tree-visual">
+
+      <!-- Legend -->
+      <div class="tree-legend">
+        <span class="legend-item"><span class="leg-dot alz-dot"></span>Alzheimer's</span>
+        <span class="legend-item"><span class="leg-dot dem-dot"></span>Dementia</span>
+        <span class="legend-item"><span class="leg-dot healthy-dot"></span>Healthy</span>
+        <span class="legend-item"><span class="leg-dot patient-dot"></span>Patient (You)</span>
+      </div>
+
+      <!-- ── Generation: Grandparents ── -->
+      <div *ngIf="getGeneration('grandparents').length > 0" class="gen-block">
+        <div class="gen-title">Grandparents</div>
+        <div class="gen-row">
+          <div *ngFor="let m of getGeneration('grandparents')" class="person-unit">
+            <div class="person-circle-wrap">
+              <div class="person-circle"
+                   [class.circle-alz]="m.hasAlzheimers"
+                   [class.circle-dem]="m.hasDementia && !m.hasAlzheimers">
+                <span class="person-emoji">{{ getGenderEmoji(m) }}</span>
+                <span *ngIf="m.hasAlzheimers" class="status-badge alz-badge">🧠</span>
+                <span *ngIf="m.hasDementia && !m.hasAlzheimers" class="status-badge dem-badge">⚠️</span>
+                <span *ngIf="!m.isAlive" class="deceased-mark">✝</span>
+              </div>
+            </div>
+            <div class="person-label">{{ m.fullName || formatRel(m.relationship) }}</div>
+            <div class="person-rel-tag">{{ formatRel(m.relationship) }}</div>
+            <div *ngIf="m.age" class="person-age-tag">{{ m.age }}y</div>
+          </div>
+        </div>
+        <div class="gen-connector-down"></div>
+      </div>
+
+      <!-- ── Generation: Parents & Aunts/Uncles ── -->
+      <div *ngIf="getGeneration('parents').length > 0" class="gen-block">
+        <div class="gen-title">Parents & Relatives</div>
+        <div class="gen-row">
+          <div *ngFor="let m of getGeneration('parents')" class="person-unit">
+            <div class="person-circle-wrap">
+              <div class="person-circle"
+                   [class.circle-alz]="m.hasAlzheimers"
+                   [class.circle-dem]="m.hasDementia && !m.hasAlzheimers">
+                <span class="person-emoji">{{ getGenderEmoji(m) }}</span>
+                <span *ngIf="m.hasAlzheimers" class="status-badge alz-badge">🧠</span>
+                <span *ngIf="m.hasDementia && !m.hasAlzheimers" class="status-badge dem-badge">⚠️</span>
+                <span *ngIf="!m.isAlive" class="deceased-mark">✝</span>
+              </div>
+            </div>
+            <div class="person-label">{{ m.fullName || formatRel(m.relationship) }}</div>
+            <div class="person-rel-tag">{{ formatRel(m.relationship) }}</div>
+            <div *ngIf="m.age" class="person-age-tag">{{ m.age }}y</div>
+          </div>
+        </div>
+        <div class="gen-connector-down"></div>
+      </div>
+
+      <!-- ── Generation: YOU + Siblings ── -->
+      <div class="gen-block patient-generation">
+        <div class="gen-title">You & Siblings</div>
+        <div class="gen-row gen-row-patient">
+
+          <!-- Siblings (left) -->
+          <div *ngFor="let m of getGeneration('siblings')" class="person-unit">
+            <div class="person-circle-wrap">
+              <div class="person-circle"
+                   [class.circle-alz]="m.hasAlzheimers"
+                   [class.circle-dem]="m.hasDementia && !m.hasAlzheimers">
+                <span class="person-emoji">{{ getGenderEmoji(m) }}</span>
+                <span *ngIf="m.hasAlzheimers" class="status-badge alz-badge">🧠</span>
+                <span *ngIf="m.hasDementia && !m.hasAlzheimers" class="status-badge dem-badge">⚠️</span>
+                <span *ngIf="!m.isAlive" class="deceased-mark">✝</span>
+              </div>
+            </div>
+            <div class="person-label">{{ m.fullName || formatRel(m.relationship) }}</div>
+            <div class="person-rel-tag">{{ formatRel(m.relationship) }}</div>
+            <div *ngIf="m.age" class="person-age-tag">{{ m.age }}y</div>
+          </div>
+
+          <!-- PATIENT (You) — center highlighted -->
+          <div class="person-unit patient-unit">
+            <div class="person-circle-wrap patient-wrap">
+              <div class="patient-ring-outer"></div>
+              <div class="patient-ring-inner"></div>
+              <div class="person-circle patient-circle">
+                <span class="person-emoji">🧑</span>
+              </div>
+            </div>
+            <div class="person-label patient-name-label">You</div>
+            <div class="person-rel-tag patient-rel-tag">Patient</div>
+          </div>
+
+        </div>
+        <div class="gen-connector-down" *ngIf="getGeneration('children').length > 0"></div>
+      </div>
+
+      <!-- ── Generation: Children ── -->
+      <div *ngIf="getGeneration('children').length > 0" class="gen-block">
+        <div class="gen-title">Children</div>
+        <div class="gen-row">
+          <div *ngFor="let m of getGeneration('children')" class="person-unit">
+            <div class="person-circle-wrap">
+              <div class="person-circle"
+                   [class.circle-alz]="m.hasAlzheimers"
+                   [class.circle-dem]="m.hasDementia && !m.hasAlzheimers">
+                <span class="person-emoji">{{ getGenderEmoji(m) }}</span>
+                <span *ngIf="m.hasAlzheimers" class="status-badge alz-badge">🧠</span>
+                <span *ngIf="m.hasDementia && !m.hasAlzheimers" class="status-badge dem-badge">⚠️</span>
+              </div>
+            </div>
+            <div class="person-label">{{ m.fullName || formatRel(m.relationship) }}</div>
+            <div class="person-rel-tag">{{ formatRel(m.relationship) }}</div>
+            <div *ngIf="m.age" class="person-age-tag">{{ m.age }}y</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Other relatives (Cousins etc.) ── -->
+      <div *ngIf="getGeneration('other').length > 0" class="gen-block other-gen-block">
+        <div class="gen-title">Other Relatives</div>
+        <div class="gen-row">
+          <div *ngFor="let m of getGeneration('other')" class="person-unit">
+            <div class="person-circle-wrap">
+              <div class="person-circle"
+                   [class.circle-alz]="m.hasAlzheimers"
+                   [class.circle-dem]="m.hasDementia && !m.hasAlzheimers">
+                <span class="person-emoji">{{ getGenderEmoji(m) }}</span>
+                <span *ngIf="m.hasAlzheimers" class="status-badge alz-badge">🧠</span>
+                <span *ngIf="m.hasDementia && !m.hasAlzheimers" class="status-badge dem-badge">⚠️</span>
+              </div>
+            </div>
+            <div class="person-label">{{ m.fullName || formatRel(m.relationship) }}</div>
+            <div class="person-rel-tag">{{ formatRel(m.relationship) }}</div>
+            <div *ngIf="m.age" class="person-age-tag">{{ m.age }}y</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /family-tree-visual -->
+  </div>
+
+  <!-- ══════════════════════════════
+       MEMBERS LIST TAB
+  ══════════════════════════════ -->
+  <div *ngIf="activeTab === 'members'" class="tab-content">
+    <div class="members-grid" *ngIf="members.length > 0; else noMembers">
+      <div *ngFor="let m of members" class="member-card"
+           [class.has-alzheimers]="m.hasAlzheimers"
+           [class.has-dementia]="m.hasDementia && !m.hasAlzheimers">
+        <div class="member-header">
+          <div class="member-avatar"
+               [style.background]="m.hasAlzheimers ? 'rgba(220,38,38,0.2)' : m.hasDementia ? 'rgba(217,119,6,0.2)' : 'rgba(0,255,255,0.1)'">
+            {{ m.gender === 'MALE' ? '👨' : m.gender === 'FEMALE' ? '👩' : '🧑' }}
+          </div>
+          <div>
+            <div class="member-name">{{ m.fullName }}</div>
+            <div class="member-rel">{{ formatRel(m.relationship) }}</div>
+          </div>
+          <div class="member-actions">
+            <button class="btn-icon" (click)="openEditForm(m)">✏️</button>
+            <button class="btn-icon danger" (click)="deleteMember(m.id!)">🗑️</button>
+          </div>
+        </div>
+        <div class="member-tags">
+          <span *ngIf="m.hasAlzheimers" class="tag tag-alzheimer">🧠 Alzheimer's</span>
+          <span *ngIf="m.hasDementia" class="tag tag-dementia">⚠️ Dementia</span>
+          <span *ngIf="!m.isAlive" class="tag tag-deceased">† Deceased</span>
+          <span *ngIf="m.age" class="tag tag-age">{{ m.age }}y</span>
+        </div>
+        <div *ngIf="m.hereditaryRiskScore && m.hereditaryRiskScore > 0" class="member-risk">
+          Risk contribution: <strong [style.color]="getRiskColor(m.hereditaryRiskScore)">{{ m.hereditaryRiskScore | number:'1.0-0' }}%</strong>
+        </div>
+        <div *ngIf="m.notes" class="member-notes">{{ m.notes }}</div>
+      </div>
+    </div>
+    <ng-template #noMembers>
+      <div class="empty-state">
+        <div class="empty-icon">👨‍👩‍👧‍👦</div>
+        <h2>No Family Members Yet</h2>
+        <button class="btn-primary" (click)="openAddForm()">＋ Add Member</button>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- ══════════════════════════════
+       ANALYSIS TAB
+  ══════════════════════════════ -->
+  <div *ngIf="activeTab === 'analysis'" class="tab-content">
+    <div *ngIf="riskAnalysis; else noAnalysis">
+      <div class="analysis-grid">
+        <div class="analysis-card gauge-card">
+          <h3>Hereditary Risk Score</h3>
+          <div class="gauge-wrap">
+            <svg viewBox="0 0 200 120" class="gauge-svg">
+              <defs>
+                <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" style="stop-color:#16a34a"/>
+                  <stop offset="40%" style="stop-color:#2563eb"/>
+                  <stop offset="70%" style="stop-color:#d97706"/>
+                  <stop offset="100%" style="stop-color:#dc2626"/>
+                </linearGradient>
+              </defs>
+              <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="16" stroke-linecap="round"/>
+              <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="url(#gaugeGrad)" stroke-width="16" stroke-linecap="round"
+                    [attr.stroke-dasharray]="(riskAnalysis.hereditaryRiskScore / 100) * 251 + ' 251'" stroke-dashoffset="0"/>
+              <text x="100" y="88" text-anchor="middle" fill="#00ffff" font-size="24" font-weight="bold">{{ riskAnalysis.hereditaryRiskScore | number:'1.0-0' }}%</text>
+              <text x="100" y="108" text-anchor="middle" fill="#94a3b8" font-size="10">{{ riskAnalysis.riskLevel }}</text>
+            </svg>
+          </div>
+        </div>
+        <div class="analysis-card">
+          <h3>🔍 Risk Patterns</h3>
+          <div *ngIf="riskAnalysis.riskPatterns.length > 0; else noPatterns" class="patterns-list">
+            <div *ngFor="let p of riskAnalysis.riskPatterns" class="pattern-item">⚠️ {{ p }}</div>
+          </div>
+          <ng-template #noPatterns><div class="no-patterns">✅ No significant hereditary risk patterns detected</div></ng-template>
+        </div>
+        <div class="analysis-card" *ngIf="affectedByRelationshipEntries.length > 0">
+          <h3>📊 Affected by Relationship</h3>
+          <div *ngFor="let entry of affectedByRelationshipEntries" class="rel-bar-item">
+            <div class="rel-label">{{ formatRel(entry[0]) }}</div>
+            <div class="rel-bar-track"><div class="rel-bar-fill" [style.width]="(entry[1] * 30) + 'px'"></div></div>
+            <div class="rel-count">{{ entry[1] }}</div>
+          </div>
+        </div>
+        <div class="analysis-card" *ngIf="stats">
+          <h3>📈 Tree Statistics</h3>
+          <div class="stats-row"><span>Total Members</span><span class="stat-val">{{ stats.totalMembers }}</span></div>
+          <div class="stats-row"><span>With Alzheimer's</span><span class="stat-val danger">{{ stats.affectedWithAlzheimers }}</span></div>
+          <div class="stats-row"><span>With Dementia</span><span class="stat-val warning">{{ stats.affectedWithDementia }}</span></div>
+          <div class="stats-row"><span>Avg Hereditary Risk</span><span class="stat-val">{{ stats.averageHereditaryRiskScore }}%</span></div>
+          <div class="stats-row"><span>Multi-generational</span><span class="stat-val" [class.danger]="riskAnalysis.multiGenerational">{{ riskAnalysis.multiGenerational ? 'Yes ⚠️' : 'No ✓' }}</span></div>
+        </div>
+      </div>
+      <div class="hereditary-rec" *ngIf="riskAnalysis.hereditaryRiskScore >= 20">
+        <div class="rec-header">💡 Recommendations Based on Family History</div>
+        <div class="rec-list">
+          <div *ngIf="riskAnalysis.hereditaryRiskScore >= 40" class="rec-item critical">🔴 Schedule an immediate cognitive assessment with a neurologist given your family history.</div>
+          <div *ngIf="riskAnalysis.firstDegreeAffected > 0" class="rec-item high">🟠 Consider genetic counseling — first-degree relatives with Alzheimer's increase personal risk significantly.</div>
+          <div *ngIf="riskAnalysis.multiGenerational" class="rec-item high">🟠 Multi-generational Alzheimer's pattern detected. FAD screening is recommended.</div>
+          <div class="rec-item medium">🟡 Maintain a brain-healthy lifestyle: regular exercise, Mediterranean diet, social engagement.</div>
+          <div class="rec-item low">🟢 Annual MMSE recommended for early detection.</div>
+        </div>
+      </div>
+    </div>
+    <ng-template #noAnalysis>
+      <div class="empty-state"><p>Add family members to see your hereditary risk analysis.</p></div>
+    </ng-template>
+  </div>
+
+  <!-- ══════════════════════════════
+       ADD / EDIT FORM MODAL
+  ══════════════════════════════ -->
+  <div *ngIf="showForm" class="modal-overlay" (click)="cancelForm()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ isEditing ? '✏️ Edit' : '＋ Add' }} Family Member</h2>
+        <button class="close-modal" (click)="cancelForm()">×</button>
+      </div>
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label>Full Name <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="form.fullName" placeholder="e.g. John Smith" class="form-input"/>
+        </div>
+        <div class="form-group">
+          <label>Relationship <span class="req">*</span></label>
+          <select [(ngModel)]="form.relationship" class="form-select">
+            <option *ngFor="let r of relationships" [value]="r">{{ formatRel(r) }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Gender</label>
+          <select [(ngModel)]="form.gender" class="form-select">
+            <option *ngFor="let g of genders" [value]="g">{{ g }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Age</label>
+          <input type="number" [(ngModel)]="form.age" placeholder="Age" class="form-input" min="0" max="130"/>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <div class="toggle-row">
+            <label class="toggle-opt" [class.tog-active]="form.isAlive">
+              <input type="radio" [value]="true" [(ngModel)]="form.isAlive" name="alive_radio"/> ✅ Alive
+            </label>
+            <label class="toggle-opt" [class.tog-active]="!form.isAlive">
+              <input type="radio" [value]="false" [(ngModel)]="form.isAlive" name="alive_radio"/> † Deceased
+            </label>
+          </div>
+        </div>
+        <div class="form-group full-width">
+          <label>Medical Conditions</label>
+          <div class="condition-toggles">
+            <label class="cond-toggle" [class.cond-alz]="form.hasAlzheimers">
+              <input type="checkbox" [(ngModel)]="form.hasAlzheimers"/> 🧠 Has / Had Alzheimer's
+            </label>
+            <label class="cond-toggle" [class.cond-dem]="form.hasDementia">
+              <input type="checkbox" [(ngModel)]="form.hasDementia"/> ⚠️ Has / Had Dementia
+            </label>
+          </div>
+        </div>
+        <div class="form-group full-width">
+          <label>Other Conditions</label>
+          <input type="text" [(ngModel)]="form.otherConditions" placeholder="e.g. Hypertension, Diabetes..." class="form-input"/>
+        </div>
+        <div class="form-group full-width">
+          <label>Notes</label>
+          <textarea [(ngModel)]="form.notes" rows="2" class="form-input form-textarea" placeholder="Additional notes..."></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" (click)="cancelForm()">Cancel</button>
+        <button class="btn-save" (click)="saveMember()" [disabled]="!form.fullName || isLoading">
+          {{ isLoading ? 'Saving...' : (isEditing ? 'Update Member' : 'Add Member') }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+<!-- PDF dialog removed — PDF now auto-detects medical record by userId -->
+
+</div>

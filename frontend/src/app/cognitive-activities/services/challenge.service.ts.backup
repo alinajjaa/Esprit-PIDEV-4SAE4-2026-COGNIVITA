@@ -1,0 +1,272 @@
+// src/app/cognitive-activities/services/challenge.service.ts
+import { Injectable } from '@angular/core';
+import { Observable, of } from 'rxjs';
+import { DailyChallenge, UserStreak, ChallengeResult, Badge } from '../models/challenge.model';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class ChallengeService {
+  private readonly CHALLENGE_KEY = 'cognitive_daily_challenges';
+  private readonly STREAK_KEY = 'cognitive_user_streak';
+  private readonly BADGES_KEY = 'cognitive_user_badges';
+
+  constructor() { }
+
+  // ==================== DÉFIS QUOTIDIENS ====================
+
+  getTodaysChallenge(): Observable<DailyChallenge | null> {
+    const today = new Date().toISOString().split('T')[0];
+    const challenges = this.getSavedChallenges();
+
+    let todayChallenge = challenges.find(c => c.date === today);
+
+    if (!todayChallenge) {
+      todayChallenge = this.generateDailyChallenge(today);
+      challenges.push(todayChallenge);
+      this.saveChallenges(challenges);
+    }
+
+    return of(todayChallenge);
+  }
+
+  private generateDailyChallenge(date: string): DailyChallenge {
+    const challenges: DailyChallenge[] = [
+      {
+        id: `challenge_${date}_1`,
+        date: date,
+        title: '🧠 Défi Mémoire',
+        description: 'Fais un exercice de mémoire avec un score ≥ 8/10',
+        targetScore: 8,
+        rewardPoints: 50,
+        completed: false,
+        activityType: 'MEMORY'
+      },
+      {
+        id: `challenge_${date}_2`,
+        date: date,
+        title: '👀 Défi Attention',
+        description: 'Complète un exercice d\'attention avec 80% de réussite',
+        targetScore: 8,
+        rewardPoints: 45,
+        completed: false,
+        activityType: 'ATTENTION'
+      },
+      {
+        id: `challenge_${date}_3`,
+        date: date,
+        title: '🔢 Défi Logique',
+        description: 'Résous 3 séquences logiques sans erreur',
+        targetScore: 9,
+        rewardPoints: 60,
+        completed: false,
+        activityType: 'LOGIC'
+      },
+      {
+        id: `challenge_${date}_4`,
+        date: date,
+        title: '⚡ Défi Express',
+        description: 'Fais n\'importe quel exercice avec un score parfait',
+        targetScore: 10,
+        rewardPoints: 75,
+        completed: false,
+        activityType: 'RANDOM'
+      },
+      {
+        id: `challenge_${date}_5`,
+        date: date,
+        title: '🎯 Défi Précision',
+        description: '90% de bonnes réponses dans un exercice',
+        targetScore: 9,
+        rewardPoints: 55,
+        completed: false,
+        activityType: 'RANDOM'
+      }
+    ];
+
+    const randomIndex = Math.floor(Math.random() * challenges.length);
+    return challenges[randomIndex];
+  }
+
+  completeChallenge(challengeId: string, score: number): Observable<DailyChallenge> {
+    const challenges = this.getSavedChallenges();
+    const challenge = challenges.find(c => c.id === challengeId);
+
+    if (challenge && !challenge.completed) {
+      challenge.completed = true;
+      challenge.userScore = score;
+      challenge.completedAt = new Date();
+      this.saveChallenges(challenges);
+
+      // Mettre à jour la série
+      this.updateStreak();
+
+      // Ajouter les points
+      this.addPoints(challenge.rewardPoints);
+
+      // Vérifier les badges
+      this.checkBadges();
+    }
+
+    return of(challenge!);
+  }
+
+  private getSavedChallenges(): DailyChallenge[] {
+    const saved = localStorage.getItem(this.CHALLENGE_KEY);
+    return saved ? JSON.parse(saved) : [];
+  }
+
+  private saveChallenges(challenges: DailyChallenge[]): void {
+    localStorage.setItem(this.CHALLENGE_KEY, JSON.stringify(challenges));
+  }
+
+  // ==================== SÉRIES (STREAK) ====================
+
+  getCurrentStreak(): Observable<UserStreak> {
+    const streak = this.loadStreak();
+    return of(streak);
+  }
+
+  private updateStreak(): void {
+    const streak = this.loadStreak();
+    const today = new Date().toISOString().split('T')[0];
+    const lastDate = streak.lastActivityDate;
+
+    if (lastDate) {
+      const last = new Date(lastDate);
+      const current = new Date(today);
+      const diffDays = this.getDaysDifference(last, current);
+
+      if (diffDays === 1) {
+        // Jour consécutif
+        streak.currentStreak++;
+        if (streak.currentStreak > streak.longestStreak) {
+          streak.longestStreak = streak.currentStreak;
+        }
+      } else if (diffDays > 1) {
+        // Série cassée
+        streak.currentStreak = 1;
+      }
+      // Si diffDays === 0, déjà compté aujourd'hui
+    } else {
+      // Première activité
+      streak.currentStreak = 1;
+    }
+
+    streak.lastActivityDate = today;
+    streak.totalChallengesCompleted++;
+
+    this.saveStreak(streak);
+  }
+
+  private loadStreak(): UserStreak {
+    const saved = localStorage.getItem(this.STREAK_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+
+    return {
+      currentStreak: 0,
+      longestStreak: 0,
+      lastActivityDate: '',
+      totalChallengesCompleted: 0,
+      totalPoints: 0,
+      badges: []
+    };
+  }
+
+  private saveStreak(streak: UserStreak): void {
+    localStorage.setItem(this.STREAK_KEY, JSON.stringify(streak));
+  }
+
+  private addPoints(points: number): void {
+    const streak = this.loadStreak();
+    streak.totalPoints += points;
+    this.saveStreak(streak);
+  }
+
+  private getDaysDifference(date1: Date, date2: Date): number {
+    const diffTime = Math.abs(date2.getTime() - date1.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+
+  // ==================== BADGES ====================
+
+  private checkBadges(): void {
+    const streak = this.loadStreak();
+    const badges = this.loadBadges();
+    const newBadges: Badge[] = [];
+
+    // Badge 7 jours
+    if (streak.currentStreak >= 7 && !badges.some(b => b.id === '7days')) {
+      newBadges.push({
+        id: '7days',
+        name: '🔥 7 Jours',
+        description: '7 jours consécutifs d\'entraînement',
+        icon: '🔥',
+        unlockedAt: new Date()
+      });
+    }
+
+    // Badge 30 jours
+    if (streak.currentStreak >= 30 && !badges.some(b => b.id === '30days')) {
+      newBadges.push({
+        id: '30days',
+        name: '⚡ 30 Jours',
+        description: 'Un mois d\'entraînement sans interruption',
+        icon: '⚡',
+        unlockedAt: new Date()
+      });
+    }
+
+    // Badge 100 points
+    if (streak.totalPoints >= 100 && !badges.some(b => b.id === '100points')) {
+      newBadges.push({
+        id: '100points',
+        name: '🎯 100 Points',
+        description: 'Accumule 100 points',
+        icon: '🎯',
+        unlockedAt: new Date()
+      });
+    }
+
+    // Badge 10 défis
+    if (streak.totalChallengesCompleted >= 10 && !badges.some(b => b.id === '10challenges')) {
+      newBadges.push({
+        id: '10challenges',
+        name: '🏆 10 Défis',
+        description: 'Complète 10 défis quotidiens',
+        icon: '🏆',
+        unlockedAt: new Date()
+      });
+    }
+
+    if (newBadges.length > 0) {
+      const allBadges = [...badges, ...newBadges];
+      this.saveBadges(allBadges);
+
+      // Ajouter les badges à la série
+      streak.badges = allBadges.map(b => b.name);
+      this.saveStreak(streak);
+    }
+  }
+
+  private loadBadges(): Badge[] {
+    const saved = localStorage.getItem(this.BADGES_KEY);
+    return saved ? JSON.parse(saved) : [];
+  }
+
+  private saveBadges(badges: Badge[]): void {
+    localStorage.setItem(this.BADGES_KEY, JSON.stringify(badges));
+  }
+
+  getAllBadges(): Observable<Badge[]> {
+    return of(this.loadBadges());
+  }
+
+  resetAllData(): void {
+    localStorage.removeItem(this.CHALLENGE_KEY);
+    localStorage.removeItem(this.STREAK_KEY);
+    localStorage.removeItem(this.BADGES_KEY);
+  }
+}

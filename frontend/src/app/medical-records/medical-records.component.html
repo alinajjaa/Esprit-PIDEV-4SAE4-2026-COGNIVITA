@@ -1,0 +1,1334 @@
+<div class="medical-records-page">
+  <div class="brain-background"><app-brain3d></app-brain3d></div>
+
+  <!-- HERO -->
+  <section class="hero-section">
+    <div class="hero-content">
+      <div class="hero-icon">🏥</div>
+      <h1>Medical Records</h1>
+      <p>Patient Clinical Documentation & Risk Monitoring</p>
+      <button class="btn-primary" (click)="openCreateForm()">＋ New Record</button>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item"><span class="stat-number">{{ totalElements }}</span><span class="stat-label">Total Records</span></div>
+      <div class="stat-item"><span class="stat-number">{{ userGroups.length }}</span><span class="stat-label">Patients</span></div>
+      <div class="stat-item"><span class="stat-number">{{ getHighRiskCount() }}</span><span class="stat-label">High Risk</span></div>
+      <div class="stat-item"><span class="stat-number">{{ getAverageScore() }}</span><span class="stat-label">Avg. Score</span></div>
+    </div>
+  </section>
+
+  <!-- FILTERS -->
+  <section class="filter-section" *ngIf="!loading">
+    <div class="filter-bar">
+      <div class="filter-group search-group">
+        <label>Search Patient</label>
+        <input type="text" [(ngModel)]="searchName" placeholder="Name or email..." class="search-input" (input)="onSearchInput()">
+      </div>
+      <div class="filter-group">
+        <label>Risk Level</label>
+        <select [(ngModel)]="filterRiskLevel" (change)="applyFilters()">
+          <option value="">All</option>
+          <option value="LOW">🟢 Low</option><option value="MEDIUM">🟡 Medium</option>
+          <option value="HIGH">🟠 High</option><option value="CRITICAL">🔴 Critical</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Gender</label>
+        <select [(ngModel)]="filterGender" (change)="applyFilters()">
+          <option value="">All</option><option value="Male">Male</option><option value="Female">Female</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Family History</label>
+        <select [(ngModel)]="filterFamilyHistory" (change)="applyFilters()">
+          <option value="">All</option><option value="Yes">Yes</option><option value="No">No</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Sort By</label>
+        <select [(ngModel)]="sortBy" (change)="applyFilters()">
+          <option value="createdAt">Date</option>
+          <option value="age">Age</option>
+          <option value="riskScore">Risk Score</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Order</label>
+        <select [(ngModel)]="sortDirection" (change)="applyFilters()">
+          <option value="DESC">↓ Desc</option><option value="ASC">↑ Asc</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>View</label>
+        <div class="view-toggle">
+          <button [class.active]="viewMode === 'grouped'" (click)="viewMode = 'grouped'">👥 By Patient</button>
+          <button [class.active]="viewMode === 'list'" (click)="viewMode = 'list'">📋 All Records</button>
+        </div>
+      </div>
+      <button class="btn-clear-filters" (click)="clearFilters()">✕ Clear</button>
+    </div>
+    <div class="results-info">{{ totalElements }} records · {{ userGroups.length }} patients</div>
+  </section>
+
+  <div *ngIf="loading" class="loading-container"><div class="pulse-ring"></div><p>Loading...</p></div>
+  <div *ngIf="error && !loading" class="error-container"><h3>⚠️ {{ error }}</h3><button class="btn-retry" (click)="loadRecords()">Retry</button></div>
+
+  <!-- ══════════════════════════════════════
+       GROUPED VIEW (by patient / user)
+       ══════════════════════════════════════ -->
+  <div *ngIf="!loading && viewMode === 'grouped'" class="records-section">
+    <div *ngIf="filteredGroups.length === 0 && !error" class="empty-container">
+      <div class="empty-illustration">🏥</div>
+      <h3>No Records Found</h3>
+      <button class="btn-primary" (click)="openCreateForm()">＋ Create First Record</button>
+    </div>
+
+    <div *ngFor="let group of filteredGroups; trackBy: trackByUserId" class="user-group">
+      <!-- Group Header -->
+      <div class="group-header" (click)="toggleGroup(group)">
+        <div class="group-avatar">{{ getInitials(group.userName) }}</div>
+        <div class="group-info">
+          <h3 class="group-name">{{ group.userName }}</h3>
+          <span class="group-email">{{ group.userEmail }}</span>
+        </div>
+        <div class="group-badges">
+          <span class="group-count">{{ group.records.length }} record{{ group.records.length > 1 ? 's' : '' }}</span>
+          <span class="group-risk" [ngClass]="getRiskClass(getHighestRiskInGroup(group))">
+            {{ getRiskEmoji(getHighestRiskInGroup(group)) }} {{ getHighestRiskInGroup(group) }}
+          </span>
+          <span class="group-avg-score">Avg {{ getAvgScoreInGroup(group) }}/100</span>
+        </div>
+        <div class="group-actions" (click)="$event.stopPropagation()">
+          <button class="btn-add-record" (click)="openCreateFormForUser(group.userId, group.userName)">
+            ＋ Add Record
+          </button>
+        </div>
+        <span class="group-toggle">{{ group.expanded ? '▲' : '▼' }}</span>
+      </div>
+
+      <!-- Group Records -->
+      <div class="group-records" *ngIf="group.expanded">
+        <article *ngFor="let record of group.records; trackBy: trackByRecordId" class="fiche-medicale" (click)="viewRecord(record)">
+          <div class="fiche-header">
+            <div class="record-num">#{{ record.id }}</div>
+            <div class="risk-badge" [ngClass]="getRiskClass(record.riskLevel)">
+              {{ getRiskEmoji(record.riskLevel) }} {{ record.riskLevel || 'N/A' }}
+            </div>
+          </div>
+
+          <div class="score-bar-container">
+            <div class="score-label">
+              <span>Risk Score</span>
+              <span class="score-value" [ngClass]="getRiskClass(record.riskLevel)">{{ record.riskScore | number:'1.0-1' }}/100</span>
+            </div>
+            <div class="score-track"><div class="score-fill" [ngClass]="getRiskClass(record.riskLevel)" [style.width]="getRiskScoreWidth(record.riskScore)"></div></div>
+          </div>
+
+          <div class="info-row">
+            <span>👤 {{ record.age }} yrs · {{ record.gender }}</span>
+            <span>🏫 {{ record.educationLevel || 'N/A' }}</span>
+          </div>
+          <div class="info-row" [ngClass]="record.familyHistory === 'Yes' ? 'warn' : ''">
+            <span>🧬 Family History: {{ record.familyHistory }}</span>
+          </div>
+          <div class="fiche-footer">
+            <span class="date-stamp">{{ formatDate(record.createdAt) }}</span>
+            <button class="btn-dashboard">📊 Dashboard →</button>
+          </div>
+        </article>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       LIST VIEW (all records, flat)
+       ══════════════════════════════════════ -->
+  <div *ngIf="!loading && viewMode === 'list'" class="records-section">
+    <div *ngIf="allRecords.length === 0 && !error" class="empty-container">
+      <div class="empty-illustration">🏥</div>
+      <h3>No Records Found</h3>
+      <button class="btn-primary" (click)="openCreateForm()">＋ Create First Record</button>
+    </div>
+    <div class="fiche-grid">
+      <article *ngFor="let record of allRecords; trackBy: trackByRecordId" class="fiche-medicale" (click)="viewRecord(record)">
+        <div class="fiche-header">
+          <div class="patient-photo"><span class="initials">{{ getInitials(record.userName) }}</span></div>
+          <div class="patient-identity">
+            <h3 class="patient-name">{{ record.userName }}</h3>
+            <span class="patient-id">{{ record.userEmail }}</span>
+          </div>
+          <div class="risk-badge" [ngClass]="getRiskClass(record.riskLevel)">
+            {{ getRiskEmoji(record.riskLevel) }} {{ record.riskLevel || 'N/A' }}
+          </div>
+        </div>
+        <div class="score-bar-container">
+          <div class="score-label"><span>Risk Score</span><span class="score-value" [ngClass]="getRiskClass(record.riskLevel)">{{ record.riskScore | number:'1.0-1' }}/100</span></div>
+          <div class="score-track"><div class="score-fill" [ngClass]="getRiskClass(record.riskLevel)" [style.width]="getRiskScoreWidth(record.riskScore)"></div></div>
+        </div>
+        <div class="info-row"><span>👤 {{ record.age }} yrs · {{ record.gender }}</span><span>🏫 {{ record.educationLevel || 'N/A' }}</span></div>
+        <div class="fiche-footer"><span class="date-stamp">{{ formatDate(record.createdAt) }}</span><button class="btn-dashboard">📊 Dashboard →</button></div>
+      </article>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button class="page-btn" [disabled]="currentPage === 0" (click)="changePage(currentPage - 1)">‹</button>
+      <button class="page-btn" *ngFor="let p of pageNumbers; trackBy: trackByIndex" [class.active]="p === currentPage" (click)="changePage(p)">{{ p + 1 }}</button>
+      <button class="page-btn" [disabled]="currentPage === totalPages - 1" (click)="changePage(currentPage + 1)">›</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PATIENT DASHBOARD MODAL
+       ══════════════════════════════════════════════════════════ -->
+  <div *ngIf="selectedRecord && !showForm" class="modal-backdrop" (click)="closeDetails()">
+    <div class="dashboard-modal" (click)="$event.stopPropagation()">
+      <button class="modal-close" (click)="closeDetails()">✕</button>
+
+      <div class="dashboard-header">
+        <div class="dashboard-avatar" [ngClass]="selectedRecord.gender?.toLowerCase()">{{ getInitials(selectedRecord.userName) }}</div>
+        <div class="dashboard-patient-info">
+          <h2>{{ selectedRecord.userName }}</h2>
+          <p>{{ selectedRecord.userEmail }}</p>
+          <p>{{ selectedRecord.age }} yrs · {{ selectedRecord.gender }} · {{ selectedRecord.educationLevel || 'Education N/A' }}</p>
+        </div>
+        <div class="dashboard-risk-badge" [ngClass]="getRiskClass(selectedRecord.riskLevel)">
+          <div class="risk-score-circle">
+            <span class="risk-score-number">{{ selectedRecord.riskScore | number:'1.0-0' }}</span>
+            <span class="risk-score-label">/100</span>
+          </div>
+          <div class="risk-level-text">{{ getRiskEmoji(selectedRecord.riskLevel) }} {{ selectedRecord.riskLevel }}</div>
+        </div>
+        <div class="dashboard-actions-top">
+          <button class="btn-edit" (click)="openEditForm(selectedRecord)">✏️ Edit</button>
+          <button class="btn-delete" (click)="deleteRecord(selectedRecord.id)">🗑️ Delete</button>
+          <button class="btn-pdf-download" (click)="downloadPdfReport(selectedRecord.id)" [disabled]="generatingPdf">
+            {{ generatingPdf ? '⏳' : '📄' }} {{ generatingPdf ? 'Generating...' : 'PDF Report' }}
+          </button>
+          <button class="btn-nav-link" (click)="navigateToFamilyTree()" title="Open Family Tree for this patient">🌳 Family Tree</button>
+          <button class="btn-nav-link" (click)="navigateToHealthPrevention()" title="Open Health Prevention for this patient">🌿 Health Prevention</button>
+        </div>
+      </div>
+
+      <div class="tab-bar">
+        <button class="tab-btn" [class.active]="activeTab === 'overview'" (click)="setTab('overview')">📋 Overview</button>
+        <button class="tab-btn" [class.active]="activeTab === 'risk'" (click)="setTab('risk')">⚠️ Risk Factors</button>
+        <button class="tab-btn" [class.active]="activeTab === 'prevention'" (click)="setTab('prevention')">✅ Prevention</button>
+        <button class="tab-btn" [class.active]="activeTab === 'timeline'" (click)="setTab('timeline')">🕐 Timeline</button>
+        <button class="tab-btn" [class.active]="activeTab === 'wellness'" (click)="setTab('wellness')">🌿 Wellness</button>
+        <button class="tab-btn" [class.active]="activeTab === 'stats'" (click)="setTab('stats')">📊 Stats</button>
+        <button class="tab-btn" [class.active]="activeTab === 'riskHistory'" (click)="setTab('riskHistory')">📈 Score History</button>
+        <button class="tab-btn" [class.active]="activeTab === 'medications'" (click)="setTab('medications')">💊 Medications</button>
+        <button class="tab-btn" [class.active]="activeTab === 'careNotes'" (click)="setTab('careNotes')">📝 Care Notes</button>
+        <button class="tab-btn" [class.active]="activeTab === 'appointments'" (click)="setTab('appointments')">📅 Appointments</button>
+        <button class="tab-btn" [class.active]="activeTab === 'interactions'" (click)="setTab('interactions')">⚡ Med Interactions</button>
+        <button class="tab-btn" [class.active]="activeTab === 'trend'" (click)="setTab('trend')">📉 Risk Trend</button>
+      </div>
+
+      <div class="tab-content">
+        <!-- TAB: OVERVIEW -->
+        <div *ngIf="activeTab === 'overview'" class="tab-pane">
+          <div class="overview-grid">
+            <div class="overview-card">
+              <h4>🩺 Clinical Information</h4>
+              <div class="data-rows">
+                <div class="data-row"><label>Family History</label><span [ngClass]="selectedRecord.familyHistory === 'Yes' ? 'text-warning' : 'text-success'">{{ selectedRecord.familyHistory === 'Yes' ? '⚠️ Yes' : '✓ No' }}</span></div>
+                <div class="data-row"><label>Education</label><span>{{ selectedRecord.educationLevel || 'N/A' }}</span></div>
+                <!-- Session 1: APOE Status -->
+                <div class="data-row apoe-row" *ngIf="selectedRecord.apoeStatus && selectedRecord.apoeStatus !== 'NOT_TESTED'">
+                  <label>🧬 APOE Genotype</label>
+                  <span class="apoe-badge" [style.background]="getApoeColor(selectedRecord.apoeStatus) + '22'" [style.color]="getApoeColor(selectedRecord.apoeStatus)" [style.border]="'1px solid ' + getApoeColor(selectedRecord.apoeStatus) + '55'">
+                    {{ selectedRecord.apoeStatusDisplay || selectedRecord.apoeStatus }}
+                    <span class="apoe-pts" *ngIf="getApoeRiskPoints(selectedRecord.apoeStatus) !== 0">
+                      {{ getApoeRiskPoints(selectedRecord.apoeStatus) > 0 ? '+' : '' }}{{ getApoeRiskPoints(selectedRecord.apoeStatus) }} pts
+                    </span>
+                  </span>
+                </div>
+                <!-- Session 1: Diagnosis Stage -->
+                <div class="data-row" *ngIf="selectedRecord.diagnosisStage">
+                  <label>🩻 Clinical Stage</label>
+                  <span class="stage-badge" [ngClass]="getStageClass(selectedRecord.diagnosisStage)">
+                    {{ getStageEmoji(selectedRecord.diagnosisStage) }} {{ selectedRecord.diagnosisStageDisplay || selectedRecord.diagnosisStage }}
+                    <span *ngIf="selectedRecord.stageManuallyOverridden" class="manual-tag" title="Manually set by clinician">📌 Manual</span>
+                    <span *ngIf="!selectedRecord.stageManuallyOverridden" class="auto-tag" title="Auto-calculated from risk score">🤖 Auto</span>
+                  </span>
+                  <small class="stage-desc" *ngIf="selectedRecord.diagnosisStageDescription">{{ selectedRecord.diagnosisStageDescription }}</small>
+                </div>
+                <div class="data-row"><label>Risk Factor Notes</label><span>{{ selectedRecord.riskFactors || 'None documented' }}</span></div>
+                <div class="data-row"><label>Current Symptoms</label><span>{{ selectedRecord.currentSymptoms || 'None reported' }}</span></div>
+                <div class="data-row"><label>Diagnosis Notes</label><span>{{ selectedRecord.diagnosisNotes || 'N/A' }}</span></div>
+                <div class="data-row"><label>Score Calculated</label><span>{{ formatDateTime(selectedRecord.lastRiskCalculation) }}</span></div>
+              </div>
+            </div>
+
+            <div class="overview-card risk-card" [ngClass]="getRiskClass(selectedRecord.riskLevel)">
+              <h4>📊 Risk Assessment</h4>
+              <div class="big-score">
+                <div class="score-circle" [ngClass]="getRiskClass(selectedRecord.riskLevel)">
+                  <span>{{ selectedRecord.riskScore | number:'1.0-1' }}</span><small>/100</small>
+                </div>
+                <div class="score-level">{{ getRiskEmoji(selectedRecord.riskLevel) }} {{ selectedRecord.riskLevel }} RISK</div>
+              </div>
+              <div class="score-track big"><div class="score-fill" [ngClass]="getRiskClass(selectedRecord.riskLevel)" [style.width]="getRiskScoreWidth(selectedRecord.riskScore)"></div></div>
+
+              <!-- Contribution badges -->
+              <div class="contribution-badges">
+                <div class="contrib-badge hereditary-badge" *ngIf="selectedRecord.hereditaryRiskContribution && selectedRecord.hereditaryRiskContribution > 0" (click)="navigateToFamilyTree()">
+                  🧬 Hereditary: <strong>{{ selectedRecord.hereditaryRiskContribution | number:'1.0-1' }}/100</strong>
+                  <span class="badge-arrow">→ Family Tree</span>
+                </div>
+                <div class="contrib-badge wellness-badge" *ngIf="selectedRecord.wellnessRiskContribution && selectedRecord.wellnessRiskContribution > 0" (click)="navigateToHealthPrevention()">
+                  🌿 Lifestyle Risk: <strong>{{ selectedRecord.wellnessRiskContribution | number:'1.0-1' }}/100</strong>
+                  <span class="badge-arrow">→ Health Prevention</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="overview-card recs-card" *ngIf="selectedRecord.recommendations?.length">
+              <h4>💡 Personalized Recommendations</h4>
+              <ul class="recs-list">
+                <li *ngFor="let rec of selectedRecord.recommendations; trackBy: trackByIndex" class="rec-item">{{ rec }}</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: RISK FACTORS -->
+        <div *ngIf="activeTab === 'risk'" class="tab-pane">
+          <app-risk-factors [medicalRecordId]="selectedRecord.id"></app-risk-factors>
+        </div>
+
+        <!-- TAB: PREVENTION ACTIONS -->
+        <div *ngIf="activeTab === 'prevention'" class="tab-pane">
+          <div class="section-toolbar">
+            <h4>✅ Prevention Actions</h4>
+            <button class="btn-add" (click)="openActionForm()">＋ Add Action</button>
+          </div>
+          <div *ngIf="showActionForm" class="inline-form">
+            <h5>New Prevention Action</h5>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Action Type *</label>
+                <select [(ngModel)]="actionFormData.actionType">
+                  <option value="">Select</option>
+                  <option>Cognitive Training</option><option>Physical Exercise</option>
+                  <option>Diet Modification</option><option>Medical Follow-up</option>
+                  <option>Social Activity</option><option>Sleep Improvement</option>
+                  <option>Stress Management</option><option>Medication</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Frequency</label>
+                <select [(ngModel)]="actionFormData.frequency">
+                  <option value="">Select</option>
+                  <option>Daily</option><option>Weekly</option><option>Monthly</option><option>One-time</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Date</label>
+                <input type="datetime-local" [(ngModel)]="actionFormData.actionDate">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Description</label>
+              <textarea [(ngModel)]="actionFormData.description" rows="2" placeholder="Details..."></textarea>
+            </div>
+            <div class="form-actions-inline">
+              <button class="btn-cancel" (click)="closeActionForm()">Cancel</button>
+              <button class="btn-submit" (click)="submitAction()">Save</button>
+            </div>
+          </div>
+
+          <div *ngIf="patientActions.length === 0 && !showActionForm" class="empty-tab"><p>No prevention actions yet.</p></div>
+          <div class="actions-list">
+            <div *ngFor="let action of patientActions; trackBy: trackByRecordId" class="action-card">
+              <div class="action-header">
+                <span class="action-type">{{ action.actionType }}</span>
+                <span class="action-status" [ngClass]="getStatusClass(action.status)">{{ action.status }}</span>
+              </div>
+              <p *ngIf="action.description" class="action-desc">{{ action.description }}</p>
+              <div class="action-meta">
+                <span>📅 {{ formatDate(action.actionDate) }}</span>
+                <span *ngIf="action.frequency">🔁 {{ action.frequency }}</span>
+              </div>
+              <div class="action-btns">
+                <button *ngIf="action.status === 'PENDING'" class="btn-complete" (click)="completeAction(action.id)">✓ Complete</button>
+                <button class="btn-del" (click)="deleteAction(action.id)">🗑️</button>
+              </div>
+            </div>
+          </div>
+          <div class="mini-pagination" *ngIf="patientActionTotalPages > 1">
+            <button [disabled]="patientActionPage === 0" (click)="loadPatientActions(selectedRecord.id, patientActionPage - 1)">‹</button>
+            <span>{{ patientActionPage + 1 }} / {{ patientActionTotalPages }}</span>
+            <button [disabled]="patientActionPage >= patientActionTotalPages - 1" (click)="loadPatientActions(selectedRecord.id, patientActionPage + 1)">›</button>
+          </div>
+        </div>
+
+        <!-- TAB: TIMELINE -->
+        <div *ngIf="activeTab === 'timeline'" class="tab-pane">
+          <div class="section-toolbar">
+            <h4>🕐 Medical Timeline</h4>
+            <select [(ngModel)]="timelineFilter" (change)="filterTimeline(timelineFilter)">
+              <option value="">All Events</option>
+              <option value="RISK_FACTOR_ADDED">Risk Factor Added</option>
+              <option value="RISK_FACTOR_UPDATED">Risk Factor Updated</option>
+              <option value="PREVENTION_ACTION_ADDED">Prevention Added</option>
+              <option value="MEDICAL_RECORD_UPDATED">Record Updated</option>
+            </select>
+          </div>
+          <div *ngIf="patientTimeline.length === 0" class="empty-tab"><p>No timeline events yet. Changes will appear here automatically.</p></div>
+          <div class="timeline-container">
+            <div *ngFor="let event of patientTimeline; trackBy: trackByRecordId" class="timeline-entry">
+              <div class="timeline-icon">{{ getEventIcon(event.eventType) }}</div>
+              <div class="timeline-body">
+                <div class="timeline-event-type">{{ event.eventType?.replace('_', ' ') }}</div>
+                <div class="timeline-desc">{{ event.description }}</div>
+                <div class="timeline-time">{{ formatDateTime(event.eventDate) }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: WELLNESS PROFILE (Health Prevention Microservice) -->
+        <div *ngIf="activeTab === 'wellness'" class="tab-pane">
+          <div class="wellness-header">
+            <div class="wellness-title">
+              <span>🌿</span>
+              <div>
+                <h3>Lifestyle & Wellness Profile</h3>
+                <p>Synced from Health Prevention Microservice — modifiable lifestyle factors for this patient</p>
+              </div>
+            </div>
+            <button class="btn-sync" (click)="loadHealthProfile()" [disabled]="healthProfileLoading">
+              {{ healthProfileLoading ? '⏳ Loading...' : '🔄 Sync' }}
+            </button>
+          </div>
+
+          <div *ngIf="healthProfileLoading" class="wellness-loading">
+            <div class="spinner"></div><p>Loading wellness data from Health Prevention Service...</p>
+          </div>
+
+          <div *ngIf="healthProfileError && !healthProfileLoading" class="wellness-error">
+            <div class="wellness-error-icon">⚠️</div>
+            <div>
+              <strong>Health Prevention service unavailable</strong>
+              <p>{{ healthProfileError }}</p>
+              <button class="btn-create-profile" (click)="createHealthProfile()">➕ Create Wellness Profile</button>
+            </div>
+          </div>
+
+          <div *ngIf="healthProfile && !healthProfileLoading" class="wellness-content">
+
+            <!-- Risk reduction score -->
+            <div class="wellness-score-card">
+              <div class="ws-score-left">
+                <div class="ws-score-val" [style.color]="getWellnessScoreColor()">
+                  {{ healthProfile.overallWellnessScore || '--' }}
+                </div>
+                <div class="ws-score-lbl">Wellness Score</div>
+                <div class="ws-score-sub">out of 100</div>
+              </div>
+              <div class="ws-score-right">
+                <div class="ws-bar-item" *ngFor="let item of wellnessBars; trackBy: trackByIndex">
+                  <span class="ws-bar-lbl">{{ item.label }}</span>
+                  <div class="ws-bar-track">
+                    <div class="ws-bar-fill" [style.width]="item.pct + '%'" [style.background]="item.color"></div>
+                  </div>
+                  <span class="ws-bar-val">{{ item.val }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Lifestyle Grid -->
+            <div class="wellness-grid">
+              <div class="wellness-card" [ngClass]="getActivityClass(healthProfile.physicalActivityLevel)">
+                <div class="wc-icon">🏃</div>
+                <div class="wc-info">
+                  <div class="wc-label">Physical Activity</div>
+                  <div class="wc-val">{{ healthProfile.physicalActivityLevel || 'Not Set' }}</div>
+                  <div class="wc-hint" [ngClass]="getActivityClass(healthProfile.physicalActivityLevel)">
+                    {{ getActivityInsight(healthProfile.physicalActivityLevel) }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="wellness-card" [ngClass]="getSleepClass(healthProfile.sleepHoursPerNight)">
+                <div class="wc-icon">😴</div>
+                <div class="wc-info">
+                  <div class="wc-label">Sleep Duration</div>
+                  <div class="wc-val">{{ healthProfile.sleepHoursPerNight ? healthProfile.sleepHoursPerNight + ' hrs/night' : 'Not Set' }}</div>
+                  <div class="wc-hint">{{ getSleepInsight(healthProfile.sleepHoursPerNight) }}</div>
+                </div>
+              </div>
+
+              <div class="wellness-card" [ngClass]="getDietClass(healthProfile.dietQuality)">
+                <div class="wc-icon">🥗</div>
+                <div class="wc-info">
+                  <div class="wc-label">Diet Quality</div>
+                  <div class="wc-val">{{ healthProfile.dietQuality || 'Not Set' }}</div>
+                  <div class="wc-hint">{{ getDietInsight(healthProfile.dietQuality) }}</div>
+                </div>
+              </div>
+
+              <div class="wellness-card" [ngClass]="getStressClass(healthProfile.stressLevel)">
+                <div class="wc-icon">🧘</div>
+                <div class="wc-info">
+                  <div class="wc-label">Stress Level</div>
+                  <div class="wc-val">{{ healthProfile.stressLevel || 'Not Set' }}</div>
+                  <div class="wc-hint">{{ getStressInsight(healthProfile.stressLevel) }}</div>
+                </div>
+              </div>
+
+              <div class="wellness-card" [ngClass]="healthProfile.smokingStatus ? 'card-bad' : 'card-good'">
+                <div class="wc-icon">🚬</div>
+                <div class="wc-info">
+                  <div class="wc-label">Smoking Status</div>
+                  <div class="wc-val">{{ healthProfile.smokingStatus ? '🔴 Smoker' : '✅ Non-smoker' }}</div>
+                  <div class="wc-hint">{{ healthProfile.smokingStatus ? 'Smoking increases dementia risk ~80%' : 'Non-smoking is strongly protective' }}</div>
+                </div>
+              </div>
+
+              <div class="wellness-card">
+                <div class="wc-icon">🤝</div>
+                <div class="wc-info">
+                  <div class="wc-label">Social Engagement</div>
+                  <div class="wc-val">{{ healthProfile.socialEngagementLevel || 'Not Set' }}</div>
+                  <div class="wc-hint">Social connection is neuroprotective</div>
+                </div>
+              </div>
+
+              <div class="wellness-card">
+                <div class="wc-icon">🍷</div>
+                <div class="wc-info">
+                  <div class="wc-label">Alcohol Consumption</div>
+                  <div class="wc-val">{{ healthProfile.alcoholConsumption || 'None' }}</div>
+                  <div class="wc-hint">{{ healthProfile.alcoholConsumption === 'HEAVY' ? '⚠️ Heavy alcohol is neurotoxic' : 'Low-moderate levels' }}</div>
+                </div>
+              </div>
+
+              <div class="wellness-card" [ngClass]="getCogTrainingClass(healthProfile.cognitiveTrainingFrequency)">
+                <div class="wc-icon">🧩</div>
+                <div class="wc-info">
+                  <div class="wc-label">Cognitive Training</div>
+                  <div class="wc-val">{{ healthProfile.cognitiveTrainingFrequency || 'Not Set' }}</div>
+                  <div class="wc-hint">Mental stimulation builds cognitive reserve</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recommendations from health service -->
+            <div *ngIf="healthProfile.recommendations?.length" class="wellness-recs">
+              <h4>💡 Personalized Wellness Recommendations</h4>
+              <div class="wellness-rec-list">
+                <div *ngFor="let rec of healthProfile.recommendations; trackBy: trackByRecordId" class="wellness-rec-item"
+                     [ngClass]="'rec-' + rec.priority?.toLowerCase()">
+                  <div class="rec-priority">{{ rec.priority }}</div>
+                  <div class="rec-body">
+                    <div class="rec-title">{{ rec.recommendationType }}</div>
+                    <p class="rec-desc">{{ rec.description }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="wellness-link-note">
+              <span>🔗 Full wellness management available in the</span>
+              <a routerLink="/health-prevention" class="hp-link">Health Prevention module →</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: STATS -->
+        <div *ngIf="activeTab === 'stats'" class="tab-pane">
+          <!-- Charts Section -->
+          <app-medical-charts [medicalRecordId]="selectedRecord.id"></app-medical-charts>
+          
+          <!-- Stats Grid -->
+          <div class="stats-grid" style="margin-top: 30px;">
+            <div class="stat-card"><div class="stat-icon">⚠️</div><div class="stat-info"><div class="stat-big">{{ selectedRecord.riskScore | number:'1.0-1' }}</div><div class="stat-title">Risk Score</div><div class="stat-sub" [ngClass]="getRiskClass(selectedRecord.riskLevel)">{{ selectedRecord.riskLevel }}</div></div></div>
+            <div class="stat-card"><div class="stat-icon">🕐</div><div class="stat-info"><div class="stat-big">{{ patientTimeline.length }}</div><div class="stat-title">Timeline Events</div><div class="stat-sub">Total history</div></div></div>
+            <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-info"><div class="stat-big">{{ patientActions.length }}</div><div class="stat-title">Prevention Actions</div><div class="stat-sub">{{ getCompletedCount() }} completed</div></div></div>
+            <div class="stat-card"><div class="stat-icon">💡</div><div class="stat-info"><div class="stat-big">{{ selectedRecord.recommendations?.length || 0 }}</div><div class="stat-title">Recommendations</div><div class="stat-sub">Personalized</div></div></div>
+          </div>
+          <div class="recs-summary" *ngIf="selectedRecord.recommendations?.length">
+            <h4>💡 Active Recommendations</h4>
+            <div class="recs-chips"><span *ngFor="let rec of selectedRecord.recommendations; trackBy: trackByIndex" class="rec-chip">{{ rec }}</span></div>
+          </div>
+        </div>
+
+        <!-- TAB: RISK SCORE HISTORY -->
+        <div *ngIf="activeTab === 'riskHistory'" class="tab-pane">
+          <div class="rh-header">
+            <div>
+              <h4>📈 Risk Score History</h4>
+              <p class="rh-subtitle">Chronological snapshot of every risk recalculation — trend shows patient progression</p>
+            </div>
+            <div class="rh-stats" *ngIf="riskScoreHistory.length > 0">
+              <div class="rh-stat">
+                <span class="rh-stat-val" [ngClass]="getRiskClass(riskScoreHistory[0].riskLevel)">
+                  {{ riskScoreHistory[0].score | number:'1.0-1' }}
+                </span>
+                <span class="rh-stat-lbl">Latest</span>
+              </div>
+              <div class="rh-stat">
+                <span class="rh-stat-val">{{ riskScoreHistory.length }}</span>
+                <span class="rh-stat-lbl">Snapshots</span>
+              </div>
+              <div class="rh-stat" *ngIf="riskScoreHistory.length > 1">
+                <span class="rh-stat-val" [class.trend-up]="riskScoreHistory[0].score > riskScoreHistory[riskScoreHistory.length-1].score"
+                                          [class.trend-down]="riskScoreHistory[0].score < riskScoreHistory[riskScoreHistory.length-1].score">
+                  {{ riskScoreHistory[0].score > riskScoreHistory[riskScoreHistory.length-1].score ? '▲' : '▼' }}
+                  {{ (riskScoreHistory[0].score - riskScoreHistory[riskScoreHistory.length-1].score | number:'1.0-1') }}
+                </span>
+                <span class="rh-stat-lbl">Change</span>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="riskHistoryLoading" class="loading-mini">Loading history…</div>
+
+          <div *ngIf="!riskHistoryLoading && riskScoreHistory.length === 0" class="empty-state-mini">
+            <div style="font-size:32px;margin-bottom:10px">📊</div>
+            <strong>No history yet</strong><br>
+            History snapshots are recorded automatically on every risk score recalculation —
+            triggered by editing the record, adding risk factors, updating the family tree, or saving a wellness profile.
+          </div>
+
+          <div *ngIf="!riskHistoryLoading && riskScoreHistory.length > 0">
+
+            <!-- ── SVG Trend Line Chart ─────────────────────────────────────── -->
+            <div class="rh-chart-wrap">
+              <div class="rh-chart-title">Risk Score Trend</div>
+              <svg class="rh-svg" viewBox="0 0 600 160" preserveAspectRatio="none">
+                <!-- Zone bands -->
+                <rect x="0" y="0"   width="600" height="32"  fill="rgba(239,68,68,0.06)"/>
+                <rect x="0" y="32"  width="600" height="40"  fill="rgba(249,115,22,0.05)"/>
+                <rect x="0" y="72"  width="600" height="36"  fill="rgba(234,179,8,0.05)"/>
+                <rect x="0" y="108" width="600" height="52"  fill="rgba(16,185,129,0.04)"/>
+                <!-- Zone labels -->
+                <text x="4" y="12"  font-size="8" fill="rgba(239,68,68,0.5)">CRITICAL 70-99</text>
+                <text x="4" y="48"  font-size="8" fill="rgba(249,115,22,0.5)">HIGH 45-69</text>
+                <text x="4" y="82"  font-size="8" fill="rgba(234,179,8,0.5)">MEDIUM 20-44</text>
+                <text x="4" y="130" font-size="8" fill="rgba(16,185,129,0.5)">LOW 0-19</text>
+                <!-- Grid lines -->
+                <line x1="0" y1="32"  x2="600" y2="32"  stroke="rgba(100,116,139,0.12)" stroke-width="1"/>
+                <line x1="0" y1="72"  x2="600" y2="72"  stroke="rgba(100,116,139,0.12)" stroke-width="1"/>
+                <line x1="0" y1="108" x2="600" y2="108" stroke="rgba(100,116,139,0.12)" stroke-width="1"/>
+                <!-- Trend line (rendered via template helper) -->
+                <polyline *ngIf="getChartPoints(riskScoreHistory).length > 1"
+                  [attr.points]="getChartPoints(riskScoreHistory)"
+                  fill="none" stroke="#00e5ff" stroke-width="2.5"
+                  stroke-linejoin="round" stroke-linecap="round"
+                  opacity="0.85"/>
+                <!-- Area fill under curve -->
+                <polygon *ngIf="getChartPoints(riskScoreHistory).length > 1"
+                  [attr.points]="getChartArea(riskScoreHistory)"
+                  fill="url(#areaGrad)" opacity="0.18"/>
+                <defs>
+                  <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%"   stop-color="#00e5ff" stop-opacity="0.8"/>
+                    <stop offset="100%" stop-color="#00e5ff" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <!-- Data point dots -->
+                <ng-container *ngFor="let pt of getChartDots(riskScoreHistory); trackBy: trackByIndex">
+                  <circle [attr.cx]="pt.x" [attr.cy]="pt.y" r="4"
+                    [attr.fill]="pt.color" stroke="#0f172a" stroke-width="1.5"/>
+                </ng-container>
+              </svg>
+              <!-- X-axis labels -->
+              <div class="rh-x-labels">
+                <span *ngFor="let h of getChartLabels(riskScoreHistory); trackBy: trackByIndex" class="rh-x-label">{{ h }}</span>
+              </div>
+            </div>
+
+            <!-- ── Horizontal bar timeline ─────────────────────────────────── -->
+            <div class="rh-bars">
+              <div class="rh-bar-row" *ngFor="let h of riskScoreHistory; let i = index; trackBy: trackByRecordId">
+                <div class="rh-bar-left">
+                  <span class="rh-bar-date">{{ formatDateTime(h.calculatedAt) }}</span>
+                  <span class="rh-bar-trigger">{{ formatTrigger(h.triggerReason) }}</span>
+                </div>
+                <div class="rh-bar-center">
+                  <div class="rh-bar-track">
+                    <div class="rh-bar-fill" [ngClass]="getRiskClass(h.riskLevel)"
+                         [style.width]="h.score + '%'"></div>
+                  </div>
+                </div>
+                <div class="rh-bar-right">
+                  <strong [ngClass]="getRiskClass(h.riskLevel)">{{ h.score | number:'1.0-1' }}</strong>
+                  <span class="rh-level-chip" [ngClass]="getRiskClass(h.riskLevel)">{{ h.riskLevel }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── Detail table ────────────────────────────────────────────── -->
+            <details class="rh-table-details">
+              <summary class="rh-table-summary">📋 Full data table ({{ riskScoreHistory.length }} rows)</summary>
+              <table class="history-table rh-detail-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Date & Time</th>
+                    <th>Score</th>
+                    <th>Level</th>
+                    <th>🧬 Hereditary</th>
+                    <th>🌿 Wellness Risk</th>
+                    <th>Trigger</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let h of riskScoreHistory; let i = index; trackBy: trackByRecordId">
+                    <td class="rh-idx">{{ riskScoreHistory.length - i }}</td>
+                    <td>{{ formatDateTime(h.calculatedAt) }}</td>
+                    <td><strong [ngClass]="getRiskClass(h.riskLevel)">{{ h.score | number:'1.0-1' }}</strong></td>
+                    <td><span class="badge" [ngClass]="getRiskClass(h.riskLevel)">{{ h.riskLevel }}</span></td>
+                    <td>{{ h.hereditaryContribution != null ? (h.hereditaryContribution | number:'1.0-1') : '—' }}</td>
+                    <td>{{ h.wellnessContribution != null ? (h.wellnessContribution | number:'1.0-1') : '—' }}</td>
+                    <td class="trigger-cell">{{ formatTrigger(h.triggerReason) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </details>
+
+          </div>
+        </div>
+      <!-- ══════ MEDICATIONS TAB      <!-- ══════ MEDICATIONS TAB ══════ -->
+      <div *ngIf="activeTab === 'medications'" class="tab-content">
+        <div class="tab-header-row">
+          <h3>💊 Medications</h3>
+          <button class="btn-add-mini" (click)="openMedicationForm()">＋ Add</button>
+        </div>
+        <div *ngIf="medicationsLoading" class="loading-mini">Loading...</div>
+
+        <div *ngIf="showMedicationForm" class="inline-form-card">
+          <h4>{{ editingMedication ? '✏️ Edit Medication' : '＋ Add Medication' }}</h4>
+          <div class="form-row">
+            <div class="form-group"><label>Name *</label><input type="text" [(ngModel)]="medFormData.name" placeholder="e.g. Donepezil"></div>
+            <div class="form-group"><label>Dosage</label><input type="text" [(ngModel)]="medFormData.dosage" placeholder="e.g. 10mg"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Frequency</label><input type="text" [(ngModel)]="medFormData.frequency" placeholder="e.g. Once daily"></div>
+            <div class="form-group"><label>Prescribed By</label><input type="text" [(ngModel)]="medFormData.prescribedBy" placeholder="Doctor name"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Start Date</label><input type="date" [(ngModel)]="medFormData.startDate"></div>
+            <div class="form-group"><label>End Date</label><input type="date" [(ngModel)]="medFormData.endDate"></div>
+          </div>
+          <div class="form-group"><label>Notes</label><textarea [(ngModel)]="medFormData.notes" rows="2" placeholder="Side effects, special instructions..."></textarea></div>
+          <div class="form-actions">
+            <button class="btn-cancel" type="button" (click)="closeMedicationForm()">Cancel</button>
+            <button class="btn-submit-small" type="button" (click)="submitMedication()">💾 Save</button>
+          </div>
+        </div>
+
+        <div *ngIf="!medicationsLoading && medications.length === 0 && !showMedicationForm" class="empty-mini">
+          <p>No medications recorded. Track current prescriptions and their cognitive impact.</p>
+        </div>
+        <div class="med-list">
+          <div *ngFor="let med of medications" class="med-card" [class.inactive]="!med.isActive">
+            <div class="med-card-header">
+              <span class="med-name">{{ med.name }}</span>
+              <span *ngIf="med.riskFlag && med.riskFlag !== 'NEUTRAL'" class="med-risk-flag" [ngClass]="getMedicationRiskClass(med.riskFlag)">{{ getMedicationRiskLabel(med.riskFlag) }}</span>
+              <span class="med-status">{{ med.isActive ? '✅ Active' : '⏹ Inactive' }}</span>
+            </div>
+            <div class="med-details">
+              <span *ngIf="med.dosage">💊 {{ med.dosage }}</span>
+              <span *ngIf="med.frequency">🔄 {{ med.frequency }}</span>
+              <span *ngIf="med.prescribedBy">👨‍⚕️ {{ med.prescribedBy }}</span>
+              <span *ngIf="med.startDate">📅 From {{ formatDate(med.startDate) }}</span>
+            </div>
+            <p *ngIf="med.notes" class="med-notes">{{ med.notes }}</p>
+            <div class="med-actions">
+              <button class="btn-edit-mini" (click)="openMedicationForm(med)">✏️ Edit</button>
+              <button class="btn-delete-mini" (click)="deleteMedication(med.id)">🗑️</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════ CARE NOTES TAB ══════ -->
+      <div *ngIf="activeTab === 'careNotes'" class="tab-content">
+        <div class="tab-header-row">
+          <h3>📋 Care Team Notes</h3>
+          <button class="btn-add-mini" (click)="openCareNoteForm()">＋ Add Note</button>
+        </div>
+        <div *ngIf="careNotesLoading" class="loading-mini">Loading...</div>
+
+        <div *ngIf="showCareNoteForm" class="inline-form-card">
+          <h4>{{ editingCareNote ? '✏️ Edit Note' : '＋ New Team Note' }}</h4>
+          <div class="form-row">
+            <div class="form-group"><label>Author Name *</label><input type="text" [(ngModel)]="noteFormData.authorName" placeholder="Your name"></div>
+            <div class="form-group">
+              <label>Role</label>
+              <select [(ngModel)]="noteFormData.authorRole">
+                <option value="">Select role...</option>
+                <option value="Neurologist">Neurologist</option>
+                <option value="General Practitioner">General Practitioner</option>
+                <option value="Nurse">Nurse</option>
+                <option value="Psychiatrist">Psychiatrist</option>
+                <option value="Social Worker">Social Worker</option>
+                <option value="Caregiver">Caregiver</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Type</label>
+              <select [(ngModel)]="noteFormData.noteType">
+                <option value="GENERAL">📝 General</option>
+                <option value="CLINICAL">🩺 Clinical</option>
+                <option value="OBSERVATION">👁️ Observation</option>
+                <option value="FOLLOW_UP">📅 Follow-up</option>
+                <option value="CONCERN">⚠️ Concern</option>
+              </select>
+            </div>
+            <div class="form-group" style="display:flex;align-items:center;gap:8px;padding-top:22px">
+              <input type="checkbox" [(ngModel)]="noteFormData.isPinned" id="pinNote">
+              <label for="pinNote" style="margin:0;cursor:pointer">📌 Pin this note</label>
+            </div>
+          </div>
+          <div class="form-group"><label>Note Content *</label><textarea [(ngModel)]="noteFormData.content" rows="4" placeholder="Clinical observations, follow-up plans, concerns..."></textarea></div>
+          <div class="form-actions">
+            <button class="btn-cancel" type="button" (click)="closeCareNoteForm()">Cancel</button>
+            <button class="btn-submit-small" type="button" (click)="submitCareNote()">💾 Save Note</button>
+          </div>
+        </div>
+
+        <div *ngIf="!careNotesLoading && careNotes.length === 0 && !showCareNoteForm" class="empty-mini">
+          <p>No team notes yet. Add clinical observations, follow-up plans, or concerns.</p>
+        </div>
+        <div class="care-notes-list">
+          <div *ngFor="let note of careNotes" class="care-note-card" [class.pinned]="note.isPinned">
+            <div class="note-card-header">
+              <span class="note-type-badge" [ngClass]="getNoteTypeClass(note.noteType)">{{ getNoteTypeIcon(note.noteType) }} {{ note.noteType }}</span>
+              <span class="note-pin" *ngIf="note.isPinned">📌</span>
+              <span class="note-date">{{ formatDateTime(note.createdAt) }}</span>
+            </div>
+            <p class="note-content">{{ note.content }}</p>
+            <div class="note-footer">
+              <span class="note-author">— {{ note.authorName }}<span *ngIf="note.authorRole">, {{ note.authorRole }}</span></span>
+              <div class="note-actions">
+                <button class="btn-pin-mini" (click)="togglePin(note.id)">{{ note.isPinned ? 'Unpin' : '📌 Pin' }}</button>
+                <button class="btn-edit-mini" (click)="openCareNoteForm(note)">✏️</button>
+                <button class="btn-delete-mini" (click)="deleteCareNote(note.id)">🗑️</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ═══ APPOINTMENTS TAB ═══ -->
+      <div *ngIf="activeTab === 'appointments'" class="tab-content">
+        <div class="tab-header-row">
+          <h3>📅 Medical Appointments</h3>
+          <button class="btn-add" (click)="openAppointmentForm()">+ Schedule Appointment</button>
+        </div>
+
+        <!-- Appointment Stats Bar -->
+        <div *ngIf="appointmentStats" class="stat-row-mini">
+          <div class="stat-chip blue">📅 {{appointmentStats.scheduled}} Scheduled</div>
+          <div class="stat-chip green">✅ {{appointmentStats.completed}} Completed</div>
+          <div class="stat-chip red">❌ {{appointmentStats.missed}} Missed</div>
+          <div class="stat-chip grey">🚫 {{appointmentStats.cancelled}} Cancelled</div>
+          <div class="stat-chip blue" *ngIf="appointmentStats.total > 0">
+            📊 {{appointmentStats.attendanceRate}}% Attendance
+          </div>
+        </div>
+
+        <div *ngIf="appointmentsLoading" class="loading-mini">Loading appointments…</div>
+
+        <div *ngIf="!appointmentsLoading && appointments.length === 0 && !showAppointmentForm" class="empty-mini">
+          <p>No appointments recorded. Schedule your first appointment to get automated reminders.</p>
+        </div>
+
+        <!-- Appointment Form -->
+        <div *ngIf="showAppointmentForm" class="inline-form-card">
+          <h4>{{editingAppointment ? 'Edit Appointment' : 'Schedule New Appointment'}}</h4>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Type *</label>
+              <select [(ngModel)]="apptFormData.appointmentType" class="form-control">
+                <option *ngFor="let t of appointmentTypes" [value]="t.value">{{t.label}}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Date & Time *</label>
+              <input type="datetime-local" [(ngModel)]="apptFormData.scheduledAt" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Doctor Name</label>
+              <input type="text" [(ngModel)]="apptFormData.doctorName" placeholder="Dr. Smith" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Specialty</label>
+              <input type="text" [(ngModel)]="apptFormData.specialty" placeholder="Neurology" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Location</label>
+              <input type="text" [(ngModel)]="apptFormData.location" placeholder="City Hospital, Room 204" class="form-control">
+            </div>
+            <div *ngIf="editingAppointment" class="form-group">
+              <label>Status</label>
+              <select [(ngModel)]="apptFormData.status" class="form-control">
+                <option value="SCHEDULED">Scheduled</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELLED">Cancelled</option>
+                <option value="MISSED">Missed</option>
+                <option value="RESCHEDULED">Rescheduled</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Notes</label>
+            <textarea [(ngModel)]="apptFormData.notes" rows="2" class="form-control" placeholder="Preparation instructions, questions to ask…"></textarea>
+          </div>
+          <div class="form-actions">
+            <button class="btn-primary" (click)="submitAppointment()">{{editingAppointment ? 'Update' : 'Schedule'}}</button>
+            <button class="btn-secondary" (click)="closeAppointmentForm()">Cancel</button>
+          </div>
+        </div>
+
+        <!-- Upcoming Appointments -->
+        <div *ngIf="getApptUpcoming().length > 0" class="section-group">
+          <h4 class="section-subheader">⏰ Upcoming</h4>
+          <div *ngFor="let appt of getApptUpcoming()" class="appt-card upcoming">
+            <div class="appt-type-badge" [style.color]="getApptStatusColor(appt.status)">
+              {{appt.appointmentType?.replace('_', ' ')}}
+            </div>
+            <div class="appt-main">
+              <div class="appt-date">📅 {{formatDateTime(appt.scheduledAt)}}</div>
+              <div *ngIf="appt.doctorName" class="appt-doctor">👨‍⚕️ {{appt.doctorName}}</div>
+              <div *ngIf="appt.location" class="appt-location">📍 {{appt.location}}</div>
+            </div>
+            <div class="appt-actions">
+              <button class="btn-sm green" (click)="completeAppointment(appt.id)">✅ Complete</button>
+              <button class="btn-sm" (click)="openAppointmentForm(appt)">✏️ Edit</button>
+              <button class="btn-sm grey" (click)="cancelAppointment(appt.id)">Cancel</button>
+              <button class="btn-sm red" (click)="deleteAppointment(appt.id)">🗑️</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Past Appointments -->
+        <div *ngIf="getApptCompleted().length > 0 || getApptMissed().length > 0" class="section-group">
+          <h4 class="section-subheader">📋 History</h4>
+          <div *ngFor="let appt of appointments" class="appt-card" [class.completed]="appt.status === 'COMPLETED'" [class.missed]="appt.status === 'MISSED'" [class.cancelled]="appt.status === 'CANCELLED'">
+            <div class="appt-status-dot" [style.background]="getApptStatusColor(appt.status)"></div>
+            <div class="appt-main">
+              <div class="appt-type">{{appt.appointmentType?.replace('_', ' ')}}</div>
+              <div class="appt-date">{{formatDateTime(appt.scheduledAt)}}</div>
+              <div *ngIf="appt.doctorName" class="appt-doctor">{{appt.doctorName}}</div>
+            </div>
+            <div class="appt-status-label" [style.color]="getApptStatusColor(appt.status)">
+              {{appt.status}}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ MEDICATION INTERACTIONS TAB ═══ -->
+      <div *ngIf="activeTab === 'interactions'" class="tab-content">
+        <div class="tab-header-row">
+          <h3>💊 Medication Interaction Analysis</h3>
+          <span class="badge-info">Based on active medications</span>
+        </div>
+
+        <div *ngIf="interactionsLoading" class="loading-mini">Analysing interactions…</div>
+
+        <!-- Summary Bar -->
+        <div *ngIf="interactionSummary && !interactionsLoading" class="interaction-summary-bar"
+             [class.risk-high]="interactionSummary.overallRisk === 'HIGH'"
+             [class.risk-medium]="interactionSummary.overallRisk === 'MEDIUM'"
+             [class.risk-none]="interactionSummary.overallRisk === 'NONE'">
+          <div class="summary-label">Overall Risk: <strong>{{interactionSummary.overallRisk}}</strong></div>
+          <div class="summary-chips">
+            <span class="chip red" *ngIf="interactionSummary.highAlerts > 0">🚨 {{interactionSummary.highAlerts}} High</span>
+            <span class="chip orange" *ngIf="interactionSummary.mediumAlerts > 0">⚠️ {{interactionSummary.mediumAlerts}} Medium</span>
+            <span class="chip yellow" *ngIf="interactionSummary.lowAlerts > 0">ℹ️ {{interactionSummary.lowAlerts}} Low</span>
+            <span class="chip green" *ngIf="interactionSummary.protective > 0">🛡️ {{interactionSummary.protective}} Protective</span>
+            <span class="chip blue" *ngIf="interactionSummary.interactions > 0">⚡ {{interactionSummary.interactions}} Drug Interactions</span>
+          </div>
+        </div>
+
+        <div *ngIf="!interactionsLoading && interactionAlerts.length === 0 && medications.length > 0" class="empty-mini green-empty">
+          <p>✅ No known cognitive interaction alerts found for current medications.</p>
+        </div>
+        <div *ngIf="!interactionsLoading && medications.length === 0" class="empty-mini">
+          <p>No medications recorded. Go to Medications tab to add prescriptions.</p>
+        </div>
+
+        <!-- Alert Cards -->
+        <div *ngFor="let alert of interactionAlerts" class="interaction-card"
+             [style.border-left-color]="getAlertBorderColor(alert.severity, alert.type)"
+             [style.background]="getAlertBgColor(alert.severity, alert.type)">
+          <div class="alert-header">
+            <span class="alert-icon">{{getAlertIcon(alert.type, alert.severity)}}</span>
+            <div class="alert-drugs">
+              <strong>{{alert.drug1}}</strong>
+              <span *ngIf="alert.drug2"> + <strong>{{alert.drug2}}</strong></span>
+            </div>
+            <span class="alert-type-badge" [class.protective]="alert.type === 'PROTECTIVE'"
+                  [class.interaction]="alert.type === 'INTERACTION'"
+                  [class.risk-flag]="alert.type === 'RISK_FLAG'">
+              {{alert.type === 'INTERACTION' ? '⚡ Interaction' : alert.type === 'PROTECTIVE' ? '🛡️ Protective' : '⚠️ Risk Flag'}}
+            </span>
+            <span class="severity-badge" [class.high]="alert.severity === 'HIGH'"
+                  [class.medium]="alert.severity === 'MEDIUM'"
+                  [class.low]="alert.severity === 'LOW'"
+                  [class.protective]="alert.type === 'PROTECTIVE'">
+              {{alert.severity}}
+            </span>
+          </div>
+          <p class="alert-message">{{alert.message}}</p>
+          <div class="alert-recommendation">
+            <strong>💡 Recommendation:</strong> {{alert.recommendation}}
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ RISK TREND TAB ═══ -->
+      <div *ngIf="activeTab === 'trend'" class="tab-content">
+        <div class="tab-header-row">
+          <h3>📉 Risk Score Trend & Projection</h3>
+        </div>
+
+        <div *ngIf="riskTrendLoading" class="loading-mini">Computing trend…</div>
+
+        <div *ngIf="riskTrend?.status === 'NO_DATA'" class="empty-mini">
+          <p>{{riskTrend?.message}}</p>
+        </div>
+
+        <!-- Trend Summary Cards -->
+        <div *ngIf="riskTrend && riskTrend.status !== 'NO_DATA' && !riskTrendLoading">
+          <div class="trend-summary-row">
+            <div class="trend-card">
+              <div class="trend-label">First Score</div>
+              <div class="trend-value">{{riskTrend.firstScore}}</div>
+              <div class="trend-date">{{riskTrend.firstDate | date:'mediumDate'}}</div>
+            </div>
+            <div class="trend-arrow" [style.color]="riskTrend.trendColor">{{riskTrend.trendLabel}}</div>
+            <div class="trend-card">
+              <div class="trend-label">Latest Score</div>
+              <div class="trend-value">{{riskTrend.latestScore}}</div>
+              <div class="trend-date">{{riskTrend.latestDate | date:'mediumDate'}}</div>
+            </div>
+            <div class="trend-card" [class.positive]="riskTrend.totalChange < 0" [class.negative]="riskTrend.totalChange > 0">
+              <div class="trend-label">Total Change</div>
+              <div class="trend-value">{{riskTrend.totalChange > 0 ? '+' : ''}}{{riskTrend.totalChange}}</div>
+              <div class="trend-sublabel">pts</div>
+            </div>
+            <div class="trend-card">
+              <div class="trend-label">Velocity</div>
+              <div class="trend-value">{{riskTrend.velocityPerMonth > 0 ? '+' : ''}}{{riskTrend.velocityPerMonth}}</div>
+              <div class="trend-sublabel">pts/month</div>
+            </div>
+          </div>
+
+          <!-- Trend Chart (SVG reuse) -->
+          <div class="chart-box" *ngIf="getTrendDataPoints().length >= 2">
+            <svg viewBox="0 0 600 180" class="trend-svg">
+              <!-- Grid lines -->
+              <line x1="30" y1="10"  x2="570" y2="10"  stroke="#e2e8f0" stroke-width="1"/>
+              <line x1="30" y1="50"  x2="570" y2="50"  stroke="#e2e8f0" stroke-width="1"/>
+              <line x1="30" y1="80"  x2="570" y2="80"  stroke="#e2e8f0" stroke-width="1"/>
+              <line x1="30" y1="110" x2="570" y2="110" stroke="#e2e8f0" stroke-width="1"/>
+              <line x1="30" y1="150" x2="570" y2="150" stroke="#e2e8f0" stroke-width="1"/>
+              <!-- Score labels -->
+              <text x="24" y="13"  text-anchor="end" font-size="9" fill="#94a3b8">99</text>
+              <text x="24" y="53"  text-anchor="end" font-size="9" fill="#94a3b8">70</text>
+              <text x="24" y="83"  text-anchor="end" font-size="9" fill="#94a3b8">45</text>
+              <text x="24" y="113" text-anchor="end" font-size="9" fill="#94a3b8">20</text>
+              <text x="24" y="153" text-anchor="end" font-size="9" fill="#94a3b8">0</text>
+              <!-- Area fill -->
+              <polygon [attr.points]="'30,150 ' + getTrendChartPoints(getTrendDataPoints()) + ' 570,150'"
+                       fill="#3b82f620"/>
+              <!-- Line -->
+              <polyline [attr.points]="getTrendChartPoints(getTrendDataPoints())"
+                        fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- Dots -->
+              <g *ngFor="let dot of getTrendDots(getTrendDataPoints())">
+                <circle [attr.cx]="dot.x" [attr.cy]="dot.y" r="5" [attr.fill]="dot.color" stroke="white" stroke-width="1.5"/>
+              </g>
+            </svg>
+          </div>
+
+          <!-- Projections -->
+          <div *ngIf="riskTrend.projections" class="projection-section">
+            <h4 class="section-subheader">🔮 Future Projections</h4>
+            <div class="confidence-note" *ngIf="riskTrend.projections.confidence">
+              Confidence: <strong>{{riskTrend.projections.confidence}}</strong> — {{riskTrend.projections.note}}
+            </div>
+            <div class="projection-grid">
+              <div *ngFor="let key of ['threeMonths','sixMonths','twelveMonths']"
+                   class="proj-card" [style.border-color]="getProjection(key)?.color">
+                <div class="proj-label">{{key === 'threeMonths' ? '3 Months' : key === 'sixMonths' ? '6 Months' : '12 Months'}}</div>
+                <div class="proj-score" [style.color]="getProjection(key)?.color">
+                  {{getProjection(key)?.score}}
+                </div>
+                <div class="proj-level" [style.color]="getProjection(key)?.color">
+                  {{getProjection(key)?.riskLevel}}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Risk Level Distribution -->
+          <div *ngIf="riskTrend.riskLevelHistory" class="risk-dist-row">
+            <h4 class="section-subheader">📊 Historical Risk Level Distribution</h4>
+            <div class="dist-chips">
+              <span class="dist-chip green">🟢 LOW: {{riskTrend.riskLevelHistory.LOW}}</span>
+              <span class="dist-chip yellow">🟡 MEDIUM: {{riskTrend.riskLevelHistory.MEDIUM}}</span>
+              <span class="dist-chip orange">🟠 HIGH: {{riskTrend.riskLevelHistory.HIGH}}</span>
+              <span class="dist-chip red">🔴 CRITICAL: {{riskTrend.riskLevelHistory.CRITICAL}}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- CREATE/EDIT FORM MODAL — COMPREHENSIVE CLINICAL INTAKE -->
+  <div *ngIf="showForm" class="modal-backdrop" (click)="closeForm()">
+    <div class="form-modal form-modal-xl" (click)="$event.stopPropagation()">
+      <button class="modal-close" (click)="closeForm()">✕</button>
+
+      <!-- Header -->
+      <div class="form-header">
+        <div class="form-header-icon">{{ isEditing ? '✏️' : '🩺' }}</div>
+        <div>
+          <h2>{{ isEditing ? 'Edit Patient Record' : 'New Clinical File' }}</h2>
+          <p>{{ isEditing ? 'Update patient clinical information' : 'Complete patient intake — all fields contribute to accurate Alzheimer\'s risk assessment' }}</p>
+        </div>
+      </div>
+
+      <form class="medical-form">
+
+        <!-- ── SECTION 1: Patient Demographics ── -->
+        <div class="form-section">
+          <div class="section-label">
+            <span class="section-num">01</span>
+            <h5>Patient Demographics</h5>
+            <span class="section-sub">Core identifiers and demographic risk factors</span>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Patient <span class="required">*</span></label>
+              <select [(ngModel)]="formData.userId" name="userId" [disabled]="isEditing">
+                <option [ngValue]="null" disabled>— Select a patient —</option>
+                <option *ngFor="let u of availableUsers" [ngValue]="u.id">{{ u.firstName }} {{ u.lastName }} ({{ u.email }})</option>
+              </select>
+              <small class="field-hint">Links record to patient account</small>
+              <!-- ⚠️ Duplicate user guard -->
+              <div class="duplicate-warning" *ngIf="userAlreadyHasRecord">
+                <span class="dup-icon">⛔</span>
+                <div class="dup-text">
+                  <strong>User already has a medical record.</strong><br>
+                  <span>Each patient can only have one active record. To update their information, close this form and click <em>Edit</em> on their existing record.</span>
+                  <button class="dup-view-btn" type="button" (click)="closeForm(); viewRecord(existingRecordForUser!)">View existing record →</button>
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Patient Age <span class="required">*</span>
+                <span class="risk-tag" *ngIf="formData.age && formData.age >= 65">⚠️ Age ≥ 65 — elevated risk tier</span>
+                <span class="risk-tag warn" *ngIf="formData.age && formData.age >= 75">🔴 Age ≥ 75 — high risk tier</span>
+              </label>
+              <input type="number" [(ngModel)]="formData.age" name="age" min="0" max="120" placeholder="Years">
+              <small class="field-hint">Age is primary Alzheimer's risk factor (adds up to 30 pts)</small>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Biological Sex <span class="required">*</span></label>
+              <select [(ngModel)]="formData.gender" name="gender">
+                <option value="">Select biological sex</option>
+                <option value="Female">Female — Women have ~2/3 of all Alzheimer's cases</option>
+                <option value="Male">Male</option>
+                <option value="Other">Other / Prefer not to say</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Highest Education Level
+                <span class="protect-tag">🛡️ Protective factor</span>
+              </label>
+              <select [(ngModel)]="formData.educationLevel" name="educationLevel">
+                <option value="">Select level</option>
+                <option value="No Formal Education">No Formal Education</option>
+                <option value="Primary School">Primary School (1–6 years)</option>
+                <option value="Middle School">Middle School (7–9 years)</option>
+                <option value="High School">High School Diploma / Baccalaureate</option>
+                <option value="Vocational Training">Vocational / Technical Training</option>
+                <option value="Some College">Some College (no degree)</option>
+                <option value="Bachelor Degree">Bachelor's Degree (Licence)</option>
+                <option value="Master Degree">Master's Degree</option>
+                <option value="Doctorate">Doctorate / PhD / MD</option>
+              </select>
+              <small class="field-hint">Higher education builds cognitive reserve; reduces risk (up to −10 pts)</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── SECTION 2: Family & Genetic History ── -->
+        <div class="form-section">
+          <div class="section-label">
+            <span class="section-num">02</span>
+            <h5>Family & Genetic History</h5>
+            <span class="section-sub">Hereditary factors — contribute up to 25 risk points</span>
+          </div>
+
+          <div class="form-group">
+            <label>First-Degree Family History of Alzheimer's / Dementia <span class="required">*</span></label>
+            <div class="radio-buttons">
+              <label class="radio-btn" [class.selected]="formData.familyHistory === 'Yes'">
+                <input type="radio" [(ngModel)]="formData.familyHistory" name="familyHistory" value="Yes">
+                <span>⚠️ Yes — Parent or sibling diagnosed</span>
+              </label>
+              <label class="radio-btn" [class.selected]="formData.familyHistory === 'No'">
+                <input type="radio" [(ngModel)]="formData.familyHistory" name="familyHistory" value="No">
+                <span>✓ No known family history</span>
+              </label>
+            </div>
+            <small class="field-hint">First-degree relative with Alzheimer's adds +25 pts. For extended family history, use the Family Tree module.</small>
+          </div>
+        </div>
+
+        <!-- ── SECTION 2b: APOE Genetic Testing ── -->
+        <div class="form-section">
+          <div class="section-label">
+            <span class="section-num">02b</span>
+            <h5>APOE Genetic Status</h5>
+            <span class="section-sub">Apolipoprotein E genotype — strongest known genetic risk factor for late-onset Alzheimer's</span>
+          </div>
+
+          <div class="form-group">
+            <label>APOE Genotype
+              <span class="protect-tag" *ngIf="formData.apoeStatus === 'E2_E2' || formData.apoeStatus === 'E2_E3'">🛡️ Protective</span>
+              <span class="risk-tag" *ngIf="formData.apoeStatus === 'E3_E4'">⚠️ +15 risk pts</span>
+              <span class="risk-tag warn" *ngIf="formData.apoeStatus === 'E4_E4'">🔴 +25 risk pts</span>
+            </label>
+            <select [(ngModel)]="formData.apoeStatus" name="apoeStatus">
+              <option *ngFor="let opt of apoeOptions" [value]="opt.value">{{ opt.label }}</option>
+            </select>
+            <small class="field-hint">E4 allele significantly increases Alzheimer's risk. E4/E4 carriers have ~8-12x higher lifetime risk. If genetic test not done, leave as "Not Tested".</small>
+            <!-- Visual APOE indicator -->
+            <div class="apoe-indicator" *ngIf="formData.apoeStatus && formData.apoeStatus !== 'NOT_TESTED'">
+              <div class="apoe-bar-track">
+                <div class="apoe-bar-fill"
+                     [style.width]="((getApoeRiskPoints(formData.apoeStatus) + 8) / 33 * 100) + '%'"
+                     [style.background]="getApoeColor(formData.apoeStatus)"></div>
+              </div>
+              <span class="apoe-pts-label" [style.color]="getApoeColor(formData.apoeStatus)">
+                {{ getApoeRiskPoints(formData.apoeStatus) > 0 ? '+' : '' }}{{ getApoeRiskPoints(formData.apoeStatus) }} pts to risk score
+              </span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Diagnosis Stage Override
+              <span class="field-optional">(optional — leave blank for auto-calculation)</span>
+            </label>
+            <select [(ngModel)]="formData.diagnosisStage" name="diagnosisStage">
+              <option *ngFor="let opt of stageOptions" [value]="opt.value">{{ opt.label }}</option>
+            </select>
+            <small class="field-hint">Stage is auto-suggested from risk score. Override only if clinical assessment differs from calculated stage.</small>
+          </div>
+        </div>
+
+        <!-- ── SECTION 3: Cognitive Symptoms ── -->
+        <div class="form-section">
+          <div class="section-label">
+            <span class="section-num">03</span>
+            <h5>Cognitive & Neurological Symptoms</h5>
+            <span class="section-sub">Current symptom presentation — each confirmed symptom adds to risk score</span>
+          </div>
+
+          <div class="form-group">
+            <label>Reported Symptoms</label>
+            <div class="symptom-checklist">
+              <div class="symptom-category">
+                <div class="symptom-cat-label">Memory & Cognition</div>
+                <div class="symptom-grid">
+                  <label *ngFor="let s of cognitiveSymptoms" class="symptom-chip" [class.checked]="isSymptomSelected(s)">
+                    <input type="checkbox" [checked]="isSymptomSelected(s)" (change)="toggleSymptom(s)">
+                    <span>{{ s }}</span>
+                  </label>
+                </div>
+              </div>
+              <div class="symptom-category">
+                <div class="symptom-cat-label">Behavioral & Functional</div>
+                <div class="symptom-grid">
+                  <label *ngFor="let s of behavioralSymptoms" class="symptom-chip" [class.checked]="isSymptomSelected(s)">
+                    <input type="checkbox" [checked]="isSymptomSelected(s)" (change)="toggleSymptom(s)">
+                    <span>{{ s }}</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <textarea [(ngModel)]="formData.currentSymptoms" name="currentSymptoms" rows="2"
+                      placeholder="Additional symptoms not listed above, onset date, progression notes..."></textarea>
+            <small class="field-hint">Each critical symptom detected adds +2 pts (max +20 pts from symptoms)</small>
+          </div>
+        </div>
+
+        <!-- ── SECTION 4: Clinical Assessment ── -->
+        <div class="form-section">
+          <div class="section-label">
+            <span class="section-num">04</span>
+            <h5>Clinical Assessment & Diagnosis</h5>
+            <span class="section-sub">Physician's clinical notes and diagnostic impressions</span>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Working Diagnosis / Differential</label>
+              <select [(ngModel)]="formData.riskFactors" name="riskFactors">
+                <option value="">Select initial impression...</option>
+                <option value="Normal Aging — monitoring">Normal Aging — routine monitoring</option>
+                <option value="Subjective Cognitive Decline (SCD)">Subjective Cognitive Decline (SCD) — patient-reported, tests normal</option>
+                <option value="Mild Cognitive Impairment (MCI) — amnestic">Mild Cognitive Impairment (MCI) — amnestic type</option>
+                <option value="Mild Cognitive Impairment (MCI) — non-amnestic">Mild Cognitive Impairment (MCI) — non-amnestic type</option>
+                <option value="Probable Alzheimer's Disease — mild">Probable Alzheimer's Disease — mild stage</option>
+                <option value="Probable Alzheimer's Disease — moderate">Probable Alzheimer's Disease — moderate stage</option>
+                <option value="Probable Alzheimer's Disease — severe">Probable Alzheimer's Disease — severe stage</option>
+                <option value="Vascular Dementia">Vascular Dementia</option>
+                <option value="Mixed Dementia (Alzheimer's + Vascular)">Mixed Dementia (Alzheimer's + Vascular)</option>
+                <option value="Lewy Body Dementia">Lewy Body Dementia</option>
+                <option value="Frontotemporal Dementia">Frontotemporal Dementia</option>
+                <option value="Undetermined — further assessment needed">Undetermined — further assessment required</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Detailed Diagnosis Notes & Clinical Observations</label>
+            <textarea [(ngModel)]="formData.diagnosisNotes" name="diagnosisNotes" rows="4"
+                      placeholder="Include: neuropsychological test results, imaging findings (MRI/PET), clinical staging, treatment plan, referrals, follow-up schedule, patient/caregiver concerns..."></textarea>
+          </div>
+        </div>
+
+        <!-- Auto-calc notice -->
+        <div class="calc-notice">
+          <div class="calc-notice-icon">🤖</div>
+          <div>
+            <strong>Automated Risk Score Calculation</strong>
+            <p>Risk score (0–100) is calculated automatically from: Age (30 pts) + Family History (25 pts) + APOE gene (up to ±25 pts) + Gender factor (5 pts) + Education protection (−10 pts) + Risk Factors (25 pts) + Symptoms (20 pts)</p>
+          </div>
+        </div>
+
+        <div *ngIf="error" class="form-error">⚠️ {{ error }}</div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-cancel" (click)="closeForm()">Cancel</button>
+          <button type="button" class="btn-submit" (click)="submitForm()" [disabled]="checkingUser">
+            <span *ngIf="!checkingUser">{{ isEditing ? '💾 Update Record' : '🩺 Create Clinical File' }}</span>
+            <span *ngIf="checkingUser">⏳ Verifying...</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

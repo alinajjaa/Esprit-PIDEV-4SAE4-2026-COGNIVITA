@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/monta/Downloads/Alzheimer-Detection-System/medication-adherence-service/src/main/java/com/alzheimer/medicationadherence/entity/**)",
+      "Read(//c/Users/monta/Downloads/Alzheimer-Detection-System/medication-adherence-service/src/main/java/com/alzheimer/medicationadherence/repository/**)"
+    ]
+  }
+}

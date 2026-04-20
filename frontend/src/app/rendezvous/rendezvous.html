@@ -1,0 +1,113 @@
+<!-- rendezvous.html -->
+<div class="rdv-page">
+  <!-- Toasts -->
+  <div class="toast-area" aria-live="polite" aria-atomic="true">
+    <div
+      class="toast"
+      *ngFor="let t of toasts"
+      [ngClass]="['toast-' + t.type, t.closing ? 'closing' : '']"
+    >
+      <div class="toast-icon">
+        <span *ngIf="t.type === 'success'">✅</span>
+        <span *ngIf="t.type === 'error'">❌</span>
+        <span *ngIf="t.type === 'info'">ℹ️</span>
+        <span *ngIf="t.type === 'warn'">⚠️</span>
+      </div>
+
+      <div class="toast-body">
+        <div class="toast-title">{{ t.title }}</div>
+        <div class="toast-msg">{{ t.message }}</div>
+
+        <div class="toast-progress" *ngIf="t.durationMs && t.durationMs > 0">
+          <div class="toast-bar" [style.animationDuration.ms]="t.durationMs"></div>
+        </div>
+      </div>
+
+      <button class="toast-close" (click)="dismissToast(t.id)" aria-label="Close">
+        ✕
+      </button>
+    </div>
+  </div>
+
+  <!-- Card -->
+  <div class="rdv-card">
+    <div class="rdv-head">
+      <h2>Réserver un rendez-vous</h2>
+      <p>Choisissez un médecin et une date entre <b>08:00</b> et <b>17:00</b>.</p>
+    </div>
+
+    <div class="field">
+      <label>Médecin</label>
+      <select [(ngModel)]="medecinId" (ngModelChange)="onMedecinChange($event)">
+        <option [ngValue]="null" disabled>-- Choisir un médecin --</option>
+        <option *ngFor="let m of medecinOptions" [ngValue]="m.id">
+          {{ m.nomMedecin }}
+        </option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Date & Heure</label>
+      <input type="datetime-local" [(ngModel)]="dateHeure" [min]="minDateTime" />
+      <div class="hint">Min: maintenant • Heures: 08:00 → 17:00</div>
+    </div>
+
+    <button class="btn-primary" (click)="reserver()" [disabled]="loading">
+      {{ loading ? 'Réservation...' : 'Réserver' }}
+    </button>
+
+    <!-- Calendar + Suggestions -->
+    <div class="calendar-card" *ngIf="showCalendar">
+      <div class="calendar-head">
+        <h3>Planning du médecin</h3>
+        <div class="hint">Cliquez sur un créneau libre (vert) pour remplir la date.</div>
+      </div>
+
+      <div class="calendar-layout">
+        <!-- calendar -->
+        <div class="calendar-main">
+          <div *ngIf="calendarLoading" class="calendar-loading">Chargement...</div>
+          <full-calendar *ngIf="!calendarLoading" [options]="calendarOptions"></full-calendar>
+        </div>
+
+        <!-- suggestions -->
+        <aside class="calendar-side">
+          <div class="side-head">
+            <h4>Prochains créneaux</h4>
+
+            <label class="urgent-toggle">
+              <input
+                type="checkbox"
+                [(ngModel)]="urgentMode"
+                (change)="onUrgentToggle()"
+              />
+              Urgent
+            </label>
+          </div>
+
+          <div *ngIf="suggestionsLoading" class="side-loading">Recherche...</div>
+
+          <div *ngIf="!suggestionsLoading && suggestions.length === 0" class="side-empty">
+            Aucun créneau disponible bientôt.
+          </div>
+
+          <button
+            class="slot-btn"
+            *ngFor="let s of suggestions"
+            (click)="selectSuggestedSlot(s)"
+            type="button"
+          >
+            <div class="slot-time">
+              {{ (s.start | date:'EEE dd/MM') }} • {{ (s.start | date:'HH:mm') }}
+            </div>
+            <div class="slot-sub">Durée 30 min</div>
+          </button>
+        </aside>
+      </div>
+    </div>
+
+    <div class="sub-actions">
+      <a class="link" routerLink="/rendezvousList">Voir mes rendez-vous →</a>
+    </div>
+  </div>
+</div>

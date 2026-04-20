@@ -1,0 +1,111 @@
+server:
+  port: 9090
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      default-filters:
+        # RETAIN_UNIQUE keeps one value if both headers are identical; RETAIN_FIRST if they differ
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin, RETAIN_FIRST
+      routes:
+
+        # ── User Service ──────────────────────────────────────────────────────
+        - id: user-service
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - StripPrefix=0
+
+        # ── Medical Records Service ───────────────────────────────────────────
+        - id: medical-records-service
+          uri: lb://medical-records-service
+          predicates:
+            - Path=/api/medical-records/**,/api/risk-factors/**,/api/prevention-actions/**,/api/timeline/**,/api/statistics/**,/api/medications/**,/api/care-notes/**,/api/appointments/**,/api/audit/**,/api/reports/**,/api/admin/**,/api/cnn/**
+          filters:
+            - StripPrefix=0
+
+        # ── Family Tree Service ───────────────────────────────────────────────
+        - id: family-tree-service
+          uri: lb://family-tree-service
+          predicates:
+            - Path=/api/family-tree/**
+          filters:
+            - StripPrefix=0
+
+        # ── MMSE Service ──────────────────────────────────────────────────────
+        - id: mmse-service
+          uri: lb://mmse-service
+          predicates:
+            - Path=/api/mmse/**
+          filters:
+            - StripPrefix=0
+
+        # ── Notification Service ──────────────────────────────────────────────
+        - id: notification-service
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - StripPrefix=0
+
+        # ── Medication Adherence Service ──────────────────────────────────────
+        - id: medication-adherence-service
+          uri: lb://medication-adherence-service
+          predicates:
+            - Path=/api/adherence/**
+          filters:
+            - StripPrefix=0
+
+        # ── Health Prevention Service ─────────────────────────────────────────
+        - id: health-prevention-service
+          uri: lb://health-prevention-service
+          predicates:
+            - Path=/api/health-prevention/**
+          filters:
+            - StripPrefix=0
+
+        # ── Activities Service (Cognitive Activities & Journal) ────────────────
+        - id: activities-service
+          uri: lb://activities-service
+          predicates:
+            - Path=/api/activities/**,/api/journal/**
+          filters:
+            - StripPrefix=0
+
+        # ── Rendez-vous Service (colleague) ───────────────────────────────────
+        - id: rendez-vous
+          uri: lb://rendez-vous
+          predicates:
+            - Path=/rdv/**
+          filters:
+            - StripPrefix=0
+
+        # ── Plan Suivi Service (colleague) ────────────────────────────────────
+        - id: planSuivi
+          uri: lb://plansuivi
+          predicates:
+            - Path=/plan-suivi/**
+          filters:
+            - StripPrefix=0
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://${EUREKA_HOST:localhost}:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+
+logging:
+  level:
+    org.springframework.cloud.gateway: WARN

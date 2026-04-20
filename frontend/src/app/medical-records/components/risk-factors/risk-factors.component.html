@@ -1,0 +1,307 @@
+<div class="rf-container">
+
+  <!-- Header Row -->
+  <div class="rf-header">
+    <div class="rf-header-left">
+      <h2 class="rf-title">⚠️ Risk Factor Profile</h2>
+      <p class="rf-subtitle">
+        Evidence-based Alzheimer's risk indicators — tracked and scored clinically
+      </p>
+    </div>
+    <button class="btn-add-rf" (click)="openAddForm()">＋ Add Risk Factor</button>
+  </div>
+
+  <!-- Stats Bar -->
+  <div class="rf-stats-bar">
+    <div class="rf-stat">
+      <span class="rf-stat-val">{{ stats.totalCount }}</span>
+      <span class="rf-stat-lbl">Total Factors</span>
+    </div>
+    <div class="rf-stat active-stat">
+      <span class="rf-stat-val">{{ stats.activeCount }}</span>
+      <span class="rf-stat-lbl">Active</span>
+    </div>
+    <div class="rf-stat critical-stat">
+      <span class="rf-stat-val">{{ stats.criticalCount }}</span>
+      <span class="rf-stat-lbl">Critical</span>
+    </div>
+    <div class="rf-stat high-stat">
+      <span class="rf-stat-val">{{ stats.highCount }}</span>
+      <span class="rf-stat-lbl">High Risk</span>
+    </div>
+    <div class="rf-stat score-stat">
+      <span class="rf-stat-val">+{{ totalRiskPoints }}</span>
+      <span class="rf-stat-lbl">Risk Pts (max 25)</span>
+    </div>
+  </div>
+
+  <!-- Filter Pills -->
+  <div class="filter-pills">
+    <button class="pill" [class.active]="activeFilter==='ALL'" (click)="activeFilter='ALL'">
+      All ({{ riskFactors.length }})
+    </button>
+    <button class="pill" [class.active]="activeFilter==='ACTIVE'" (click)="activeFilter='ACTIVE'">Active</button>
+    <button class="pill pill-critical" [class.active]="activeFilter==='CRITICAL'" (click)="activeFilter='CRITICAL'">🔴 Critical</button>
+    <button class="pill pill-high" [class.active]="activeFilter==='HIGH'" (click)="activeFilter='HIGH'">🟠 High</button>
+    <button class="pill pill-medium" [class.active]="activeFilter==='MEDIUM'" (click)="activeFilter='MEDIUM'">🟡 Medium</button>
+    <button class="pill pill-low" [class.active]="activeFilter==='LOW'" (click)="activeFilter='LOW'">🟢 Low</button>
+    <button class="pill" [class.active]="activeFilter==='INACTIVE'" (click)="activeFilter='INACTIVE'">Resolved</button>
+  </div>
+
+  <div *ngIf="error" class="rf-error">
+    ⚠️ {{ error }} <button (click)="error=null">×</button>
+  </div>
+
+  <div *ngIf="loading" class="rf-loading">
+    <div class="spinner"></div>
+    <p>Loading clinical data...</p>
+  </div>
+
+  <!-- Risk Factors Grid -->
+  <div *ngIf="!loading && filteredFactors.length > 0" class="rf-grid">
+    <div *ngFor="let rf of filteredFactors"
+         class="rf-card"
+         [class.inactive-card]="!rf.isActive"
+         [style.border-left-color]="getSevConfig(rf.severity).color">
+
+      <div class="rf-card-header">
+        <div class="rf-card-icon"
+             [style.background]="getCategoryColor(rf.factorType) + '22'"
+             [style.border-color]="getCategoryColor(rf.factorType) + '44'">
+          {{ getCategoryIcon(rf.factorType) }}
+        </div>
+
+        <div class="rf-card-info">
+          <div class="rf-card-type">{{ rf.factorType }}</div>
+
+          <div class="rf-card-sev-row">
+            <span class="sev-badge" [ngClass]="getSevConfig(rf.severity).cls">
+              {{ getSevConfig(rf.severity).icon }}
+              {{ getSevConfig(rf.severity).label }}
+            </span>
+
+            <span *ngIf="!rf.isActive" class="badge-resolved">✓ Resolved</span>
+            <span class="risk-pts-badge">+{{ getRiskPoints(rf) }} pts</span>
+          </div>
+        </div>
+
+        <div class="rf-card-actions">
+          <button class="icon-btn" (click)="openEditForm(rf)">✏️</button>
+          <button class="icon-btn"
+                  (click)="toggleActive(rf)">
+            {{ rf.isActive ? '✅' : '🔄' }}
+          </button>
+          <button class="icon-btn danger"
+                  (click)="deleteRiskFactor(rf.id!)">
+            🗑️
+          </button>
+        </div>
+      </div>
+
+      <div class="rf-card-body">
+        <div *ngIf="rf.notes" class="rf-notes">
+          <span *ngFor="let note of rf.notes.split(' | ')" class="note-chip">
+            {{ note }}
+          </span>
+        </div>
+
+        <div class="rf-meta">
+          <span *ngIf="rf.diagnosedDate">
+            📅 Diagnosed: {{ formatDate(rf.diagnosedDate) }}
+          </span>
+          <span>
+            🕒 Recorded: {{ formatDate(rf.createdAt!) }}
+          </span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div *ngIf="!loading && filteredFactors.length === 0 && !error" class="rf-empty">
+    <div class="empty-icon">🩺</div>
+    <h3>No risk factors recorded</h3>
+    <p>Add clinically significant risk factors to build an accurate Alzheimer's risk profile.</p>
+    <button class="btn-add-rf" (click)="openAddForm()">＋ Add First Risk Factor</button>
+  </div>
+
+</div>
+
+
+<!-- CATEGORY PICKER MODAL -->
+<div *ngIf="showCategoryPicker" class="modal-overlay" (click)="closeForm()">
+  <div class="modal-picker" (click)="$event.stopPropagation()">
+
+    <div class="modal-top">
+      <div>
+        <h2>Select Risk Factor</h2>
+        <p>Choose from evidence-based Alzheimer's risk indicators</p>
+      </div>
+      <button class="close-btn" (click)="closeForm()">×</button>
+    </div>
+
+    <div class="categories-list">
+      <div *ngFor="let cat of categories" class="cat-section">
+
+        <div class="cat-header" [style.border-color]="cat.color + '66'">
+          <span class="cat-icon" [style.background]="cat.color + '22'">
+            {{ cat.icon }}
+          </span>
+          <span class="cat-name">{{ cat.name }}</span>
+        </div>
+
+        <div class="cat-factors">
+          <button *ngFor="let def of cat.factors"
+                  class="factor-option"
+                  [class.already-added]="isFactorAlreadyAdded(def.type)"
+                  (click)="!isFactorAlreadyAdded(def.type) && selectFactor(cat, def)">
+
+            <div class="factor-opt-header">
+              <span class="factor-opt-label">{{ def.label }}</span>
+
+              <span class="sev-mini"
+                    [ngClass]="'sev-' + def.defaultSeverity.toLowerCase()">
+                {{ getSevConfig(def.defaultSeverity).icon }}
+              </span>
+
+              <span *ngIf="isFactorAlreadyAdded(def.type)"
+                    class="added-tag">
+                ✓ Added
+              </span>
+            </div>
+
+            <div class="factor-opt-desc">
+              {{ def.description }}
+            </div>
+
+            <div class="factor-opt-link">
+              🧠 {{ def.alzheimerLink }}
+            </div>
+
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     CLINICAL DETAIL / SAVE FORM MODAL
+     THIS WAS THE BUG — form was missing so nothing saved
+════════════════════════════════════════════════════════ -->
+<div *ngIf="showForm" class="modal-overlay" (click)="closeForm()">
+  <div class="modal-detail" (click)="$event.stopPropagation()">
+
+    <div class="modal-top">
+      <div>
+        <h2>{{ isEditing ? '✏️ Edit' : '＋ Add' }} Risk Factor</h2>
+        <p *ngIf="selectedFactorDef">{{ selectedFactorDef.label }}</p>
+      </div>
+      <button class="close-btn" (click)="closeForm()">×</button>
+    </div>
+
+    <!-- Factor info banner -->
+    <div *ngIf="selectedFactorDef" class="factor-banner"
+         [style.border-left-color]="selectedCategory?.color">
+      <div class="factor-banner-icon" [style.background]="(selectedCategory?.color || '#fff') + '22'">
+        {{ selectedCategory?.icon }}
+      </div>
+      <div>
+        <div class="factor-banner-name">{{ selectedFactorDef.label }}</div>
+        <div class="factor-banner-desc">{{ selectedFactorDef.description }}</div>
+        <div class="factor-banner-link">🧠 {{ selectedFactorDef.alzheimerLink }}</div>
+      </div>
+    </div>
+
+    <div class="detail-form-body">
+
+      <!-- Severity -->
+      <div class="df-group">
+        <label>Severity Level <span class="req-star">*</span></label>
+        <div class="sev-radios">
+          <label *ngFor="let s of severityLevels" class="sev-radio"
+                 [class.sev-sel-low]="formData.severity===s && s==='LOW'"
+                 [class.sev-sel-medium]="formData.severity===s && s==='MEDIUM'"
+                 [class.sev-sel-high]="formData.severity===s && s==='HIGH'"
+                 [class.sev-sel-critical]="formData.severity===s && s==='CRITICAL'">
+            <input type="radio" [value]="s" [(ngModel)]="formData.severity" name="rf_severity"/>
+            {{ getSevConfig(s).icon }} {{ getSevConfig(s).label }}
+          </label>
+        </div>
+      </div>
+
+      <!-- Status -->
+      <div class="df-group">
+        <label>Current Status</label>
+        <div class="status-radios">
+          <label class="status-radio" [class.status-active]="formData.isActive">
+            <input type="radio" [value]="true" [(ngModel)]="formData.isActive" name="rf_status"/>
+            🔴 Active (current)
+          </label>
+          <label class="status-radio" [class.status-resolved]="!formData.isActive">
+            <input type="radio" [value]="false" [(ngModel)]="formData.isActive" name="rf_status"/>
+            ✅ Resolved / Managed
+          </label>
+        </div>
+      </div>
+
+      <!-- Date Diagnosed -->
+      <div class="df-group">
+        <label>Date Diagnosed (optional)</label>
+        <input type="date" [(ngModel)]="formData.diagnosedDate" [max]="todayDate" class="df-input"/>
+      </div>
+
+      <!-- Control Status -->
+      <div class="df-group">
+        <label>Management Status</label>
+        <select [(ngModel)]="clinicalDetails.controlStatus" class="df-select">
+          <option value="">Select status...</option>
+          <option>Well controlled</option>
+          <option>Partially controlled</option>
+          <option>Poorly controlled</option>
+          <option>Under investigation</option>
+          <option>In remission</option>
+          <option>Monitoring only</option>
+        </select>
+      </div>
+
+      <!-- Medication -->
+      <div class="df-group">
+        <label class="df-checkbox-row">
+          <input type="checkbox" [(ngModel)]="clinicalDetails.onMedication"/>
+          Currently on medication for this condition
+        </label>
+        <input *ngIf="clinicalDetails.onMedication" type="text"
+               [(ngModel)]="clinicalDetails.medicationDetails"
+               placeholder="Medication name(s), dosage..." class="df-input" style="margin-top:8px"/>
+      </div>
+
+      <!-- Lab Value -->
+      <div class="df-group">
+        <label>Last Lab / Measurement (optional)</label>
+        <input type="text" [(ngModel)]="clinicalDetails.lastLabValue"
+               placeholder="e.g. BP: 145/92, HbA1c: 7.2%, BMI: 31" class="df-input"/>
+      </div>
+
+      <!-- Clinical Notes -->
+      <div class="df-group">
+        <label>Clinical Notes</label>
+        <textarea [(ngModel)]="formData.notes" rows="3" class="df-input df-textarea"
+                  placeholder="Onset details, comorbidities, clinical observations..."></textarea>
+      </div>
+
+    </div>
+
+    <div *ngIf="error" class="df-error">⚠️ {{ error }}</div>
+
+    <div class="modal-actions-row">
+      <button class="df-btn-cancel" (click)="closeForm()">Cancel</button>
+      <button class="df-btn-submit" (click)="submitForm()" [disabled]="!formData.factorType">
+        {{ isEditing ? '💾 Update Risk Factor' : '＋ Add to Risk Profile' }}
+      </button>
+    </div>
+
+  </div>
+</div>

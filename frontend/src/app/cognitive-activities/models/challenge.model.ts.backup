@@ -1,0 +1,39 @@
+// src/app/cognitive-activities/models/challenge.model.ts
+
+export interface DailyChallenge {
+  id: string;
+  date: string;
+  title: string;
+  description: string;
+  targetScore: number;
+  rewardPoints: number;
+  completed: boolean;
+  userScore?: number;
+  completedAt?: Date;
+  activityType?: 'MEMORY' | 'ATTENTION' | 'LOGIC' | 'RANDOM';
+}
+
+export interface UserStreak {
+  currentStreak: number;
+  longestStreak: number;
+  lastActivityDate: string;
+  totalChallengesCompleted: number;
+  totalPoints: number;
+  badges: string[];
+}
+
+export interface ChallengeResult {
+  challengeId: string;
+  completed: boolean;
+  score: number;
+  earnedPoints: number;
+  date: Date;
+}
+
+export interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  unlockedAt?: Date;
+}

@@ -1,0 +1,25 @@
+<div class="cognitive-module">
+  <!-- Header -->
+  <div class="module-header">
+    <h1>🧠 Activités Cognitives</h1>
+    <p>Entraînez votre mémoire, attention et logique</p>
+
+    <div class="nav-links">
+      <a routerLink="/activities" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">📋 Liste</a>
+      <a routerLink="/activities/new" routerLinkActive="active">➕ Nouvelle activité</a>
+    </div>
+  </div>
+
+  <!-- ✅ NOUVEAU : Section Défis et Séries (ajoutée) -->
+  <div class="challenge-streak-row">
+    <div class="challenge-column">
+      <app-daily-challenge></app-daily-challenge>
+    </div>
+    <div class="streak-column">
+      <app-streak-display></app-streak-display>
+    </div>
+  </div>
+
+  <!-- Les composants enfants s'affichent ici -->
+  <router-outlet></router-outlet>
+</div>

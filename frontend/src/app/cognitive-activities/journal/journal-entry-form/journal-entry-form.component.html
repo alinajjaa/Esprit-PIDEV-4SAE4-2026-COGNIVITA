@@ -1,0 +1,117 @@
+<!-- src/app/cognitive-activities/journal/journal-entry-form/journal-entry-form.component.html -->
+<div class="form-container">
+  <h2>{{ isEditMode ? '✏️ Modifier' : '➕ Nouvelle' }} entrée journal</h2>
+  <p class="subtitle">Enregistrez votre humeur et vos activités quotidiennes</p>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Chargement...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="error-message">
+    ⚠️ {{ error }}
+  </div>
+
+  <!-- Formulaire -->
+  <form (ngSubmit)="onSubmit()" #entryForm="ngForm" *ngIf="!loading" class="entry-form">
+
+    <!-- Date -->
+    <div class="form-group">
+      <label>Date</label>
+      <input
+        type="date"
+        [(ngModel)]="entry.date"
+        name="date"
+        required>
+    </div>
+
+    <!-- Humeur -->
+    <div class="form-group">
+      <label>Humeur</label>
+      <div class="rating-group">
+        <button type="button"
+                *ngFor="let i of [1,2,3,4,5]"
+                class="rating-btn"
+                [class.active]="entry.mood === i"
+                (click)="entry.mood = i">
+          {{ i }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Énergie -->
+    <div class="form-group">
+      <label>Énergie</label>
+      <div class="rating-group">
+        <button type="button"
+                *ngFor="let i of [1,2,3,4,5]"
+                class="rating-btn"
+                [class.active]="entry.energy === i"
+                (click)="entry.energy = i">
+          {{ i }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Stress -->
+    <div class="form-group">
+      <label>Stress</label>
+      <div class="rating-group">
+        <button type="button"
+                *ngFor="let i of [1,2,3,4,5]"
+                class="rating-btn"
+                [class.active]="entry.stress === i"
+                (click)="entry.stress = i">
+          {{ i }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Sommeil -->
+    <div class="form-group">
+      <label>Heures de sommeil</label>
+      <input
+        type="number"
+        [(ngModel)]="entry.sleepHours"
+        name="sleepHours"
+        min="0"
+        max="24"
+        step="0.5"
+        required>
+    </div>
+
+    <!-- Activités -->
+    <div class="form-group">
+      <label>Activités</label>
+      <div class="activities-grid">
+        <button type="button"
+                *ngFor="let activity of availableActivities"
+                class="activity-btn"
+                [class.selected]="entry.activities.includes(activity)"
+                (click)="toggleActivity(activity)">
+          {{ activity }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="form-group">
+      <label>Notes</label>
+      <textarea
+        [(ngModel)]="entry.notes"
+        name="notes"
+        rows="3"
+        placeholder="Comment s'est passée votre journée ?"></textarea>
+    </div>
+
+    <!-- Boutons -->
+    <div class="form-actions">
+      <button type="button" class="btn-cancel" (click)="cancel()">Annuler</button>
+      <button type="submit" class="btn-submit" [disabled]="!entryForm.valid">
+        {{ isEditMode ? 'Modifier' : 'Ajouter' }}
+      </button>
+    </div>
+  </form>
+</div>
