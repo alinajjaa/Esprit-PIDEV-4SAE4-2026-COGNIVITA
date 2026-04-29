@@ -1,0 +1,10 @@
+# face-auth-service dependencies
+# Install with: pip install -r requirements.txt
+# Python 3.11 required
+
+flask==3.1.3
+flask-cors==6.0.2
+mysql-connector-python==8.0.33
+numpy==2.4.4
+waitress==3.0.2
+python-dotenv==1.1.0

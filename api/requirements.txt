@@ -1,0 +1,15 @@
+# api/ — FastAPI Alzheimer MRI CNN prediction service
+# Install with: pip install -r requirements.txt
+# Python 3.10 or 3.11 recommended (TensorFlow compatibility)
+#
+# NOTE: tensorflow is a large package (~600 MB). On first install run:
+#   pip install -r requirements.txt
+# Ensure the model file exists at: ai-model/alzheimer_cnn_3class.h5
+
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+tensorflow==2.16.2
+numpy==1.26.4
+Pillow==11.2.1
+python-multipart==0.0.20
+python-dotenv==1.1.0

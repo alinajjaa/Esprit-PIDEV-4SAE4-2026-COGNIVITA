@@ -1,6 +1,7 @@
 package esprit.edu.userservice1.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.*;
@@ -11,7 +12,9 @@ import java.util.Map;
 @Service
 public class FaceAuthService {
 
-    private static final String PYTHON_URL = "http://127.0.0.1:5001/api/face";
+    @Value("${face.auth.url:http://127.0.0.1:5001}")
+    private String faceAuthBaseUrl;
+
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -27,7 +30,7 @@ public class FaceAuthService {
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
             ResponseEntity<Map> response = restTemplate.postForEntity(
-                    PYTHON_URL + "/register", entity, Map.class
+                    faceAuthBaseUrl + "/api/face/register", entity, Map.class
             );
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
@@ -53,7 +56,7 @@ public class FaceAuthService {
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
             ResponseEntity<Map> response = restTemplate.postForEntity(
-                    PYTHON_URL + "/verify", entity, Map.class
+                    faceAuthBaseUrl + "/api/face/verify", entity, Map.class
             );
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
@@ -71,7 +74,7 @@ public class FaceAuthService {
     public boolean isPythonServiceAlive() {
         try {
             ResponseEntity<Map> response = restTemplate.getForEntity(
-                    "http://127.0.0.1:5001/health", Map.class
+                    faceAuthBaseUrl + "/health", Map.class
             );
             return response.getStatusCode() == HttpStatus.OK;
         } catch (Exception e) {

@@ -3,38 +3,44 @@ version: '3.8'
 services:
   mysql:
     image: mysql:8.0
-    container_name: alzheimer_mysql
+    container_name: cognivita_mysql
     environment:
-      MYSQL_ROOT_PASSWORD: root123
-      MYSQL_DATABASE: alzheimer_db
-      MYSQL_USER: alzheimer_user
-      MYSQL_PASSWORD: alzheimer_pass
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-cognivita}
+      MYSQL_USER: ${MYSQL_USER:-cognivita_user}
+      MYSQL_PASSWORD: ${MYSQL_USER_PASSWORD:-cognivita_pass}
     ports:
       - "3306:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mysql-data:/var/lib/mysql
       - ./setup_database.sql:/docker-entrypoint-initdb.d/setup_database.sql
     networks:
-      - alzheimer_network
+      - cognivita_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   phpmyadmin:
     image: phpmyadmin:latest
-    container_name: alzheimer_phpmyadmin
+    container_name: cognivita_phpmyadmin
     environment:
       PMA_HOST: mysql
       PMA_USER: root
-      PMA_PASSWORD: root123
-      PMA_DATABASE: alzheimer_db
+      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      PMA_DATABASE: ${MYSQL_DATABASE:-cognivita}
     ports:
-      - "8888:80"
+      - "8889:80"
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     networks:
-      - alzheimer_network
+      - cognivita_network
 
 volumes:
-  mysql_data:
+  mysql-data:
 
 networks:
-  alzheimer_network:
+  cognivita_network:
     driver: bridge

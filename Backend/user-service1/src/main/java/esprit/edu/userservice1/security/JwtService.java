@@ -5,6 +5,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
@@ -13,7 +14,8 @@ import java.util.Date;
 @Service
 public class JwtService {
 
-    private final String SECRET = "dGhpc2lzYXZlcnlsb25nc2VjcmV0a2V5Rm9ySldUMTI=";
+    @Value("${jwt.secret}")
+    private String secretKey;
 
     // ← Existant — sans rôle (login normal)
     public String generateToken(String email) {
@@ -64,7 +66,7 @@ public class JwtService {
     }
 
     private Key getSignKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SECRET);
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }
