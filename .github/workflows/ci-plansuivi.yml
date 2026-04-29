@@ -1,0 +1,37 @@
+name: CI PlanSuivi
+
+on:
+  push:
+    paths:
+      - "planSuivi/planSuivi/**"
+      - ".github/workflows/ci-plansuivi.yml"
+      - ".github/workflows/cd-plansuivi.yml"
+  pull_request:
+    paths:
+      - "planSuivi/planSuivi/**"
+      - ".github/workflows/ci-plansuivi.yml"
+      - ".github/workflows/cd-plansuivi.yml"
+
+jobs:
+  test-plansuivi:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: planSuivi/planSuivi
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Unit tests
+        run: mvn -B test
+
+      - name: Package
+        run: mvn -B -DskipTests package

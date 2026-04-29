@@ -73,22 +73,22 @@ class RendezVousServiceTest {
         RendezVous rdv2 = new RendezVous();
         rdv2.setId(2L);
 
-        when(rendezVousRepository.findAll()).thenReturn(List.of(rdv1, rdv2));
+        when(rendezVousRepository.findAllEager()).thenReturn(List.of(rdv1, rdv2));
 
         List<RendezVous> result = rendezVousService.getAllRendezVous();
 
         assertEquals(2, result.size());
-        verify(rendezVousRepository).findAll();
+        verify(rendezVousRepository).findAllEager();
     }
 
     @Test
     void getAllRendezVous_whenEmpty_returnsEmptyList() {
-        when(rendezVousRepository.findAll()).thenReturn(List.of());
+        when(rendezVousRepository.findAllEager()).thenReturn(List.of());
 
         List<RendezVous> result = rendezVousService.getAllRendezVous();
 
         assertTrue(result.isEmpty());
-        verify(rendezVousRepository).findAll();
+        verify(rendezVousRepository).findAllEager();
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -110,9 +110,9 @@ class RendezVousServiceTest {
         rdv.setPatient(patient);
         rdv.setDateHeure(dateHeure);
 
-        when(rendezVousRepository.findByMedecinIdAndDateHeureBetween(anyLong(), any(), any()))
+        when(rendezVousRepository.findByMedecinIdAndDateHeureBetweenEager(anyLong(), any(), any()))
                 .thenReturn(List.of());
-        when(rendezVousRepository.findByPatientIdAndDateHeureBetween(anyLong(), any(), any()))
+        when(rendezVousRepository.findByPatientIdAndDateHeureBetweenEager(anyLong(), any(), any()))
                 .thenReturn(List.of());
         when(rendezVousRepository.save(rdv)).thenReturn(rdv);
 
@@ -186,7 +186,7 @@ class RendezVousServiceTest {
         RendezVous existing = new RendezVous();
         existing.setDateHeure(dateHeure); // exact same time → overlaps
 
-        when(rendezVousRepository.findByMedecinIdAndDateHeureBetween(anyLong(), any(), any()))
+        when(rendezVousRepository.findByMedecinIdAndDateHeureBetweenEager(anyLong(), any(), any()))
                 .thenReturn(List.of(existing));
 
         assertThrows(ResponseStatusException.class,
@@ -212,9 +212,9 @@ class RendezVousServiceTest {
         RendezVous existingForPatient = new RendezVous();
         existingForPatient.setDateHeure(dateHeure);
 
-        when(rendezVousRepository.findByMedecinIdAndDateHeureBetween(anyLong(), any(), any()))
+        when(rendezVousRepository.findByMedecinIdAndDateHeureBetweenEager(anyLong(), any(), any()))
                 .thenReturn(List.of());
-        when(rendezVousRepository.findByPatientIdAndDateHeureBetween(anyLong(), any(), any()))
+        when(rendezVousRepository.findByPatientIdAndDateHeureBetweenEager(anyLong(), any(), any()))
                 .thenReturn(List.of(existingForPatient));
 
         assertThrows(ResponseStatusException.class,
@@ -299,12 +299,12 @@ class RendezVousServiceTest {
         RendezVous rdv = new RendezVous();
         rdv.setId(1L);
 
-        when(rendezVousRepository.findByMedecinId(10L)).thenReturn(List.of(rdv));
+        when(rendezVousRepository.findByMedecinIdEager(10L)).thenReturn(List.of(rdv));
 
         List<RendezVous> result = rendezVousService.getRendezVousByMedecin(10L);
 
         assertEquals(1, result.size());
-        verify(rendezVousRepository).findByMedecinId(10L);
+        verify(rendezVousRepository).findByMedecinIdEager(10L);
     }
 
     @Test
@@ -312,12 +312,12 @@ class RendezVousServiceTest {
         RendezVous rdv = new RendezVous();
         rdv.setId(2L);
 
-        when(rendezVousRepository.findByPatientId(20L)).thenReturn(List.of(rdv));
+        when(rendezVousRepository.findByPatientIdEager(20L)).thenReturn(List.of(rdv));
 
         List<RendezVous> result = rendezVousService.getRendezVousByPatient(20L);
 
         assertEquals(1, result.size());
-        verify(rendezVousRepository).findByPatientId(20L);
+        verify(rendezVousRepository).findByPatientIdEager(20L);
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -444,7 +444,7 @@ class RendezVousServiceTest {
         rdv.setPatient(patient);
         rdv.setMedecin(medecin);
 
-        when(rendezVousRepository.findAll()).thenReturn(List.of(rdv));
+        when(rendezVousRepository.findAllEager()).thenReturn(List.of(rdv));
 
         List<RendezVousTableDto> result = rendezVousService.getAllTable();
 
@@ -454,7 +454,7 @@ class RendezVousServiceTest {
         assertEquals("PLANIFIE", dto.getStatus());
         assertEquals("Ali", dto.getPatientNom());
         assertEquals("Dr House", dto.getMedecinNom());
-        verify(rendezVousRepository).findAll();
+        verify(rendezVousRepository).findAllEager();
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -478,14 +478,14 @@ class RendezVousServiceTest {
         rdv.setPatient(patient);
         rdv.setMedecin(medecin);
 
-        when(rendezVousRepository.findByMedecinId(5L)).thenReturn(List.of(rdv));
+        when(rendezVousRepository.findByMedecinIdEager(5L)).thenReturn(List.of(rdv));
 
         List<RendezVousTableDto> result = rendezVousService.getRendezVousByMedecinTable(5L);
 
         assertEquals(1, result.size());
         assertEquals("CONFIRME", result.get(0).getStatus());
         assertEquals("Sara", result.get(0).getPatientNom());
-        verify(rendezVousRepository).findByMedecinId(5L);
+        verify(rendezVousRepository).findByMedecinIdEager(5L);
     }
 
     // ─────────────────────────────────────────────────────────────

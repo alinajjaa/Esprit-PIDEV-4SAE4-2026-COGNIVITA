@@ -1,0 +1,71 @@
+name: Backend CD (Microservices)
+
+on:
+  workflow_run:
+    workflows: ["Backend CI (Microservices)"]
+    types: [completed]
+
+jobs:
+  package-and-publish:
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - name: api-gateway
+            path: api-gateway
+          - name: activities-service
+            path: activities-service
+          - name: eureka-server
+            path: eureka-server
+          - name: family-tree-service
+            path: family-tree-service
+          - name: health-prevention-service
+            path: health-prevention-service
+          - name: medical-records-service
+            path: medical-records-service
+          - name: medication-adherence-service
+            path: medication-adherence-service
+          - name: mmse-service
+            path: mmse-service
+          - name: notification-service
+            path: notification-service
+          - name: user-service
+            path: user-service
+          - name: pi
+            path: pi/pi
+          - name: plan-suivi
+            path: planSuivi/planSuivi
+          - name: backend-monolith
+            path: Backend
+
+    defaults:
+      run:
+        working-directory: ${{ matrix.service.path }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Build deployable artifact
+        run: mvn -B -DskipTests package
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.service.name }}-jar
+          path: ${{ matrix.service.path }}/target/*.jar
+          if-no-files-found: warn

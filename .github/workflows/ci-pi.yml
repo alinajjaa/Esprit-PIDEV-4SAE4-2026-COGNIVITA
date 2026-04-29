@@ -1,0 +1,37 @@
+name: CI PI (RendezVous)
+
+on:
+  push:
+    paths:
+      - "pi/pi/**"
+      - ".github/workflows/ci-pi.yml"
+      - ".github/workflows/cd-pi.yml"
+  pull_request:
+    paths:
+      - "pi/pi/**"
+      - ".github/workflows/ci-pi.yml"
+      - ".github/workflows/cd-pi.yml"
+
+jobs:
+  test-pi:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pi/pi
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Unit tests
+        run: mvn -B test
+
+      - name: Package
+        run: mvn -B -DskipTests package
