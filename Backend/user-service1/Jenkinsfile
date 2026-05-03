@@ -131,10 +131,7 @@ pipeline {
         stage('🐳 Docker Build') {
         // ──────────────────────────────────────────────────────
             when {
-                anyOf {
-                    branch 'main'
-                    branch 'master'
-                }
+                branch 'User-Service'
             }
             steps {
                 echo '======================================================'
@@ -151,10 +148,7 @@ pipeline {
         stage('🚀 Déploiement') {
         // ──────────────────────────────────────────────────────
             when {
-                anyOf {
-                    branch 'main'
-                    branch 'master'
-                }
+                branch 'User-Service'
             }
             steps {
                 echo '======================================================'
