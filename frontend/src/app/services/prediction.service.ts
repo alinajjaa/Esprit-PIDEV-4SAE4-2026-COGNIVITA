@@ -1,12 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PredictionService {
-  private apiUrl = 'http://localhost:8000/predict';
+  private apiUrl = environment.predictionApiUrl + '/predict';
 
   constructor(private http: HttpClient) {}
 

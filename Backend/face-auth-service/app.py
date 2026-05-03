@@ -2,17 +2,29 @@ from flask import Flask
 from flask_cors import CORS
 from routes.register import register_bp
 from routes.verify import verify_bp
+import os
+from dotenv import load_dotenv
+
+# Charger les variables d'environnement depuis .env
+load_dotenv()
 
 app = Flask(__name__)
 
-# Autoriser les requêtes depuis Angular (localhost:4200)
+# Configuration depuis .env
+PORT = int(os.getenv("FLASK_PORT", 5001))
+HOST = os.getenv("FLASK_HOST", "0.0.0.0")
+DEBUG = os.getenv("FLASK_DEBUG", "False").lower() == "true"
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
+
+# CORS avec origines configurables (plus sécurisé que "*")
 CORS(app, resources={
     r"/*": {
-        "origins": "*",
+        "origins": CORS_ORIGINS,
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
     }
 })
+
 # Enregistrer les routes
 app.register_blueprint(register_bp, url_prefix='/api/face')
 app.register_blueprint(verify_bp, url_prefix='/api/face')
@@ -27,8 +39,8 @@ def health_check():
 
 if __name__ == '__main__':
     app.run(
-        host='0.0.0.0',
-        port=5001,
-        debug=False,        # ✅ désactiver
-        use_reloader=False  # ✅ désactiver
+        host=HOST,
+        port=PORT,
+        debug=DEBUG,
+        use_reloader=False
     )

@@ -1,0 +1,192 @@
+// ============================================================
+//  COGNIVITA – Pipeline CI/CD Backend (user-service1)
+//  Stages : Checkout → Compilation → Tests + JaCoCo →
+//           SonarQube → Quality Gate → Docker Build → Deploy
+// ============================================================
+
+pipeline {
+    agent any
+
+    tools {
+        maven 'Maven-3.9'
+        jdk   'JDK-17'
+    }
+
+    environment {
+        SONAR_HOST_URL = 'http://cognivita-sonarqube:9000'
+        SERVICE_NAME   = 'user-service1'
+        DOCKER_IMAGE   = 'cognivita/user-service1'
+        DOCKER_TAG     = "${BUILD_NUMBER}"
+    }
+
+    stages {
+
+        // ──────────────────────────────────────────────────────
+        stage('🔍 Checkout') {
+        // ──────────────────────────────────────────────────────
+            steps {
+                echo '======================================================'
+                echo '🔍  CHECKOUT – Récupération du code source'
+                echo '======================================================'
+                checkout scm
+                echo "✅ Code récupéré | Branche : ${env.BRANCH_NAME ?: 'N/A'} | Build #${BUILD_NUMBER}"
+            }
+        }
+
+        // ──────────────────────────────────────────────────────
+        stage('🔨 Compilation') {
+        // ──────────────────────────────────────────────────────
+            steps {
+                echo '======================================================'
+                echo '🔨  BUILD – Compilation Maven (clean compile)'
+                echo '======================================================'
+                dir('Backend/user-service1') {
+                    sh 'mvn clean compile -B'
+                }
+                echo '✅ Compilation réussie'
+            }
+        }
+
+        // ──────────────────────────────────────────────────────
+        stage('🧪 Tests Unitaires & Couverture JaCoCo') {
+        // ──────────────────────────────────────────────────────
+            steps {
+                echo '======================================================'
+                echo '🧪  TESTS – Exécution des 68 tests JUnit + JaCoCo'
+                echo '======================================================'
+                dir('Backend/user-service1') {
+                    // "verify" exécute : compile → test → jacoco:report (phase verify)
+                    sh 'mvn verify -B'
+                }
+                echo '✅ Tests terminés – publication des résultats en cours'
+            }
+            post {
+                always {
+                    // Publication des résultats JUnit dans le tableau de bord Jenkins
+                    junit(
+                        allowEmptyResults: true,
+                        testResults: '**/target/surefire-reports/TEST-*.xml'
+                    )
+                    // Publication du rapport de couverture JaCoCo
+                    jacoco(
+                        execPattern:   '**/target/jacoco.exec',
+                        classPattern:  '**/target/classes',
+                        sourcePattern: '**/src/main/java'
+                    )
+                    echo '📈 Rapports JUnit et JaCoCo publiés'
+                }
+                success {
+                    echo '✅ Tous les tests ont réussi !'
+                }
+                failure {
+                    echo '❌ Des tests ont échoué – consultez les résultats JUnit dans Jenkins'
+                }
+            }
+        }
+
+        // ──────────────────────────────────────────────────────
+        stage('📊 Analyse SonarQube') {
+        // ──────────────────────────────────────────────────────
+            steps {
+                echo '======================================================'
+                echo '📊  SONARQUBE – Analyse qualité du code Java'
+                echo '======================================================'
+                dir('Backend/user-service1') {
+                    withSonarQubeEnv('SonarQube') {
+                        sh """
+                            mvn sonar:sonar -B \\
+                                -Dsonar.projectKey=cognivita-backend-user-service1 \\
+                                -Dsonar.projectName='COGNIVITA - User Service' \\
+                                -Dsonar.projectVersion=1.0 \\
+                                -Dsonar.java.source=17 \\
+                                -Dsonar.sources=src/main/java \\
+                                -Dsonar.tests=src/test/java \\
+                                -Dsonar.java.binaries=target/classes \\
+                                -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml \\
+                                -Dsonar.sourceEncoding=UTF-8
+                        """
+                    }
+                }
+                echo '✅ Analyse envoyée à SonarQube'
+            }
+        }
+
+        // ──────────────────────────────────────────────────────
+        stage('🚦 Quality Gate') {
+        // ──────────────────────────────────────────────────────
+            steps {
+                echo '======================================================'
+                echo '🚦  QUALITY GATE – Vérification du seuil SonarQube'
+                echo '======================================================'
+                echo '⏳ Attente du webhook SonarQube (timeout : 5 min)...'
+                // abortPipeline=true : le pipeline s'arrête si le gate échoue
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+                echo '✅ Quality Gate validé – code conforme aux standards !'
+            }
+        }
+
+        // ──────────────────────────────────────────────────────
+        stage('🐳 Docker Build') {
+        // ──────────────────────────────────────────────────────
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'master'
+                }
+            }
+            steps {
+                echo '======================================================'
+                echo '🐳  DOCKER BUILD – Construction de l\'image Docker'
+                echo '======================================================'
+                dir('Backend/user-service1') {
+                    sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} -t ${DOCKER_IMAGE}:latest ."
+                }
+                echo "✅ Image construite : ${DOCKER_IMAGE}:${DOCKER_TAG}"
+            }
+        }
+
+        // ──────────────────────────────────────────────────────
+        stage('🚀 Déploiement') {
+        // ──────────────────────────────────────────────────────
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'master'
+                }
+            }
+            steps {
+                echo '======================================================'
+                echo '🚀  DEPLOY – Déploiement du user-service'
+                echo '======================================================'
+                sh 'docker-compose up -d --no-deps user-service'
+                echo '✅ Service user-service déployé avec succès !'
+            }
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────
+    post {
+    // ──────────────────────────────────────────────────────────
+        success {
+            echo '============================================================'
+            echo '✅  PIPELINE CI/CD BACKEND TERMINÉ AVEC SUCCÈS !'
+            echo "📦  Image Docker : ${DOCKER_IMAGE}:${DOCKER_TAG}"
+            echo '============================================================'
+        }
+        failure {
+            echo '============================================================'
+            echo '❌  PIPELINE BACKEND ÉCHOUÉ'
+            echo '    → Consultez les logs de l\'étape en rouge ci-dessus'
+            echo '============================================================'
+        }
+        unstable {
+            echo '⚠️  Pipeline instable – certains tests ont peut-être échoué'
+        }
+        always {
+            echo '🧹 Nettoyage du workspace...'
+            cleanWs()
+        }
+    }
+}

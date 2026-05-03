@@ -79,53 +79,70 @@ export class LoginComponent {
   // ══════════════════════════════════════════
   // ÉTAPE 1 — Credentials
   // ══════════════════════════════════════════
-  login(): void {
-    if (this.form.invalid) { this.form.markAllAsTouched(); this.triggerShake(); return; }
-
-    this.loading = true;
-    this.error = '';
-    this.isBlocked = false;
-    this.mark();
-
-    this.userService.login({
-      email: this.email.value,
-      password: this.password.value
-    }).subscribe({
-      next: (res: any) => {
-        this.loading = false;
-
-        if (res.step === 'face_required') {
-          // ✅ Spring Boot répond avec step: face_required → afficher face scan
-          this.pendingUserId = res.userId;
-          this.showFaceStep = true;
-          this.mark();
-          return;
-        }
-
-        if (res.twoFaRequired) {
-          this.pendingEmail = res.email;
-          this.showOtpStep = true;
-          this.mark();
-          return;
-        }
-
-        this.triggerSuccess();
-        localStorage.setItem('jwt_token', res.token);
-        setTimeout(() => {
-          this.router.navigate(res.role === 'ADMIN' ? ['/admin'] : ['/home']);
-        }, 600);
-      },
-      error: (err) => {
-        this.loading = false;
-        this.isBlocked = err.status === 403;
-        this.error = err?.error?.message ||
-          (this.isBlocked ? 'Your account has been blocked.' : 'Invalid credentials');
-        this.mark();
-        this.triggerShake();
-      }
-    });
+login(): void {
+  if (this.form.invalid) { 
+    this.form.markAllAsTouched(); 
+    this.triggerShake(); 
+    return; 
   }
 
+  this.loading = true;
+  this.error = '';
+  this.isBlocked = false;
+  this.mark();
+
+  this.userService.login({
+    email: this.email.value,
+    password: this.password.value
+  }).subscribe({
+    next: (res: any) => {
+      this.loading = false;
+
+      if (res.step === 'face_required') {
+        this.pendingUserId = res.userId;
+        this.showFaceStep = true;
+        this.mark();
+        return;
+      }
+
+      if (res.twoFaRequired) {
+        this.pendingEmail = res.email;
+        this.showOtpStep = true;
+        this.mark();
+        return;
+      }
+
+      this.triggerSuccess();
+      
+      // ✅ Stocker le token d'abord
+      localStorage.setItem('jwt_token', res.token);
+      
+      // ✅ Charger les infos de l'utilisateur
+      this.userService.loadCurrentUser().subscribe({
+        next: (user: any) => {
+          setTimeout(() => {
+            this.router.navigate(user.role === 'ADMIN' ? ['/admin'] : ['/home']);
+          }, 600);
+        },
+        error: (err: any) => {
+          console.error('Erreur récupération user:', err);
+          // Fallback : redirige quand même
+          setTimeout(() => {
+            this.router.navigate(res.role === 'ADMIN' ? ['/admin'] : ['/home']);
+          }, 600);
+        }
+      });
+    },
+    error: (err) => {
+      this.loading = false;
+      this.isBlocked = err.status === 403;
+      this.error = err?.error?.message ||
+        (this.isBlocked ? 'Your account has been blocked.' : 'Invalid credentials');
+      this.mark();
+      this.triggerShake();
+    }
+  });
+}
   // ══════════════════════════════════════════
   // ÉTAPE 2 — OTP (si 2FA activé)
   // ══════════════════════════════════════════
@@ -238,7 +255,7 @@ export class LoginComponent {
   }
 
 
-onEmotionDetected(emotion: string): void {
-  this.detectedEmotion = emotion; // ← juste stocker, pas appeler l'API
-}
+  onEmotionDetected(emotion: string): void {
+    this.detectedEmotion = emotion; // ← juste stocker, pas appeler l'API
+  }
 }

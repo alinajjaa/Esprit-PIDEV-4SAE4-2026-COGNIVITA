@@ -641,20 +641,20 @@ export class NavigationComponent implements OnInit {
   constructor(
     private router: Router,
     private userService: UserService // ✅ injected
-  ) {}
+  ) { }
 
-ngOnInit(): void {
-  this.userService.currentUser$.subscribe(user => {
-    this.currentUser = user;
-  });
-}
+  ngOnInit(): void {
+    this.userService.currentUser$.subscribe(user => {
+      this.currentUser = user;
+    });
+  }
 
-isAuthPage(): boolean {
-  return this.router.url.includes('login') ||
-    this.router.url.includes('register') ||
-    this.router.url.includes('forgot-password') ||
-    this.router.url.includes('reset-password');
-}
+  isAuthPage(): boolean {
+    return this.router.url.includes('login') ||
+      this.router.url.includes('register') ||
+      this.router.url.includes('forgot-password') ||
+      this.router.url.includes('reset-password');
+  }
 
   toggleMenu(): void {
     this.menuOpen = !this.menuOpen;
@@ -682,13 +682,12 @@ isAuthPage(): boolean {
     }
   }
 
-  logout(): void {
-    localStorage.removeItem('jwt_token');    // ✅ clear JWT
-    localStorage.removeItem('currentUser'); // ✅ clear user data
-    this.currentUser = null;
-    this.closeAll();
-    this.router.navigate(['/login']);        // ✅ redirect to login
-  }
+logout(): void {
+  this.userService.logout(); // ✅ Utilise la méthode du service
+  this.currentUser = null;
+  this.closeAll();
+  this.router.navigate(['/login']);
+}
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: Event): void {

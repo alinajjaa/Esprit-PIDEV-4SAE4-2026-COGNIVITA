@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: cognivita-jenkins
+    user: root
+    ports:
+      - "8082:8080"      # Interface Jenkins
+      - "50000:50000"    # Agents Jenkins
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock  # Docker dans Docker
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+    networks:
+      - cognivita-network
+
+volumes:
+  jenkins_home:
+
+networks:
+  cognivita-network:
+    external: true  # Utilise le réseau existant COGNIVITA

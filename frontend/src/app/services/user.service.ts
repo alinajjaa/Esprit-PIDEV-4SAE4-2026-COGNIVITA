@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, BehaviorSubject, map, of } from 'rxjs';
 import { catchError } from 'rxjs/operators'; // ← AJOUTER cette ligne
+import { environment } from '../../environments/environment';
 
 /* =========================
    USER INTERFACES
@@ -39,10 +40,9 @@ export interface AuthResponse {
 @Injectable({ providedIn: 'root' })
 export class UserService {
 
-  private baseUrl = 'http://localhost:8081/api/users';
+  private baseUrl = environment.apiUrl + '/api/users';
   private tokenKey = 'jwt_token';
-  private userKey = 'currentUser';
-
+private userKey = 'user';
   private currentUserSubject = new BehaviorSubject<User | null>(this.loadUserFromStorage());
   public currentUser$ = this.currentUserSubject.asObservable();
 

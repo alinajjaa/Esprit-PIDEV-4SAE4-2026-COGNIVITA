@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -15,8 +16,8 @@ interface ApiResponse<T> {
   providedIn: 'root'
 })
 export class AdminService {
-  private apiUrl = 'http://localhost:8080/api/admin';
-  private usersApiUrl = 'http://localhost:8080/api/users';
+  private apiUrl = environment.apiUrl + '/api/admin';
+  private usersApiUrl = environment.apiUrl + '/api/users';
 
   constructor(private http: HttpClient) {}
 
@@ -88,6 +89,6 @@ export class AdminService {
   }
 
   submitMMSETest(testData: any): Observable<any> {
-    return this.http.post<any>('http://localhost:8080/api/mmse/submit', testData);
+    return this.http.post<any>(environment.apiUrl + '/api/mmse/submit', testData);
   }
 }
