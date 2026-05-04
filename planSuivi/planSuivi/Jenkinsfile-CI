@@ -1,0 +1,136 @@
+pipeline {
+    agent any
+
+    tools {
+        jdk 'jdk17'
+        maven 'maven3'
+    }
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
+    triggers {
+        githubPush()
+    }
+
+    environment {
+        SERVICE_NAME      = 'plansuivi-service'
+        SERVICE_DIR       = 'planSuivi/planSuivi'
+        SONAR_PROJECT_KEY = 'plansuivi-service'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+                echo "✅ Code checked out for ${SERVICE_NAME}"
+            }
+        }
+
+        stage('Build') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    script {
+                        if (isUnix()) {
+                            sh 'mvn -B clean compile -DskipTests'
+                        } else {
+                            bat 'mvn -B clean compile -DskipTests'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    script {
+                        if (isUnix()) {
+                            sh 'mvn -B test'
+                        } else {
+                            bat 'mvn -B test'
+                        }
+                    }
+                }
+            }
+            post {
+                always {
+                    junit testResults: 'planSuivi/planSuivi/target/surefire-reports/*.xml',
+                          allowEmptyResults: true
+                    jacoco(
+                        execPattern: 'planSuivi/planSuivi/target/jacoco.exec',
+                        classPattern: 'planSuivi/planSuivi/target/classes',
+                        sourcePattern: 'planSuivi/planSuivi/src/main/java',
+                        exclusionPattern: 'planSuivi/planSuivi/src/test/**'
+                    )
+                }
+            }
+        }
+
+        stage('Code Quality - SonarQube') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    withSonarQubeEnv('SonarQube') {
+                        script {
+                            if (isUnix()) {
+                                sh """
+                                    mvn -B verify sonar:sonar \
+                                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                                        -Dsonar.projectName="${SERVICE_NAME}" \
+                                        -Dsonar.java.coveragePlugin=jacoco \
+                                        -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+                                """
+                            } else {
+                                bat """
+                                    mvn -B verify sonar:sonar ^
+                                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} ^
+                                        -Dsonar.projectName="${SERVICE_NAME}" ^
+                                        -Dsonar.java.coveragePlugin=jacoco ^
+                                        -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+                                """
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Trigger CD Pipeline') {
+            when {
+                expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
+            }
+            steps {
+                build job: 'plansuivi-service-CD',
+                      wait: false,
+                      parameters: [
+                          string(name: 'GIT_COMMIT_SHA', value: env.GIT_COMMIT ?: 'latest')
+                      ]
+                echo "🚀 CD pipeline triggered for ${SERVICE_NAME}"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ CI Pipeline SUCCESS for ${SERVICE_NAME}"
+        }
+        failure {
+            echo "❌ CI Pipeline FAILED for ${SERVICE_NAME} — check unit tests or SonarQube"
+        }
+        always {
+            cleanWs()
+        }
+    }
+}

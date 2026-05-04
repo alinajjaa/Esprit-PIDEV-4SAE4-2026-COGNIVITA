@@ -15,6 +15,9 @@ on:
 jobs:
   test-plansuivi:
     runs-on: ubuntu-latest
+    env:
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     defaults:
       run:
         working-directory: planSuivi/planSuivi
@@ -30,8 +33,18 @@ jobs:
           java-version: "17"
           cache: maven
 
-      - name: Unit tests
-        run: mvn -B test
+      - name: Unit tests + coverage report
+        run: mvn -B clean verify
 
       - name: Package
         run: mvn -B -DskipTests package
+
+      - name: SonarQube analysis (if secrets configured)
+        if: ${{ env.SONAR_HOST_URL != '' && env.SONAR_TOKEN != '' }}
+        run: >
+          mvn -B sonar:sonar
+          -Dsonar.projectKey=cognivita-plansuivi
+          -Dsonar.projectName=COGNIVITA-PlanSuivi
+          -Dsonar.host.url=${{ env.SONAR_HOST_URL }}
+          -Dsonar.token=${{ env.SONAR_TOKEN }}
+          -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml

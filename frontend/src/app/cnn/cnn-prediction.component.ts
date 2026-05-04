@@ -1,3 +1,4 @@
+import { CNN_PYTHON_ORIGIN, GATEWAY_ORIGIN } from '../core/api';
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -169,7 +170,7 @@ export class CNNPredictionComponent {
         console.error('Full Error:', JSON.stringify(err, null, 2));
 
         if (err.status === 0) {
-          this.error = '❌ Cannot reach server on port 8080. Ensure backend is running!';
+          this.error = `❌ Serveur inaccessible (vérifiez le proxy Angular → gateway ${GATEWAY_ORIGIN}).`;
         } else if (err.status === 405) {
           console.error('405 Method Not Allowed - trying Python backend as fallback');
           // Try Python backend as fallback
@@ -253,7 +254,7 @@ export class CNNPredictionComponent {
         this.loadingProgress = 0;
         this.loadingStage = '';
         console.error('❌ Python backend also failed:', err);
-        this.error = '❌ Both backends failed. Ensure at least one backend is running on port 8000 or 8080.';
+        this.error = `❌ Les deux backends ont échoué. Lancez au minimum le gateway (${GATEWAY_ORIGIN}) et/ou le serveur CNN Python (${CNN_PYTHON_ORIGIN}).`;
       }
     });
 

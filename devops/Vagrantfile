@@ -1,0 +1,54 @@
+# =============================================================================
+# Vagrantfile — COGNIVITA PIDEV Ubuntu VM
+# COPY this file to: C:\vagrant\ubuntu\Vagrantfile
+# =============================================================================
+
+Vagrant.configure("2") do |config|
+
+  # ----- Base box -----------------------------------------------------------
+  config.vm.box = "ubuntu/jammy64"   # Ubuntu 22.04 LTS
+
+  # ----- Network — port forwarding ------------------------------------------
+  # Jenkins
+  config.vm.network "forwarded_port", guest: 8080, host: 8080, host_ip: "127.0.0.1"
+  # Jenkins JNLP agents
+  config.vm.network "forwarded_port", guest: 50000, host: 50000, host_ip: "127.0.0.1"
+  # SonarQube
+  config.vm.network "forwarded_port", guest: 9000, host: 9000, host_ip: "127.0.0.1"
+  # Prometheus
+  config.vm.network "forwarded_port", guest: 9090, host: 9090, host_ip: "127.0.0.1"
+  # Grafana
+  config.vm.network "forwarded_port", guest: 3000, host: 3000, host_ip: "127.0.0.1"
+  # pi-rdv-service
+  config.vm.network "forwarded_port", guest: 8091, host: 8091, host_ip: "127.0.0.1"
+  # planSuivi-service
+  config.vm.network "forwarded_port", guest: 8092, host: 8092, host_ip: "127.0.0.1"
+  # Eureka
+  config.vm.network "forwarded_port", guest: 8761, host: 8761, host_ip: "127.0.0.1"
+
+  # ----- Provider: VirtualBox -----------------------------------------------
+  config.vm.provider "virtualbox" do |vb|
+    vb.name   = "cognivita-pidev"
+    vb.memory = 6144   # 6 GB — needed for Jenkins + k8s + SonarQube + services
+    vb.cpus   = 4
+    vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+    vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+  end
+
+  # ----- Shared folders -----------------------------------------------------
+  # Default: C:\vagrant\ubuntu mapped to /vagrant inside VM
+  config.vm.synced_folder ".", "/vagrant", type: "virtualbox"
+
+  # Project repo — adjust the Windows path if your project is elsewhere
+  config.vm.synced_folder \
+    "C:/xampp/htdocs/alzheimer/Esprit-PIDEV-4SAE4-2026-COGNIVITA", \
+    "/project", \
+    type: "virtualbox"
+
+  # ----- Provisioning: run setup-vm.sh on first boot ------------------------
+  config.vm.provision "shell", privileged: false, inline: <<-SHELL
+    chmod +x /project/devops/setup-vm.sh
+    bash /project/devops/setup-vm.sh
+  SHELL
+
+end

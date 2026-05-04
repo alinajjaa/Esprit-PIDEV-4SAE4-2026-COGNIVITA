@@ -1,28 +1,38 @@
 /**
- * Central API configuration — single source of truth for all microservice URLs.
+ * Ports backend (local, START_PROJECT.bat) — pour référence :
+ * - 8761  Eureka Server
+ * - 9090  API Gateway  ← tous les appels front passent ici pour les microservices
+ * - 8080  Backend monolith
+ * - 8081  Medical Records | 8082 Health Prevention | 8083 Family Tree
+ * - 8084  User | 8085 MMSE | 8086 Medication Adherence | 8087 Activities + Journal | 8088 Notification
+ * - 8091  Rendez-vous (π) — context /rdv
+ * - 8092  Plan Suivi — context /plan-suivi
+ * - 4200  Angular (npm start)
  *
- * All services go through the single API Gateway at localhost:9090.
- * Your services use the Angular proxy (/api → 9090).
- * RDV/Suivi services hit the gateway directly at localhost:9090.
+ * Modifie uniquement GATEWAY_ORIGIN ci-dessous si ton gateway tourne sur un autre port.
  */
+
+/** API Gateway Spring Cloud — changer ici uniquement pour tout le frontend */
+export const GATEWAY_ORIGIN = 'http://localhost:9090';
+
+/** Backend monolithe (CNN / routes non migrées si utilisées telles quelles) */
+export const BACKEND_ORIGIN = 'http://localhost:8080';
+
+/** Serveur CNN Python (optionnel — voir medical-records cnn config) */
+export const CNN_PYTHON_ORIGIN = 'http://localhost:8000';
+
 export const API = {
-  // ── Gateway (proxied via proxy.conf.json → 9090) ──────────────────────────
-  GATEWAY: '',           // empty = proxy-relative, e.g. /api/users/...
+  GATEWAY_ORIGIN,
 
-  // ── RDV Microservice ──────────────────────────────────────────────────────
-  RDV_BASE:    'http://localhost:9090/rdv',
-  RDV_API:     'http://localhost:9090/rdv/api/rendezvous',
-  MEDECIN_API: 'http://localhost:9090/rdv/api/medecins',
-  OPTIONS_API: 'http://localhost:9090/rdv/api/options',
-  PATIENTS_API:'http://localhost:9090/rdv/api/patients',
+  RDV_BASE: `${GATEWAY_ORIGIN}/rdv`,
+  RDV_API: `${GATEWAY_ORIGIN}/rdv/api/rendezvous`,
+  MEDECIN_API: `${GATEWAY_ORIGIN}/rdv/api/medecins`,
+  OPTIONS_API: `${GATEWAY_ORIGIN}/rdv/api/options`,
+  PATIENTS_API: `${GATEWAY_ORIGIN}/rdv/api/patients`,
 
-  // ── Suivi / Plan de suivi Microservice ────────────────────────────────────
-  SUIVI_API:   'http://localhost:9090/plan-suivi/api/suivi',
+  SUIVI_API: `${GATEWAY_ORIGIN}/plan-suivi/api/suivi`,
+  DOCTORS_API: `${GATEWAY_ORIGIN}/rdv/api/doctors`,
 
-  // ── Doctor Stats ──────────────────────────────────────────────────────────
-  DOCTORS_API: 'http://localhost:9090/rdv/api/doctors',
-
-  // ── Cognitive Activities & Journal (via Gateway) ──────────────────────────
-  ACTIVITIES_API: 'http://localhost:9090/api/activities',
-  JOURNAL_API:    'http://localhost:9090/api/journal',
+  ACTIVITIES_API: `${GATEWAY_ORIGIN}/api/activities`,
+  JOURNAL_API: `${GATEWAY_ORIGIN}/api/journal`,
 };

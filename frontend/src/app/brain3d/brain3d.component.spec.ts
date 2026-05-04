@@ -7,12 +7,13 @@ describe('Brain3dComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Brain3dComponent]
+      imports: [Brain3dComponent],
     }).compileComponents();
 
     fixture = TestBed.createComponent(Brain3dComponent);
+    fixture.componentRef.setInput('diagnosis', 'test');
     component = fixture.componentInstance;
-    fixture.detectChanges();
+    // Sans detectChanges() : WebGL/jeux trois.js ne fonctionnent pas dans jsdom
   });
 
   it('should create', () => {

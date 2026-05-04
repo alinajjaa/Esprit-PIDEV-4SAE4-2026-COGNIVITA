@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+images:
+  - name: lozzaaa/pi-rdv-service
+    newName: lozzaaa/pi-rdv-service
+    newTag: latest
+  - name: lozzaaa/plansuivi-service
+    newName: lozzaaa/plansuivi-service
+    newTag: latest

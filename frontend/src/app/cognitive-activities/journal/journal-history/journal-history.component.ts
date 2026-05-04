@@ -36,7 +36,7 @@ import { JournalEntry } from '../../models/journal-entry.model';
           <div class="entry-header">
             <span class="entry-date">{{ entry.date | date:'dd/MM/yyyy' }}</span>
             <span class="entry-mood">
-              {{ ['😢', '😞', '😐', '🙂', '😊'][entry.mood - 1] }} {{ entry.mood }}/5
+              {{ moodEmoji(entry.mood) }} {{ entry.mood }}/5
             </span>
           </div>
 
@@ -46,7 +46,7 @@ import { JournalEntry } from '../../models/journal-entry.model';
             <span class="stat">😴 {{ entry.sleepHours }}h</span>
           </div>
 
-          <div class="entry-activities" *ngIf="entry.activities?.length">
+          <div class="entry-activities" *ngIf="entry.activities.length">
             <span *ngFor="let activity of entry.activities" class="activity-tag">
               {{ activity }}
             </span>
@@ -55,8 +55,10 @@ import { JournalEntry } from '../../models/journal-entry.model';
           <p *ngIf="entry.notes" class="entry-notes">"{{ entry.notes }}"</p>
 
           <div class="entry-actions">
-            <a [routerLink]="['/journal', entry.id]" class="btn-view">Voir</a>
-            <a [routerLink]="['/journal/edit', entry.id]" class="btn-edit">Modifier</a>
+            <ng-container *ngIf="hasEntryId(entry)">
+              <a [routerLink]="['/journal', entry.id]" class="btn-view">Voir</a>
+              <a [routerLink]="['/journal/edit', entry.id]" class="btn-edit">Modifier</a>
+            </ng-container>
           </div>
         </div>
       </div>
@@ -208,6 +210,8 @@ import { JournalEntry } from '../../models/journal-entry.model';
   `]
 })
 export class JournalHistoryComponent implements OnInit {
+  private static readonly MOOD_EMOJIS = ['😢', '😞', '😐', '🙂', '😊'];
+
   entries: JournalEntry[] = [];
   loading = false;
   error = '';
@@ -218,19 +222,63 @@ export class JournalHistoryComponent implements OnInit {
     this.loadEntries();
   }
 
+  /** Safe display when API sends mood outside 1–5 or missing. */
+  moodEmoji(mood: number): string {
+    const m = Number.isFinite(mood) ? Math.min(5, Math.max(1, Math.floor(mood))) : 3;
+    return JournalHistoryComponent.MOOD_EMOJIS[m - 1] ?? '😐';
+  }
+
+  hasEntryId(entry: JournalEntry): boolean {
+    return entry.id !== undefined && entry.id !== null;
+  }
+
   loadEntries() {
     this.loading = true;
+    this.error = '';
     this.journalService.getAllEntries().subscribe({
       next: (data) => {
-        console.log('✅ Entrées chargées:', data);
-        this.entries = data;
+        const list = Array.isArray(data) ? data : [];
+        this.entries = list.map((e) => this.normalizeEntry(e));
         this.loading = false;
       },
-      error: (err) => {
-        console.error('❌ Erreur détaillée:', err);
+      error: () => {
         this.error = 'Erreur lors du chargement du journal';
         this.loading = false;
       }
     });
+  }
+
+  private normalizeEntry(raw: Partial<JournalEntry>): JournalEntry {
+    const date = this.parseEntryDate(raw.date);
+    return {
+      ...raw,
+      id: raw.id,
+      date,
+      mood: this.clampScore(raw.mood, 3),
+      energy: this.clampScore(raw.energy, 3),
+      stress: this.clampScore(raw.stress, 3),
+      sleepHours: typeof raw.sleepHours === 'number' && !Number.isNaN(raw.sleepHours) ? raw.sleepHours : Number(raw.sleepHours) || 0,
+      activities: Array.isArray(raw.activities) ? raw.activities : [],
+      notes: raw.notes ?? ''
+    };
+  }
+
+  private clampScore(v: unknown, fallback: number): number {
+    const n = typeof v === 'number' ? v : Number(v);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(5, Math.max(1, Math.round(n)));
+  }
+
+  /** Avoid Invalid Date breaking the template date pipe when the API sends bad or missing dates. */
+  private parseEntryDate(raw: unknown): Date {
+    let d: Date;
+    if (raw instanceof Date) {
+      d = raw;
+    } else if (typeof raw === 'string' || typeof raw === 'number') {
+      d = new Date(raw);
+    } else {
+      return new Date();
+    }
+    return Number.isNaN(d.getTime()) ? new Date() : d;
   }
 }

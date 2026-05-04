@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plansuivi
+  namespace: cognivita
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: plansuivi
+  template:
+    metadata:
+      labels:
+        app: plansuivi
+    spec:
+      containers:
+        - name: plansuivi
+          image: lozzaaa/plansuivi-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8092
+          env:
+            - name: SERVER_PORT
+              value: "8092"
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              valueFrom:
+                configMapKeyRef:
+                  name: cognivita-config
+                  key: EUREKA_DEFAULT_ZONE
+            - name: RDV_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: cognivita-config
+                  key: RDV_SERVICE_URL
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: cognivita-config
+                  key: SPRING_DATASOURCE_URL
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: SPRING_DATASOURCE_USERNAME
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: SPRING_DATASOURCE_PASSWORD
+          readinessProbe:
+            httpGet:
+              path: /plan-suivi/actuator/health
+              port: 8092
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /plan-suivi/actuator/health
+              port: 8092
+            initialDelaySeconds: 45
+            periodSeconds: 15

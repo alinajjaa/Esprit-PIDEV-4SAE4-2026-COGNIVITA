@@ -10,6 +10,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import jakarta.mail.internet.MimeMessage;
 
@@ -32,7 +33,9 @@ class MultiChannelDeliveryServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Twilio disabled by default (field injected via @Value defaults)
+        // @Value fields are not applied by Mockito; set so MimeMessageHelper#setFrom does not fail.
+        ReflectionTestUtils.setField(service, "fromEmail", "alerts@test.local");
+        ReflectionTestUtils.setField(service, "twilioEnabled", false);
     }
 
     // ── sendEmail ─────────────────────────────────────────────────────────────
@@ -77,7 +80,7 @@ class MultiChannelDeliveryServiceTest {
         when(notificationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         NotificationRecord result = service.sendEmail(
-                1L, 10L, NotificationType.RISK_ALERT, "WARNING",
+                1L, 10L, NotificationType.RISK_SCORE_ALERT, "WARNING",
                 "Risk Alert", "High risk detected", "patient@example.com", 0, null);
 
         assertThat(result.getStatus()).isEqualTo(NotificationStatus.SENT);
@@ -133,11 +136,11 @@ class MultiChannelDeliveryServiceTest {
         when(notificationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         NotificationRecord result = service.saveInApp(
-                5L, 20L, NotificationType.RISK_ALERT, "CRITICAL", "Title", "Message");
+                5L, 20L, NotificationType.RISK_SCORE_ALERT, "CRITICAL", "Title", "Message");
 
         assertThat(result.getUserId()).isEqualTo(5L);
         assertThat(result.getReferenceId()).isEqualTo(20L);
-        assertThat(result.getNotificationType()).isEqualTo(NotificationType.RISK_ALERT);
+        assertThat(result.getNotificationType()).isEqualTo(NotificationType.RISK_SCORE_ALERT);
         assertThat(result.getSeverity()).isEqualTo("CRITICAL");
     }
 }

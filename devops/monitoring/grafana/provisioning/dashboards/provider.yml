@@ -1,0 +1,17 @@
+# =============================================================================
+# Grafana dashboard provisioning config
+# devops/monitoring/grafana/provisioning/dashboards/provider.yml
+# =============================================================================
+
+apiVersion: 1
+
+providers:
+  - name: 'COGNIVITA Dashboards'
+    orgId: 1
+    folder: 'COGNIVITA'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards

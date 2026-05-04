@@ -2,6 +2,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { API } from '../../core/api';
 
 export interface CognitiveActivity {
   id?: number;
@@ -40,7 +41,7 @@ export interface CognitiveActivity {
   providedIn: 'root'
 })
 export class CognitiveActivityService {
-  private apiUrl = 'http://localhost:9090/api/activities';
+  private readonly apiUrl = API.ACTIVITIES_API;
 
   constructor(private http: HttpClient) {}
 

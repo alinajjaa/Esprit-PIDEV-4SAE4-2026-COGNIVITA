@@ -40,7 +40,7 @@ class UserServiceTest {
         sampleUser.setLastName("Smith");
         sampleUser.setPassword("secret");
         sampleUser.setPhone("+21612345678");
-        sampleUser.setRole(UserRole.PATIENT);
+        sampleUser.setRole(UserRole.USER);
         sampleUser.setActive(true);
     }
 
@@ -124,12 +124,12 @@ class UserServiceTest {
     @Test
     @DisplayName("findUsersByRole should return users with given role")
     void findUsersByRole_returnsMatchingUsers() {
-        when(repository.findByRole(UserRole.PATIENT)).thenReturn(Collections.singletonList(sampleUser));
+        when(repository.findByRole(UserRole.USER)).thenReturn(Collections.singletonList(sampleUser));
 
-        List<User> result = service.findUsersByRole(UserRole.PATIENT);
+        List<User> result = service.findUsersByRole(UserRole.USER);
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getRole()).isEqualTo(UserRole.PATIENT);
+        assertThat(result.get(0).getRole()).isEqualTo(UserRole.USER);
     }
 
     @Test

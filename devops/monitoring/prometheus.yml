@@ -1,0 +1,47 @@
+# =============================================================================
+# devops/monitoring/prometheus.yml
+# Scrape configuration for COGNIVITA PIDEV services
+# =============================================================================
+
+global:
+  scrape_interval:     15s
+  evaluation_interval: 15s
+  scrape_timeout:      10s
+
+scrape_configs:
+
+  # ── Prometheus self-monitoring ────────────────────────────────────────────
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # ── pi-rdv-service (port 8091) ────────────────────────────────────────────
+  - job_name: 'pi-rdv-service'
+    metrics_path: '/rdv/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8091']
+    # Inside Kubernetes use:
+    # kubernetes_sd_configs:
+    #   - role: pod
+    #     namespaces: { names: ['cognivita'] }
+    # relabel_configs:
+    #   - source_labels: [__meta_kubernetes_pod_label_app]
+    #     regex: pi
+    #     action: keep
+
+  # ── planSuivi-service (port 8092) ─────────────────────────────────────────
+  - job_name: 'plansuivi-service'
+    metrics_path: '/plan-suivi/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8092']
+
+  # ── SonarQube health (port 9000) ──────────────────────────────────────────
+  - job_name: 'sonarqube'
+    metrics_path: '/api/monitoring/metrics'
+    # SonarQube 9+ exposes Prometheus metrics at this endpoint.
+    # Requires a system passcode or token set via sonar.web.systemPasscode.
+    # Set the Authorization header if passcode is configured:
+    # authorization:
+    #   credentials: '<your-passcode>'
+    static_configs:
+      - targets: ['host.docker.internal:9000']

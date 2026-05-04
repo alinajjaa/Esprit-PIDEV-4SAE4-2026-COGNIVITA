@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
 
 import { CognitiveActivities } from './cognitive-activities';
 
@@ -8,7 +10,8 @@ describe('CognitiveActivities', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [CognitiveActivities]
+      imports: [CognitiveActivities, HttpClientTestingModule],
+      providers: [provideRouter([])],
     })
     .compileComponents();
 

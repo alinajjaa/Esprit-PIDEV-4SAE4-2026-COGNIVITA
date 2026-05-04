@@ -1,0 +1,110 @@
+pipeline {
+    agent any
+
+    tools {
+        jdk 'jdk17'
+        maven 'maven3'
+    }
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
+    parameters {
+        string(name: 'GIT_COMMIT_SHA', defaultValue: 'latest', description: 'Git commit SHA from CI build')
+    }
+
+    environment {
+        SERVICE_NAME     = 'pi-rdv-service'
+        SERVICE_DIR      = 'pi/pi'
+        DOCKER_IMAGE     = 'lozzaaa/pi-rdv-service'
+        DOCKER_REGISTRY  = 'https://index.docker.io/v1/'
+        K8S_DEPLOYMENT   = 'pi'
+        K8S_CONTAINER    = 'pi'
+        K8S_NAMESPACE    = 'cognivita'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+                echo "✅ Code checked out — Commit: ${params.GIT_COMMIT_SHA}"
+            }
+        }
+
+        stage('Build JAR') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    sh 'mvn -B clean package -DskipTests'
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir("${SERVICE_DIR}") {
+                    script {
+                        def tag = params.GIT_COMMIT_SHA?.trim() ? params.GIT_COMMIT_SHA.take(8) : 'latest'
+                        env.IMAGE_TAG = tag
+                        sh "docker build -t ${DOCKER_IMAGE}:${tag} -t ${DOCKER_IMAGE}:latest ."
+                    }
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'docker-token',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh """
+                        echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
+                        docker push ${DOCKER_IMAGE}:${env.IMAGE_TAG}
+                        docker push ${DOCKER_IMAGE}:latest
+                        docker logout
+                    """
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh """
+                    kubectl set image deployment/${K8S_DEPLOYMENT} \
+                        ${K8S_CONTAINER}=${DOCKER_IMAGE}:${env.IMAGE_TAG} \
+                        -n ${K8S_NAMESPACE}
+                    kubectl rollout status deployment/${K8S_DEPLOYMENT} \
+                        -n ${K8S_NAMESPACE} --timeout=120s
+                """
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                sh """
+                    sleep 15
+                    kubectl get pods -n ${K8S_NAMESPACE} -l app=${K8S_DEPLOYMENT}
+                """
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ CD Pipeline SUCCESS — ${SERVICE_NAME}:${env.IMAGE_TAG} deployed to Kubernetes"
+        }
+        failure {
+            echo "❌ CD Pipeline FAILED for ${SERVICE_NAME}"
+            sh "kubectl rollout undo deployment/${K8S_DEPLOYMENT} -n ${K8S_NAMESPACE} || true"
+        }
+        always {
+            sh "docker rmi ${DOCKER_IMAGE}:${env.IMAGE_TAG} || true"
+            cleanWs()
+        }
+    }
+}

@@ -186,7 +186,7 @@
       <button class="modal-close" (click)="closeDetails()">✕</button>
 
       <div class="dashboard-header">
-        <div class="dashboard-avatar" [ngClass]="selectedRecord.gender?.toLowerCase()">{{ getInitials(selectedRecord.userName) }}</div>
+        <div class="dashboard-avatar" [ngClass]="selectedRecord.gender.toLowerCase()">{{ getInitials(selectedRecord.userName) }}</div>
         <div class="dashboard-patient-info">
           <h2>{{ selectedRecord.userName }}</h2>
           <p>{{ selectedRecord.userEmail }}</p>
@@ -284,7 +284,7 @@
               </div>
             </div>
 
-            <div class="overview-card recs-card" *ngIf="selectedRecord.recommendations?.length">
+            <div class="overview-card recs-card" *ngIf="selectedRecord.recommendations.length">
               <h4>💡 Personalized Recommendations</h4>
               <ul class="recs-list">
                 <li *ngFor="let rec of selectedRecord.recommendations; trackBy: trackByIndex" class="rec-item">{{ rec }}</li>
@@ -381,7 +381,7 @@
             <div *ngFor="let event of patientTimeline; trackBy: trackByRecordId" class="timeline-entry">
               <div class="timeline-icon">{{ getEventIcon(event.eventType) }}</div>
               <div class="timeline-body">
-                <div class="timeline-event-type">{{ event.eventType?.replace('_', ' ') }}</div>
+                <div class="timeline-event-type">{{ event.eventType.replace('_', ' ') }}</div>
                 <div class="timeline-desc">{{ event.description }}</div>
                 <div class="timeline-time">{{ formatDateTime(event.eventDate) }}</div>
               </div>
@@ -517,11 +517,11 @@
             </div>
 
             <!-- Recommendations from health service -->
-            <div *ngIf="healthProfile.recommendations?.length" class="wellness-recs">
+            <div *ngIf="healthProfile.recommendations.length" class="wellness-recs">
               <h4>💡 Personalized Wellness Recommendations</h4>
               <div class="wellness-rec-list">
                 <div *ngFor="let rec of healthProfile.recommendations; trackBy: trackByRecordId" class="wellness-rec-item"
-                     [ngClass]="'rec-' + rec.priority?.toLowerCase()">
+                     [ngClass]="'rec-' + rec.priority.toLowerCase()">
                   <div class="rec-priority">{{ rec.priority }}</div>
                   <div class="rec-body">
                     <div class="rec-title">{{ rec.recommendationType }}</div>
@@ -548,9 +548,9 @@
             <div class="stat-card"><div class="stat-icon">⚠️</div><div class="stat-info"><div class="stat-big">{{ selectedRecord.riskScore | number:'1.0-1' }}</div><div class="stat-title">Risk Score</div><div class="stat-sub" [ngClass]="getRiskClass(selectedRecord.riskLevel)">{{ selectedRecord.riskLevel }}</div></div></div>
             <div class="stat-card"><div class="stat-icon">🕐</div><div class="stat-info"><div class="stat-big">{{ patientTimeline.length }}</div><div class="stat-title">Timeline Events</div><div class="stat-sub">Total history</div></div></div>
             <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-info"><div class="stat-big">{{ patientActions.length }}</div><div class="stat-title">Prevention Actions</div><div class="stat-sub">{{ getCompletedCount() }} completed</div></div></div>
-            <div class="stat-card"><div class="stat-icon">💡</div><div class="stat-info"><div class="stat-big">{{ selectedRecord.recommendations?.length || 0 }}</div><div class="stat-title">Recommendations</div><div class="stat-sub">Personalized</div></div></div>
+            <div class="stat-card"><div class="stat-icon">💡</div><div class="stat-info"><div class="stat-big">{{ selectedRecord.recommendations.length || 0 }}</div><div class="stat-title">Recommendations</div><div class="stat-sub">Personalized</div></div></div>
           </div>
-          <div class="recs-summary" *ngIf="selectedRecord.recommendations?.length">
+          <div class="recs-summary" *ngIf="selectedRecord.recommendations.length">
             <h4>💡 Active Recommendations</h4>
             <div class="recs-chips"><span *ngFor="let rec of selectedRecord.recommendations; trackBy: trackByIndex" class="rec-chip">{{ rec }}</span></div>
           </div>
