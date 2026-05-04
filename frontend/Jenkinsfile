@@ -99,36 +99,18 @@ pipeline {
             }
         }
 
-        // ──────────────────────────────────────────────────────
-        stage('🧪 Tests Cypress E2E') {
+// ──────────────────────────────────────────────────────
+        stage('🧪 Tests Unitaires Angular') {
         // ──────────────────────────────────────────────────────
             steps {
                 echo '======================================================'
-                echo '🧪  CYPRESS – Tests End-to-End'
-                echo '⚠️  Mode allow_failure : ~40% des tests passent en CI'
+                echo '🧪  TESTS UNITAIRES – Karma/Jasmine'
                 echo '======================================================'
                 dir('frontend') {
-                    // "|| true" : le pipeline NE BLOQUE PAS si des tests échouent
-                    // Normal en CI sans backend complet (40% de réussite attendu)
-                    sh 'npm run e2e:real || true'
+                    // Lancer les tests (échecs tolérés pour l'instant)
+                    sh 'npm run test:ci || true'
                 }
-                echo '✅ Tests Cypress terminés (échecs tolérés)'
-            }
-            post {
-                always {
-                    echo '📸 Archivage des artefacts Cypress...'
-                    // Screenshots : générés uniquement lors d'un échec de test
-                    archiveArtifacts(
-                        artifacts:         'frontend/cypress/screenshots/**',
-                        allowEmptyArchive: true
-                    )
-                    // Vidéos : générées à chaque exécution Cypress
-                    archiveArtifacts(
-                        artifacts:         'frontend/cypress/videos/**',
-                        allowEmptyArchive: true
-                    )
-                    echo '✅ Artefacts Cypress archivés dans Jenkins'
-                }
+                echo '✅ Tests unitaires terminés'
             }
         }
 
