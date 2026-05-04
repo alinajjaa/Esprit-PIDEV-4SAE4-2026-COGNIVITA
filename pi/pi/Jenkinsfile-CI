@@ -27,8 +27,16 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                sh "mkdir -p pi/pi && rsync -a /project/pi/pi/ pi/pi/"
-                echo "✅ Code synced from /project/pi/pi"
+                checkout([
+                    $class: 'GitSCM',
+                    branches: scm.branches,
+                    extensions: [
+                        [$class: 'CloneOption', shallow: true, depth: 1, noTags: true, timeout: 30],
+                        [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [[path: 'pi/pi']]]
+                    ],
+                    userRemoteConfigs: scm.userRemoteConfigs
+                ])
+                echo "✅ Code checked out for ${SERVICE_NAME}"
             }
         }
 
