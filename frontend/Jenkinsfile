@@ -152,16 +152,9 @@ pipeline {
             }
         }
 
-        // ──────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────
         stage('🐳 Docker Build') {
         // ──────────────────────────────────────────────────────
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'master'
-                    branch 'User-Service'
-                }
-            }
             steps {
                 echo '======================================================'
                 echo '🐳  DOCKER BUILD – Construction de l\'image Frontend'
@@ -176,13 +169,6 @@ pipeline {
         // ──────────────────────────────────────────────────────
         stage('🚀 Déploiement') {
         // ──────────────────────────────────────────────────────
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'master'
-                    branch 'User-Service'
-                }
-            }
             steps {
                 echo '======================================================'
                 echo '🚀  DEPLOY – Déploiement du Frontend Angular'
