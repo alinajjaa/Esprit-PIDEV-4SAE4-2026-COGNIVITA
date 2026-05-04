@@ -1,7 +1,7 @@
 // ============================================================
 //  COGNIVITA – Pipeline CI/CD Frontend (Angular)
-//  Stages : Checkout → Install → Build → Cypress E2E →
-//           SonarQube → Quality Gate → Docker Build → Deploy
+//  Stages : Checkout → Install → Build → Tests Unitaires →
+//           Cypress E2E → SonarQube → Quality Gate → Docker Build → Deploy
 // ============================================================
 
 pipeline {
@@ -62,6 +62,40 @@ pipeline {
                     sh 'npm run build -- --configuration production'
                 }
                 echo '✅ Build Angular production réussi'
+            }
+        }
+
+        // ──────────────────────────────────────────────────────
+        stage('🧪 Tests Unitaires Angular') {
+        // ──────────────────────────────────────────────────────
+            steps {
+                echo '======================================================'
+                echo '🧪  TESTS UNITAIRES – Karma/Jasmine'
+                echo '======================================================'
+                dir('frontend') {
+                    sh 'npm run test:ci'
+                }
+                echo '✅ Tests unitaires terminés'
+            }
+            post {
+                always {
+                    echo '📊 Publication des résultats des tests...'
+                    junit(
+                        testResults: 'frontend/test-results/**/*.xml',
+                        allowEmptyResults: true
+                    )
+                    publishHTML(
+                        target: [
+                            reportDir: 'frontend/coverage',
+                            reportFiles: 'index.html',
+                            reportName: 'Code Coverage Report',
+                            keepAll: true,
+                            alwaysLinkToLastBuild: true,
+                            allowMissing: true
+                        ]
+                    )
+                    echo '✅ Rapports de tests publiés'
+                }
             }
         }
 
