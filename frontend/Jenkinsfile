@@ -149,6 +149,7 @@ pipeline {
                 anyOf {
                     branch 'main'
                     branch 'master'
+                    branch 'User-Service'
                 }
             }
             steps {
@@ -169,14 +170,30 @@ pipeline {
                 anyOf {
                     branch 'main'
                     branch 'master'
+                    branch 'User-Service'
                 }
             }
             steps {
                 echo '======================================================'
                 echo '🚀  DEPLOY – Déploiement du Frontend Angular'
                 echo '======================================================'
-                sh 'docker-compose up -d --no-deps frontend'
-                echo '✅ Frontend déployé avec succès !'
+                script {
+                    // Arrêter et supprimer l'ancien container
+                    sh """
+                        docker stop cognivita-frontend || true
+                        docker rm cognivita-frontend || true
+                    """
+                    
+                    // Lancer le nouveau container
+                    sh """
+                        docker run -d \\
+                            --name cognivita-frontend \\
+                            --network cognivita_cognivita-network \\
+                            -p 4200:80 \\
+                            ${DOCKER_IMAGE}:latest
+                    """
+                }
+                echo '✅ Frontend déployé sur http://localhost:4200'
             }
         }
     }
