@@ -10,6 +10,7 @@ pipeline {
         timestamps()
         disableConcurrentBuilds()
         buildDiscarder(logRotator(numToKeepStr: '10'))
+        skipDefaultCheckout(true)
     }
 
     parameters {
@@ -30,7 +31,15 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                checkout scm
+                checkout([
+                    $class: 'GitSCM',
+                    branches: scm.branches,
+                    extensions: [
+                        [$class: 'CloneOption', shallow: true, depth: 1, noTags: true, timeout: 30],
+                        [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [[path: 'planSuivi/planSuivi']]]
+                    ],
+                    userRemoteConfigs: scm.userRemoteConfigs
+                ])
                 echo "✅ Code checked out — Commit: ${params.GIT_COMMIT_SHA}"
             }
         }
