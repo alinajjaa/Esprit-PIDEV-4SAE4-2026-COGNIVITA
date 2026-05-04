@@ -13,10 +13,12 @@ spec:
       labels:
         app: plansuivi
     spec:
+      imagePullSecrets:
+        - name: dockerhub-secret
       containers:
         - name: plansuivi
           image: lozzaaa/plansuivi-service:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 8092
           env:

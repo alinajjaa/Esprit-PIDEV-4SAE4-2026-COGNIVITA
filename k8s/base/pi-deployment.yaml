@@ -13,10 +13,12 @@ spec:
       labels:
         app: pi
     spec:
+      imagePullSecrets:
+        - name: dockerhub-secret
       containers:
         - name: pi
           image: lozzaaa/pi-rdv-service:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 8091
           env:
