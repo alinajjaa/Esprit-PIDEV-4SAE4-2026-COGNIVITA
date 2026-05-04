@@ -10,6 +10,7 @@ pipeline {
         timestamps()
         disableConcurrentBuilds()
         buildDiscarder(logRotator(numToKeepStr: '10'))
+        skipDefaultCheckout(true)
     }
 
     triggers {
@@ -26,7 +27,15 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                checkout scm
+                checkout([
+                    $class: 'GitSCM',
+                    branches: scm.branches,
+                    extensions: [
+                        [$class: 'CloneOption', shallow: true, depth: 1, noTags: true, timeout: 30],
+                        [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [[path: 'pi/pi']]]
+                    ],
+                    userRemoteConfigs: scm.userRemoteConfigs
+                ])
                 echo "✅ Code checked out for ${SERVICE_NAME}"
             }
         }
@@ -61,12 +70,12 @@ pipeline {
                 always {
                     junit testResults: 'pi/pi/target/surefire-reports/*.xml',
                           allowEmptyResults: true
-                    jacoco(
+                    step([$class: 'JacocoPublisher',
                         execPattern: 'pi/pi/target/jacoco.exec',
                         classPattern: 'pi/pi/target/classes',
                         sourcePattern: 'pi/pi/src/main/java',
                         exclusionPattern: 'pi/pi/src/test/**'
-                    )
+                    ])
                 }
             }
         }
@@ -127,7 +136,7 @@ pipeline {
             echo "✅ CI Pipeline SUCCESS for ${SERVICE_NAME}"
         }
         failure {
-            echo "❌ CI Pipeline FAILED for ${SERVICE_NAME} — check unit tests or SonarQube"
+            echo "❌ CI Pipeline FAILED for pi-rdv-service — check unit tests or SonarQube"
         }
         always {
             cleanWs()
