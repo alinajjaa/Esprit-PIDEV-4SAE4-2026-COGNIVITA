@@ -27,16 +27,8 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                checkout([
-                    $class: 'GitSCM',
-                    branches: scm.branches,
-                    extensions: [
-                        [$class: 'CloneOption', shallow: true, depth: 1, noTags: true, timeout: 30],
-                        [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [[path: 'planSuivi/planSuivi']]]
-                    ],
-                    userRemoteConfigs: scm.userRemoteConfigs
-                ])
-                echo "✅ Code checked out for ${SERVICE_NAME}"
+                sh "mkdir -p planSuivi/planSuivi && rsync -a /project/planSuivi/planSuivi/ planSuivi/planSuivi/"
+                echo "✅ Code synced from /project/planSuivi/planSuivi"
             }
         }
 
