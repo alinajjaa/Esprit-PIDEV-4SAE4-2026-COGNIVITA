@@ -113,7 +113,6 @@ pipeline {
         }
         always {
             sh "docker rmi ${DOCKER_IMAGE}:${env.IMAGE_TAG} || true"
-            cleanWs()
         }
     }
 }
