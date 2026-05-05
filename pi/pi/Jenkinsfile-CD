@@ -31,7 +31,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                sh "rsync -a --delete /project/${SERVICE_DIR}/ ${SERVICE_DIR}/"
+                sh "mkdir -p ${SERVICE_DIR} && rsync -a --delete /project/${SERVICE_DIR}/ ${SERVICE_DIR}/"
                 echo "✅ Synced from /project/${SERVICE_DIR} — Commit: ${params.GIT_COMMIT_SHA}"
             }
         }
