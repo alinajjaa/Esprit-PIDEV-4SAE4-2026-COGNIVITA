@@ -1,7 +1,7 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:8080',
-  faceAuthUrl: 'http://localhost:5001',
-  predictionApiUrl: 'http://localhost:8000',
+  apiUrl: '/api',                    // ✅ URL RELATIVE (comme prod)
+  faceAuthUrl: '/face-auth',         // ✅ URL RELATIVE
+  predictionApiUrl: '/prediction',   // ✅ URL RELATIVE
   cloudinaryCloudName: 'db5fae4od'
 };

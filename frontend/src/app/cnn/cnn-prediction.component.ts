@@ -79,7 +79,7 @@ export class CNNPredictionComponent {
   }
 
   private tryJavaBackend(formData: FormData): void {
-    console.log('📤 Attempting Java backend: http://localhost:8080/api/cnn/predict');
+    console.log('📤 Attempting Java backend: /api/cnn/predict');
 
     // Progress simulation
     let progressInterval: any = setInterval(() => {
@@ -96,7 +96,7 @@ export class CNNPredictionComponent {
     }, 500);
 
     this.http.post<any>(
-      'http://localhost:8080/api/cnn/predict',
+      '/api/cnn/predict',
       formData
     ).subscribe({
       next: (response: any) => {

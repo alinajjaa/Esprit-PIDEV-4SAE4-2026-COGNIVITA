@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Brain3dComponent } from '../brain3d/brain3d.component';
-
+import { environment } from '../../environments/environment';
 interface MedicalRecord {
   id: number;
   userId: number;
@@ -52,8 +52,7 @@ export class MedicalRecordsComponent implements OnInit {
     diagnosisNotes: ''
   };
 
-  private apiUrl = 'http://localhost:8080/api/medical-records';
-
+private apiUrl = environment.apiUrl + '/medical-records';
   constructor(private http: HttpClient) {}
 
   ngOnInit(): void {
