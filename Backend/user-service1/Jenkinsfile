@@ -84,37 +84,14 @@ pipeline {
             }
         }
 
-        // ──────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────
         stage('📊 Analyse SonarQube') {
         // ──────────────────────────────────────────────────────
             steps {
                 echo 'SKIPPED: SonarQube analysis temporarily disabled'
             }
-        }──────────────────────────────────────────────────
-            steps {
-                echo '======================================================'
-                echo '📊  SONARQUBE – Analyse qualité du code Java'
-                echo '======================================================'
-                dir('Backend/user-service1') {
-                    withSonarQubeEnv('SonarQube') {
-                        sh """
-                            mvn sonar:sonar -B \\
-                                -Dsonar.token=\${SONAR_AUTH_TOKEN} \\    ← AJOUTER CETTE LIGNE
-                                -Dsonar.projectKey=cognivita-backend-user-service1 \\
-                                -Dsonar.projectName='COGNIVITA - User Service' \\
-                                -Dsonar.projectVersion=1.0 \\
-                                -Dsonar.java.source=17 \\
-                                -Dsonar.sources=src/main/java \\
-                                -Dsonar.tests=src/test/java \\
-                                -Dsonar.java.binaries=target/classes \\
-                                -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml \\
-                                -Dsonar.sourceEncoding=UTF-8
-                        """
-                    }
-                }
-                echo '✅ Analyse envoyée à SonarQube'
-            }
         }
+
         // ──────────────────────────────────────────────────────
         stage('🚦 Quality Gate') {
         // ──────────────────────────────────────────────────────
@@ -122,12 +99,10 @@ pipeline {
                 echo 'SKIPPED: Quality Gate temporarily disabled'
             }
         }
+
         // ──────────────────────────────────────────────────────
         stage('🐳 Docker Build') {
         // ──────────────────────────────────────────────────────
-            when {
-                branch 'User-Service'
-            }
             steps {
                 echo '======================================================'
                 echo '🐳  DOCKER BUILD – Construction de l\'image Docker'
