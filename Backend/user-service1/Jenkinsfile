@@ -95,6 +95,7 @@ pipeline {
                     withSonarQubeEnv('SonarQube') {
                         sh """
                             mvn sonar:sonar -B \\
+                                -Dsonar.token=\${SONAR_AUTH_TOKEN} \\    ← AJOUTER CETTE LIGNE
                                 -Dsonar.projectKey=cognivita-backend-user-service1 \\
                                 -Dsonar.projectName='COGNIVITA - User Service' \\
                                 -Dsonar.projectVersion=1.0 \\
