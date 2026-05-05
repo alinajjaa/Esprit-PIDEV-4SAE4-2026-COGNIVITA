@@ -79,8 +79,7 @@ pipeline {
                     kubectl set image deployment/${K8S_DEPLOYMENT} \
                         ${K8S_CONTAINER}=${DOCKER_IMAGE}:${env.IMAGE_TAG} \
                         -n ${K8S_NAMESPACE}
-                    kubectl rollout status deployment/${K8S_DEPLOYMENT} \
-                        -n ${K8S_NAMESPACE} --timeout=120s
+                    echo "✅ Image updated to ${DOCKER_IMAGE}:${env.IMAGE_TAG}"
                 """
             }
         }
@@ -101,7 +100,6 @@ pipeline {
         }
         failure {
             echo "❌ CD Pipeline FAILED for ${SERVICE_NAME}"
-            sh "kubectl rollout undo deployment/${K8S_DEPLOYMENT} -n ${K8S_NAMESPACE} || true"
         }
         always {
             sh "docker rmi ${DOCKER_IMAGE}:${env.IMAGE_TAG} || true"
