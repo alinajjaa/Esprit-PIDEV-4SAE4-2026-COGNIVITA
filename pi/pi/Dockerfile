@@ -1,18 +1,10 @@
-FROM maven:3.9.9-eclipse-temurin-17 AS build
-WORKDIR /workspace
-
-COPY pom.xml .
-COPY src ./src
-
-RUN mvn -B -DskipTests package
-
 FROM eclipse-temurin:17-jre
 WORKDIR /app
 
 ENV JAVA_OPTS=""
 ENV SERVER_PORT=8091
 
-COPY --from=build /workspace/target/*.jar /app/app.jar
+COPY target/*.jar /app/app.jar
 
 EXPOSE 8091
 
