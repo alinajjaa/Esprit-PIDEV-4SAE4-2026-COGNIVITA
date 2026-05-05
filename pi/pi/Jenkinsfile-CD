@@ -31,16 +31,8 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                checkout([
-                    $class: 'GitSCM',
-                    branches: scm.branches,
-                    extensions: [
-                        [$class: 'CloneOption', shallow: true, depth: 1, noTags: true, timeout: 30],
-                        [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [[path: 'pi/pi']]]
-                    ],
-                    userRemoteConfigs: scm.userRemoteConfigs
-                ])
-                echo "✅ Code checked out — Commit: ${params.GIT_COMMIT_SHA}"
+                sh "rsync -a --delete /project/${SERVICE_DIR}/ ${SERVICE_DIR}/"
+                echo "✅ Synced from /project/${SERVICE_DIR} — Commit: ${params.GIT_COMMIT_SHA}"
             }
         }
 
