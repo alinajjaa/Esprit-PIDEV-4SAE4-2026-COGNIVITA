@@ -121,7 +121,7 @@ pipeline {
                 expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
             }
             steps {
-                build job: 'plansuivi-service-CD',
+                build job: 'planSuivi-CD',
                       wait: false,
                       parameters: [
                           string(name: 'GIT_COMMIT_SHA', value: env.GIT_COMMIT ?: 'latest')
