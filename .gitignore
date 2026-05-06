@@ -1,6 +1,8 @@
 # ── Secrets — NEVER commit these ─────────────────────────────────
 .env
 *.env.local
+.env.local
+.env.*
 
 # ── AI Model ──────────────────────────────────────────────────────
 ai-model/
@@ -35,3 +37,10 @@ logs/
 
 # ── Docker ────────────────────────────────────────────────────────
 docker-compose.override.yml
+
+# Overrides locaux Spring (IntelliJ / dev perso)
+**/application-local.properties
+**/application-local.yml
+**/application-local.yaml
+**/application-dev-local.properties
+**/application-dev-local.yml

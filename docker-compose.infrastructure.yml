@@ -1,0 +1,113 @@
+services:
+  # ==========================================================
+  # INFRASTRUCTURE UNIQUEMENT (LOCAL DEV)
+  # - Pas de microservices (activities-service, api-gateway, ...)
+  # - Objectif: laisser IntelliJ démarrer les microservices sans conflit de ports
+  # ==========================================================
+
+  # ----------------------------------------------------------
+  # MySQL pour activities-service
+  # ----------------------------------------------------------
+  mysql-activities:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: cognivita_activities
+      MYSQL_USER: cognivita
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      # Port MySQL exposé sur l'hôte (Windows) => 3307
+      - "3307:3306"
+    volumes:
+      - mysql_activities_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    networks:
+      - infra-net
+
+  # ----------------------------------------------------------
+  # MySQL Exporter (metrics) - optionnel mais utile
+  # ----------------------------------------------------------
+  mysql-activities-exporter:
+    image: prom/mysqld-exporter:v0.16.0
+    environment:
+      # Le exporter se connecte au MySQL interne (3306)
+      DATA_SOURCE_NAME: "cognivita:password@(mysql-activities:3306)/"
+    ports:
+      - "9104:9104"
+    depends_on:
+      mysql-activities:
+        condition: service_healthy
+    networks:
+      - infra-net
+
+  # ----------------------------------------------------------
+  # Prometheus (monitoring)
+  # IMPORTANT: on n'utilise PAS 9090 (réservé à api-gateway)
+  # ----------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    ports:
+      # 9092 local pour éviter conflit avec api-gateway:9090
+      - "9092:9090"
+    volumes:
+      - ./prometheus/prometheus.infrastructure.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+    networks:
+      - infra-net
+
+  # ----------------------------------------------------------
+  # Alertmanager (alerting)
+  # ----------------------------------------------------------
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+    networks:
+      - infra-net
+
+  # ----------------------------------------------------------
+  # Grafana (dashboards)
+  # ----------------------------------------------------------
+  grafana:
+    image: grafana/grafana:11.2.0
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./activities-service/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./activities-service/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - infra-net
+
+volumes:
+  mysql_activities_data:
+  prometheus_data:
+  grafana_data:
+  alertmanager_data:
+
+networks:
+  infra-net:
+    driver: bridge
+
