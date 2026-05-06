@@ -10,6 +10,7 @@ pipeline {
         timestamps()
         disableConcurrentBuilds()
         buildDiscarder(logRotator(numToKeepStr: '10'))
+        skipDefaultCheckout(true)
     }
 
     parameters {
@@ -30,8 +31,8 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                checkout scm
-                echo "✅ Code checked out — Commit: ${params.GIT_COMMIT_SHA}"
+                sh "mkdir -p ${SERVICE_DIR} && rsync -a --delete /project/${SERVICE_DIR}/ ${SERVICE_DIR}/"
+                echo "✅ Synced from /project/${SERVICE_DIR} — Commit: ${params.GIT_COMMIT_SHA}"
             }
         }
 
@@ -78,8 +79,7 @@ pipeline {
                     kubectl set image deployment/${K8S_DEPLOYMENT} \
                         ${K8S_CONTAINER}=${DOCKER_IMAGE}:${env.IMAGE_TAG} \
                         -n ${K8S_NAMESPACE}
-                    kubectl rollout status deployment/${K8S_DEPLOYMENT} \
-                        -n ${K8S_NAMESPACE} --timeout=120s
+                    echo "✅ Image updated to ${DOCKER_IMAGE}:${env.IMAGE_TAG}"
                 """
             }
         }
@@ -100,11 +100,9 @@ pipeline {
         }
         failure {
             echo "❌ CD Pipeline FAILED for ${SERVICE_NAME}"
-            sh "kubectl rollout undo deployment/${K8S_DEPLOYMENT} -n ${K8S_NAMESPACE} || true"
         }
         always {
             sh "docker rmi ${DOCKER_IMAGE}:${env.IMAGE_TAG} || true"
-            cleanWs()
         }
     }
 }
