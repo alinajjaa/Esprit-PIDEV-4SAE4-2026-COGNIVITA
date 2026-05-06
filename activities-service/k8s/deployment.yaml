@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: activities-service
+  labels:
+    app: activities-service
+spec:
+  # En dev: 1 replica. En prod: augmente selon charge.
+  replicas: 1
+  selector:
+    matchLabels:
+      app: activities-service
+  template:
+    metadata:
+      labels:
+        app: activities-service
+    spec:
+      containers:
+        - name: activities-service
+          # IMPORTANT: remplace par l'image publiée dans ton registry
+          image: cognivita/activities-service:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8087
+          env:
+            # Configuration non sensible (ConfigMap)
+            - name: SPRING_PROFILES_ACTIVE
+              valueFrom:
+                configMapKeyRef:
+                  name: activities-config
+                  key: SPRING_PROFILES_ACTIVE
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: activities-config
+                  key: SPRING_DATASOURCE_URL
+            # Secrets (username/password)
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: activities-secret
+                  key: SPRING_DATASOURCE_USERNAME
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: activities-secret
+                  key: SPRING_DATASOURCE_PASSWORD
+            # JVM optimisée conteneur (optionnel)
+            - name: JAVA_OPTS
+              value: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+          readinessProbe:
+            # Avec context-path=/api => /api/actuator/health
+            httpGet:
+              path: /api/actuator/health
+              port: 8087
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/actuator/health
+              port: 8087
+            initialDelaySeconds: 40
+            periodSeconds: 20
+

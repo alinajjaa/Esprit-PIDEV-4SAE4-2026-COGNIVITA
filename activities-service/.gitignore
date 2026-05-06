@@ -1,0 +1,11 @@
+# ...existing code...
+# Ignorer fichiers locaux de dev
+application-local.properties
+.env.local
+docker-compose.override.local.yml
+*.local.*
+logs/
+mysql-data/
+prometheus-data/
+grafana-data/
+

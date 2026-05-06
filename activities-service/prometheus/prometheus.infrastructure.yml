@@ -1,0 +1,32 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - /etc/prometheus/alert.rules.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+scrape_configs:
+  # ==========================================================
+  # Scrape des microservices lancés depuis IntelliJ (host)
+  # Windows/Mac Docker Desktop: host.docker.internal
+  # ==========================================================
+  - job_name: 'activities-service-intellij'
+    metrics_path: /api/actuator/prometheus
+    static_configs:
+      - targets: ['host.docker.internal:8088']
+
+  - job_name: 'api-gateway-intellij'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['host.docker.internal:9091']
+
+  # MySQL exporter (dans Docker)
+  - job_name: 'mysql-activities'
+    static_configs:
+      - targets: ['mysql-activities-exporter:9104']
+

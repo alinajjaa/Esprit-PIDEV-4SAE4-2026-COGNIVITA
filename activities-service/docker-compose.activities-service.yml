@@ -1,0 +1,34 @@
+version: "3.9"
+services:
+  activities-service:
+    image: cognivita-activities:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8087:8087"
+    environment:
+      DB_URL: "jdbc:mysql://activities-db:3306/activitiesdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+      DB_USER: "activities_user"
+      DB_PASSWORD: "activities_password"
+      SPRING_DATASOURCE_URL: "jdbc:mysql://activities-db:3306/activitiesdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+      SPRING_DATASOURCE_USERNAME: "activities_user"
+      SPRING_DATASOURCE_PASSWORD: "activities_password"
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,prometheus"
+      MANAGEMENT_ENDPOINTS_WEB_BASE_PATH: "/actuator"
+
+  activities-db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: "activitiesdb"
+      MYSQL_USER: "activities_user"
+      MYSQL_PASSWORD: "activities_password"
+      MYSQL_ROOT_PASSWORD: "rootpassword"
+    ports:
+      - "3307:3306"
+    volumes:
+      - activities-db-data:/var/lib/mysql
+
+volumes:
+  activities-db-data:

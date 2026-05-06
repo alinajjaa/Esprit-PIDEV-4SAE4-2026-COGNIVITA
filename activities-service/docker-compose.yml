@@ -1,0 +1,141 @@
+services:
+  # ----------------------------------------------------------
+  # MySQL (base de données dédiée au activities-service)
+  # ----------------------------------------------------------
+  mysql-activities:
+    image: mysql:8.0
+    environment:
+      # Base créée automatiquement au premier démarrage
+      MYSQL_DATABASE: cognivita_activities
+      MYSQL_USER: cognivita
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      # Expose sur 3307 côté Windows pour éviter conflit avec MySQL local
+      - "3307:3306"
+    volumes:
+      # Volume persistant: les données survivent aux redémarrages
+      - mysql_activities_data:/var/lib/mysql
+    healthcheck:
+      # Attend que MySQL réponde avant de lancer l'app
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    networks:
+      - cognivita-net
+
+  # ----------------------------------------------------------
+  # activities-service (Spring Boot)
+  # ----------------------------------------------------------
+  activities-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cognivita/activities-service:local
+    depends_on:
+      # IMPORTANT: attend le healthcheck MySQL (compose v2)
+      mysql-activities:
+        condition: service_healthy
+    ports:
+      - "8087:8087"
+    environment:
+      # On active le profil docker (application-docker.properties)
+      SPRING_PROFILES_ACTIVE: docker
+
+      # Variables override possibles (Spring Boot mappe automatiquement)
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-activities:3306/cognivita_activities?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: cognivita
+      SPRING_DATASOURCE_PASSWORD: password
+
+      # JVM tuning en conteneur (peut être ajusté)
+      JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+    restart: unless-stopped
+    networks:
+      - cognivita-net
+
+  # ----------------------------------------------------------
+  # Prometheus (monitoring)
+  # ----------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    ports:
+      - "9090:9090"
+    volumes:
+      # Config + règles + persistance des séries temporelles
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+    networks:
+      - cognivita-net
+    depends_on:
+      - activities-service
+
+  # ----------------------------------------------------------
+  # Alertmanager (alerting)
+  # ----------------------------------------------------------
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+    networks:
+      - cognivita-net
+
+  # ----------------------------------------------------------
+  # MySQL Exporter (metrics MySQL -> Prometheus)
+  # ----------------------------------------------------------
+  mysql-activities-exporter:
+    image: prom/mysqld-exporter:v0.16.0
+    environment:
+      # IMPORTANT: le exporter se connecte au MySQL interne (port 3306)
+      DATA_SOURCE_NAME: "cognivita:password@(mysql-activities:3306)/"
+    ports:
+      - "9104:9104"
+    depends_on:
+      mysql-activities:
+        condition: service_healthy
+    networks:
+      - cognivita-net
+
+  # ----------------------------------------------------------
+  # Grafana (dashboards)
+  # ----------------------------------------------------------
+  grafana:
+    image: grafana/grafana:11.2.0
+    ports:
+      - "3000:3000"
+    environment:
+      # Login admin par défaut (à changer en prod)
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      # Provisioning automatique
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - cognivita-net
+    depends_on:
+      - prometheus
+
+volumes:
+  mysql_activities_data:
+  prometheus_data:
+  grafana_data:
+  alertmanager_data:
+
+networks:
+  cognivita-net:
+    driver: bridge

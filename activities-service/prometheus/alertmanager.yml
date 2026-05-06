@@ -1,0 +1,19 @@
+route:
+  receiver: "default"
+  group_wait: 10s
+  group_interval: 1m
+  repeat_interval: 1h
+
+receivers:
+  - name: "default"
+    # Exemples (optionnels) :
+    # slack_configs:
+    #   - api_url: "https://hooks.slack.com/services/XXX/YYY/ZZZ"
+    #     channel: "#alerts"
+    # email_configs:
+    #   - to: "team@exemple.com"
+    #     from: "alerts@exemple.com"
+    #     smarthost: "smtp.exemple.com:587"
+    #     auth_username: "alerts@exemple.com"
+    #     auth_password: "password"
+

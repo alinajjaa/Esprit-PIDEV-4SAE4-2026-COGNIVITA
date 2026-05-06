@@ -1,0 +1,42 @@
+groups:
+  - name: activities-service-alerts
+    rules:
+      # ------------------------------------------------------
+      # Service DOWN
+      # ------------------------------------------------------
+      - alert: ActivitiesServiceDown
+        expr: up{job="activities-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "activities-service indisponible"
+          description: "Prometheus n'arrive plus à scrapper activities-service."
+
+      # ------------------------------------------------------
+      # Taux d'erreurs HTTP 5xx (si métrique dispo)
+      # ------------------------------------------------------
+      - alert: HighHttp5xxRate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{job="activities-service",outcome="SERVER_ERROR"}[2m]))
+          /
+          sum(rate(http_server_requests_seconds_count{job="activities-service"}[2m]))
+          > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Taux de 5xx élevé"
+          description: "Plus de 5% de réponses 5xx sur activities-service."
+
+  - name: mysql-alerts
+    rules:
+      - alert: MySQLExporterDown
+        expr: up{job="mysql-activities"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MySQL exporter indisponible"
+          description: "Prometheus n'arrive plus à scrapper mysql exporter."
+

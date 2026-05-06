@@ -1,0 +1,58 @@
+version: "3.8"
+
+services:
+  activities-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: activities-service:local
+    container_name: activities-service-local
+    restart: unless-stopped
+    ports:
+      - "8088:8087" # machine 8088 -> conteneur 8087
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - SERVER_PORT=8087
+      - EUREKA_CLIENT_ENABLED=false
+    depends_on:
+      - mysql-activities
+
+  mysql-activities:
+    image: mysql:8.0
+    container_name: mysql-activities-local
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: cognivita_activities
+      MYSQL_USER: cognivita
+      MYSQL_PASSWORD: password
+    ports:
+      - "3307:3306" # machine 3307 -> conteneur 3306
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+
+  # Prometheus local (isolé pour ne pas utiliser 9090 global de l'équipe)
+  prometheus-activities:
+    image: prom/prometheus:latest
+    container_name: prometheus-activities-local
+    restart: unless-stopped
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - ./prometheus-data:/prometheus
+    ports:
+      - "9091:9090" # machine 9091 -> conteneur 9090
+
+  grafana-activities:
+    image: grafana/grafana:latest
+    container_name: grafana-activities-local
+    restart: unless-stopped
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana-data:/var/lib/grafana
+    ports:
+      - "3001:3000" # machine 3001 -> conteneur 3000
+
+# Note: ce fichier est indépendant et ne doit pas remplacer le docker-compose de l'équipe.
+

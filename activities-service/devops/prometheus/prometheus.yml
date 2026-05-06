@@ -1,0 +1,12 @@
+# Fichier Prometheus minimal (non utilisé directement pour les métriques JSON API)
+# Nous utilisons Grafana + JSON API datasource pour interroger les endpoints REST du service.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Aucun scrape direct du service 'activities-service' car il n'expose pas /actuator/prometheus
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9091']
+

@@ -1,0 +1,96 @@
+{
+  "uid": "cognivita-springboot",
+  "title": "Activities Service - Spring Boot (Micrometer)",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "tags": ["spring", "micrometer", "jvm", "hikaricp", "http"],
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "JVM Heap Used (bytes)",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(jvm_memory_used_bytes{job=\"activities-service\",area=\"heap\"})",
+          "legendFormat": "heap used"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "JVM Non-Heap Used (bytes)",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(jvm_memory_used_bytes{job=\"activities-service\",area=\"nonheap\"})",
+          "legendFormat": "nonheap used"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "GC Pause Time (seconds/s)",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(jvm_gc_pause_seconds_sum{job=\"activities-service\"}[5m]))",
+          "legendFormat": "gc pause sum rate"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Threads (live)",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "jvm_threads_live_threads{job=\"activities-service\"}",
+          "legendFormat": "live threads"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP Request Rate (req/s)",
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"activities-service\"}[1m]))",
+          "legendFormat": "req/s"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP Latency p95 (seconds)",
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"activities-service\"}[5m])) by (le))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "HikariCP Connections (active / idle)",
+      "gridPos": { "x": 0, "y": 24, "w": 24, "h": 8 },
+      "targets": [
+        {
+          "expr": "hikaricp_connections_active{job=\"activities-service\"}",
+          "legendFormat": "active"
+        },
+        {
+          "expr": "hikaricp_connections_idle{job=\"activities-service\"}",
+          "legendFormat": "idle"
+        }
+      ]
+    }
+  ],
+  "templating": {
+    "list": []
+  }
+}
+

@@ -1,0 +1,111 @@
+{
+  "uid": "cog-act",
+  "title": "Cognitive Activities",
+  "schemaVersion": 27,
+  "version": 1,
+  "timezone": "browser",
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Nombre total d'activités",
+      "gridPos": {"x":0,"y":0,"w":6,"h":4},
+      "id": 1,
+      "fieldConfig": {},
+      "options": {},
+      "datasource": "__DATASOURCE__",
+      "targets": [
+        {
+          "refId": "A",
+          "method": "GET",
+          "url": "http://host.docker.internal:8087/api/activities",
+          "format": "table",
+          "resultKey": null
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Nombre total de journaux",
+      "gridPos": {"x":6,"y":0,"w":6,"h":4},
+      "id": 2,
+      "datasource": "__DATASOURCE__",
+      "targets": [
+        {
+          "refId": "A",
+          "method": "GET",
+          "url": "http://host.docker.internal:8087/api/journal",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "type": "barchart",
+      "title": "Activités par type",
+      "gridPos": {"x":0,"y":4,"w":12,"h":6},
+      "id": 3,
+      "datasource": "__DATASOURCE__",
+      "targets": [
+        {
+          "refId": "A",
+          "method": "GET",
+          "url": "http://host.docker.internal:8087/api/activities",
+          "format": "table",
+          "transform": "groupBy|type"
+        }
+      ]
+    },
+    {
+      "type": "barchart",
+      "title": "Activités par difficulté",
+      "gridPos": {"x":0,"y":10,"w":12,"h":6},
+      "id": 4,
+      "datasource": "__DATASOURCE__",
+      "targets": [
+        {
+          "refId": "A",
+          "method": "GET",
+          "url": "http://host.docker.internal:8087/api/activities",
+          "format": "table",
+          "transform": "groupBy|difficulty"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Statistiques globales",
+      "gridPos": {"x":12,"y":4,"w":12,"h":6},
+      "id": 5,
+      "datasource": "__DATASOURCE__",
+      "targets": [
+        {
+          "refId": "A",
+          "method": "GET",
+          "url": "http://host.docker.internal:8087/api/activities/statistics/global",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Activités récentes",
+      "gridPos": {"x":12,"y":10,"w":12,"h":6},
+      "id": 6,
+      "datasource": "__DATASOURCE__",
+      "targets": [
+        {
+          "refId": "A",
+          "method": "GET",
+          "url": "http://host.docker.internal:8087/api/activities",
+          "format": "table",
+          "limit": 10,
+          "sort": { "by": "createdAt", "order": "desc" }
+        }
+      ]
+    }
+  ],
+  "annotations": {"list":[]},
+  "templating": {"list":[]},
+  "time": {"from": "now-6h", "to": "now"}
+}
+

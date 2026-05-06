@@ -1,0 +1,40 @@
+services:
+  # ----------------------------------------------------------
+  # PostgreSQL pour SonarQube (recommandé)
+  # ----------------------------------------------------------
+  sonarqube-db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar
+      POSTGRES_DB: sonar
+    volumes:
+      - sonarqube_db_data:/var/lib/postgresql/data
+
+  # ----------------------------------------------------------
+  # SonarQube Community Edition (local)
+  # ----------------------------------------------------------
+  sonarqube:
+    image: sonarqube:community
+    depends_on:
+      - sonarqube-db
+    environment:
+      # Connexion à PostgreSQL
+      SONAR_JDBC_URL: jdbc:postgresql://sonarqube-db:5432/sonar
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: sonar
+    ports:
+      # UI SonarQube: http://localhost:9000
+      - "9000:9000"
+    volumes:
+      # Persistance des données Sonar (plugins, analyses, etc.)
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+
+volumes:
+  sonarqube_db_data:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+

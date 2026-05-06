@@ -1,0 +1,41 @@
+services:
+  # ----------------------------------------------------------
+  # Docker-in-Docker: daemon Docker accessible à Jenkins
+  # ----------------------------------------------------------
+  docker:
+    image: docker:27-dind
+    privileged: true
+    environment:
+      # ATTENTION: mode non-TLS pour simplifier en local
+      DOCKER_TLS_CERTDIR: ""
+    command: ["--host=tcp://0.0.0.0:2375", "--storage-driver=overlay2"]
+    ports:
+      - "2375:2375"
+    volumes:
+      - dind_data:/var/lib/docker
+
+  # ----------------------------------------------------------
+  # Jenkins (avec Docker CLI + plugins)
+  # ----------------------------------------------------------
+  jenkins:
+    build:
+      context: ./jenkins
+      dockerfile: Dockerfile.jenkins
+    container_name: jenkins
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    environment:
+      # Pour que Jenkins puisse exécuter "docker build" via dind
+      DOCKER_HOST: tcp://docker:2375
+      # Désactive le setup wizard en local (optionnel)
+      JAVA_OPTS: "-Djenkins.install.runSetupWizard=false"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+    depends_on:
+      - docker
+
+volumes:
+  jenkins_home:
+  dind_data:
+

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: activities-service-config
+data:
+  application.properties: |
+    # Overrides pour k8s si nécessaires
+    server.port=8087
+    eureka.client.enabled=false
+    # ne pas stocker secrets ici en production

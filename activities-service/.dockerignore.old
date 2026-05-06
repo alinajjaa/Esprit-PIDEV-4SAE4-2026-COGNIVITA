@@ -1,0 +1,14 @@
+# Ignore fichiers inutiles
+.git
+.gitignore
+node_modules
+src
+*.log
+
+# IMPORTANT: ne pas ignorer le jar
+!target/
+!target/*.jar
+
+# garder docker files
+Dockerfile
+.dockerignore

@@ -1,0 +1,45 @@
+﻿.git
+.github
+.gitignore
+
+# Build outputs
+target
+**/target
+
+# Maven local repo (if any)
+.m2
+**/.m2
+
+# IDEs
+.idea
+.vscode
+*.iml
+*.ipr
+*.iws
+
+# OS / misc
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs
+**/logs
+
+# Node / frontend stuff if present
+node_modules
+**/node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Tests reports / coverage
+coverage
+**/coverage
+
+# Docker
+docker-compose.override.yml
+*.tmp
+*.swp
+*.bak
