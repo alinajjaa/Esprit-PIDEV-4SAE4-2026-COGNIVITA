@@ -1,0 +1,79 @@
+<div class="dashboard-page page">
+  <section class="top-state" *ngIf="loadingTop">
+    <div class="spinner"></div>
+    <span>Loading...</span>
+  </section>
+
+  <section class="top-state error" *ngIf="!loadingTop && topError">
+    <span>Backend unavailable</span>
+  </section>
+
+  <section class="top-state" *ngIf="!loadingTop && !topError && !hasTopData">
+    <span>No data available</span>
+  </section>
+
+  <ng-container *ngIf="!loadingTop && !topError && hasTopData">
+    <section class="dashboard-live-strip">
+      <span class="live-pill">
+        <span class="dot">&#9679;</span>
+        Live data
+      </span>
+      <span class="live-time">Last updated: {{ secondsSinceUpdate }} seconds ago</span>
+    </section>
+
+    <section class="critical-patient-card">
+      <div class="critical-header">
+        <span class="critical-label">CRITICAL PATIENT</span>
+        <span class="critical-risk">HIGH RISK</span>
+      </div>
+      <div class="critical-body">
+        <div class="critical-item">
+          <span>Patient ID</span>
+          <strong>#{{ criticalPatient?.patientId }}</strong>
+        </div>
+        <div class="critical-item">
+          <span>Risk Score</span>
+          <strong class="critical-value">{{ criticalPatient?.riskScore }}</strong>
+        </div>
+        <div class="critical-item">
+          <span>Unread Alerts</span>
+          <strong>{{ criticalPatient?.unreadAlerts }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="system-status-bar">
+      <div class="status-item critical">
+        <span class="status-label">High-Risk Patients</span>
+        <strong class="status-value">{{ systemStatus?.highRiskPatients }}</strong>
+      </div>
+      <div class="status-item warning">
+        <span class="status-label">Unread Alerts</span>
+        <strong class="status-value">{{ systemStatus?.unreadAlerts }}</strong>
+      </div>
+      <div class="status-item active">
+        <span class="status-label">Monitoring Status</span>
+        <strong class="status-value">{{ systemStatus?.monitoringStatus }}</strong>
+      </div>
+    </section>
+  </ng-container>
+
+  <section class="dashboard-header">
+    <h1>Clinical Analytics Dashboard</h1>
+    <p>Real-time monitoring of patient safety, care adherence, and cognitive evolution.</p>
+  </section>
+
+  <section class="dashboard-section">
+    <app-kpi-cards></app-kpi-cards>
+  </section>
+
+  <section class="dashboard-grid two-cols">
+    <app-alert-trend-chart></app-alert-trend-chart>
+    <app-patient-ranking></app-patient-ranking>
+  </section>
+
+  <section class="dashboard-grid two-cols">
+    <app-appointment-panel></app-appointment-panel>
+    <app-mmse-panel></app-mmse-panel>
+  </section>
+</div>

@@ -1,0 +1,42 @@
+<section class="panel">
+  <div class="panel-header">
+    <h3>MMSE Monthly Severity</h3>
+    <span class="panel-meta">Cognitive decline trend</span>
+  </div>
+
+  <div class="state-view" *ngIf="loading">
+    <div class="spinner"></div>
+    <span>Loading...</span>
+  </div>
+
+  <div class="state-view error" *ngIf="!loading && error">
+    <span>Backend unavailable</span>
+  </div>
+
+  <div class="state-view" *ngIf="!loading && !error && !hasData">
+    <span>No data available</span>
+  </div>
+
+  <div class="month-cards" *ngIf="!loading && !error && hasData">
+    <article class="month-card" *ngFor="let row of months; let i = index" [class.worst]="row.month === getWorstMonth()">
+      <div class="month-top">
+        <strong>{{ row.month }}</strong>
+        <span class="avg-score">Avg {{ row.avgScore ?? '-' }}</span>
+      </div>
+      <div class="trend-tag" [ngClass]="getTrend(i)">{{ getTrendLabel(i) }}</div>
+      <div class="worst-tag" *ngIf="row.month === getWorstMonth()">Worst month</div>
+      <div class="bucket-row">
+        <span>Normal</span><span>{{ row.normalCount }}</span>
+      </div>
+      <div class="bucket-row">
+        <span>Mild</span><span>{{ row.mildCount }}</span>
+      </div>
+      <div class="bucket-row">
+        <span>Moderate</span><span>{{ row.moderateCount }}</span>
+      </div>
+      <div class="bucket-row">
+        <span>Severe</span><span>{{ row.severeCount }}</span>
+      </div>
+    </article>
+  </div>
+</section>

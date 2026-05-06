@@ -1,0 +1,47 @@
+<section class="panel map-card">
+  <div class="panel-header">
+    <h3>Patient Safety Ranking</h3>
+    <span class="panel-meta">By weighted alert score</span>
+  </div>
+
+  <div class="state-view" *ngIf="loading">
+    <div class="spinner"></div>
+    <span>Loading...</span>
+  </div>
+
+  <div class="state-view error" *ngIf="!loading && error">
+    <span>Backend unavailable</span>
+  </div>
+
+  <div class="state-view" *ngIf="!loading && !error && !hasData">
+    <span>No data available</span>
+  </div>
+
+  <div class="table-wrap" *ngIf="!loading && !error && hasData">
+    <table>
+      <thead>
+        <tr>
+          <th>Patient</th>
+          <th>Risk Score</th>
+          <th>Risk</th>
+          <th>Unread</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of ranking; let i = index" [class.top-risk]="i === 0" [class.second-risk]="i === 1">
+          <td>
+            <span class="risk-indicator" [ngClass]="getRiskClass(row.riskScore)"></span>
+            #{{ row.patientId }}
+          </td>
+          <td class="risk-score" [ngClass]="getRiskClass(row.riskScore)">{{ row.riskScore }}</td>
+          <td>
+            <span class="risk-pill" [ngClass]="getRiskClass(row.riskScore)">
+              {{ getRiskLabel(row.riskScore) }}
+            </span>
+          </td>
+          <td>{{ row.unreadAlerts }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>

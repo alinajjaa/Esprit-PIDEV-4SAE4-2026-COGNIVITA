@@ -1,0 +1,28 @@
+<div class="state-view" *ngIf="loading">
+  <div class="spinner"></div>
+  <span>Loading...</span>
+</div>
+
+<div class="state-view error" *ngIf="!loading && error">
+  <span>Backend unavailable</span>
+</div>
+
+<div class="state-view" *ngIf="!loading && !error && !hasData">
+  <span>No data available</span>
+</div>
+
+<div class="stats-grid" *ngIf="!loading && !error && hasData">
+  <article class="stat-card" *ngFor="let card of cards" [ngClass]="[card.state, card.accent]">
+    <div class="stat-content">
+      <div class="stat-top">
+        <span class="stat-label">{{ card.label }}</span>
+        <span class="state-pill" [ngClass]="card.state">{{ getStateLabel(card.state) }}</span>
+      </div>
+      <span class="stat-value">{{ card.value }}</span>
+      <span class="stat-trend" [ngClass]="card.direction">
+        <strong>{{ getArrow(card.direction) }} {{ card.trend }}</strong>
+        <small>{{ card.context }}</small>
+      </span>
+    </div>
+  </article>
+</div>

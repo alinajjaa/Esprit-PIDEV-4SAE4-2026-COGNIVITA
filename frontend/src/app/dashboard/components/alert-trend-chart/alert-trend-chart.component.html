@@ -1,0 +1,36 @@
+<section class="panel map-card">
+  <div class="panel-header">
+    <h3>Alert Trend (7 days)</h3>
+    <span class="panel-meta">Backend-driven telemetry</span>
+  </div>
+
+  <div class="state-view" *ngIf="loading">
+    <div class="spinner"></div>
+    <span>Loading...</span>
+  </div>
+
+  <div class="state-view error" *ngIf="!loading && error">
+    <span>Backend unavailable</span>
+  </div>
+
+  <div class="chart-shell" *ngIf="!loading && !error && hasData">
+    <canvas baseChart [data]="chartData" [options]="chartOptions" [type]="'line'"></canvas>
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && !error && !hasData">
+    <span>No data available</span>
+  </div>
+
+  <div class="series-summary" *ngIf="!loading && !error && hasData">
+    <article class="summary-card out">
+      <h4>OUT_OF_ZONE</h4>
+      <p>Latest: <strong>{{ getLatestOutOfZone() }}</strong></p>
+      <p>Avg/day: <strong>{{ getAvgOutOfZone() }}</strong></p>
+    </article>
+    <article class="summary-card no-move">
+      <h4>NO_MOVEMENT</h4>
+      <p>Latest: <strong>{{ getLatestNoMovement() }}</strong></p>
+      <p>Avg/day: <strong>{{ getAvgNoMovement() }}</strong></p>
+    </article>
+  </div>
+</section>

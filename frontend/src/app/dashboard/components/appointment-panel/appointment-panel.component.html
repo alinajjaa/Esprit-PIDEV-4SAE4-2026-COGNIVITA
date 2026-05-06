@@ -1,0 +1,53 @@
+<section class="panel">
+  <div class="panel-header">
+    <h3>Appointment Compliance</h3>
+    <span class="panel-meta">Grouped by risk level</span>
+  </div>
+
+  <div class="state-view" *ngIf="loading">
+    <div class="spinner"></div>
+    <span>Loading...</span>
+  </div>
+
+  <div class="state-view error" *ngIf="!loading && error">
+    <span>Backend unavailable</span>
+  </div>
+
+  <div class="state-view" *ngIf="!loading && !error && !hasData">
+    <span>No data available</span>
+  </div>
+
+  <div class="table-wrap" *ngIf="!loading && !error && hasData">
+    <table>
+      <thead>
+        <tr>
+          <th>Risk</th>
+          <th>Type</th>
+          <th>Total</th>
+          <th>Completed</th>
+          <th>Missed</th>
+          <th>Cancelled</th>
+          <th>Compliance</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of rows">
+          <td>{{ row.riskLevel }}</td>
+          <td>{{ row.appointmentType }}</td>
+          <td>{{ row.totalAppointments }}</td>
+          <td>{{ row.completedCount }}</td>
+          <td>{{ row.missedCount }}</td>
+          <td>{{ row.cancelledCount }}</td>
+          <td>
+            <span
+              class="compliance-pill"
+              [ngClass]="getComplianceState(row.completedCount, row.totalAppointments)"
+            >
+              {{ getCompletionRate(row.completedCount, row.totalAppointments) }}%
+            </span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>

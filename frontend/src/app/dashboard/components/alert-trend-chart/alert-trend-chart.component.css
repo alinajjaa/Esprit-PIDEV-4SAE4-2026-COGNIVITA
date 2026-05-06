@@ -1,0 +1,147 @@
+.panel {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 14px;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease !important;
+}
+
+.panel:hover {
+  border-color: rgba(0, 255, 255, 0.4);
+  box-shadow: 0 0 14px rgba(0, 255, 255, 0.16);
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+
+.panel-header h3 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1rem;
+}
+
+.panel-meta {
+  color: #94a3b8;
+  font-size: 0.78rem;
+}
+
+.state-view {
+  min-height: 290px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 10px;
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.35);
+  color: #93c5fd;
+  font-size: 0.86rem;
+  margin-bottom: 10px;
+}
+
+.state-view.error {
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.45);
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(147, 197, 253, 0.25);
+  border-top-color: #93c5fd;
+  border-radius: 999px;
+  animation: spin 0.8s linear infinite;
+}
+
+.chart-shell {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(0, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 10px;
+  height: 290px;
+  margin-bottom: 10px;
+}
+
+.empty-state {
+  min-height: 290px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.35);
+  color: #93c5fd;
+  font-size: 0.86rem;
+  margin-bottom: 10px;
+}
+
+.series-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.summary-card {
+  border-radius: 10px;
+  padding: 10px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.summary-card h4 {
+  margin: 0 0 6px;
+  color: #e2e8f0;
+  font-size: 0.76rem;
+}
+
+.summary-card p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #cbd5e1;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 3px;
+}
+
+.summary-card p:last-child {
+  margin-bottom: 0;
+}
+
+.summary-card strong {
+  color: #ffffff;
+}
+
+.summary-card.out {
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
+.summary-card.out h4,
+.summary-card.out strong {
+  color: #fecaca;
+}
+
+.summary-card.no-move {
+  border-color: rgba(250, 204, 21, 0.4);
+}
+
+.summary-card.no-move h4,
+.summary-card.no-move strong {
+  color: #fde68a;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 700px) {
+  .series-summary {
+    grid-template-columns: 1fr;
+  }
+}
