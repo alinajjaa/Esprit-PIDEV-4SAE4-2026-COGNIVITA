@@ -10,6 +10,16 @@ ai-model/
 **/.mvn/wrapper/maven-wrapper.jar
 **/mvnw
 **/mvnw.cmd
+!content-service/mvnw
+!content-service/mvnw.cmd
+!tracking-service/mvnw
+!tracking-service/mvnw.cmd
+!dashboard-service/mvnw
+!dashboard-service/mvnw.cmd
+!eureka-server/mvnw
+!eureka-server/mvnw.cmd
+!api-gateway/mvnw
+!api-gateway/mvnw.cmd
 *.class
 *.jar
 *.war

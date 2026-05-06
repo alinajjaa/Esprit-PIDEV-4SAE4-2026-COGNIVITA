@@ -66,4 +66,28 @@ export const routes: Routes = [
       { path: 'edit/:id', component: JournalEntryFormComponent }
     ]
   },
+  {
+    path: 'tracking',
+    loadChildren: () => import('./tracking/tracking.module').then(m => m.TrackingModule)
+  },
+  {
+    path: 'dashboard',
+    loadChildren: () => import('./dashboard/dashboard.module').then(m => m.DashboardModule)
+  },
+  {
+    path: 'community',
+    loadComponent: () => import('./community/communities-page.component').then(m => m.CommunitiesPageComponent)
+  },
+  {
+    path: 'community/:id',
+    loadComponent: () => import('./community/community-detail-page.component').then(m => m.CommunityDetailPageComponent)
+  },
+  {
+    path: 'communities',
+    loadComponent: () => import('./community/communities-page.component').then(m => m.CommunitiesPageComponent)
+  },
+  {
+    path: 'forum',
+    loadComponent: () => import('./community/communities-page.component').then(m => m.CommunitiesPageComponent)
+  },
 ];

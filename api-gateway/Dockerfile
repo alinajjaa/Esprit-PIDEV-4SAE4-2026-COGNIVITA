@@ -1,14 +1,27 @@
-FROM maven:3.9.6-eclipse-temurin-17 AS builder
-WORKDIR /app
-COPY pom.xml .
-RUN mvn dependency:go-offline -q
-COPY src ./src
-RUN mvn clean package -DskipTests -q
+FROM eclipse-temurin:17-jdk-jammy AS build
+
+WORKDIR /workspace
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY .mvn/ .mvn/
+COPY mvnw pom.xml ./
+RUN chmod +x mvnw && ./mvnw -B -DskipTests dependency:go-offline
+
+COPY src/ src/
+RUN ./mvnw -B -DskipTests clean package
 
 FROM eclipse-temurin:17-jre-alpine
+
 WORKDIR /app
-RUN apk add --no-cache curl && addgroup -S appgroup && adduser -S appuser -G appgroup
-COPY --from=builder /app/target/*.jar app.jar
-USER appuser
+
+RUN addgroup -S spring && adduser -S spring -G spring
+USER spring:spring
+
+COPY --from=build /workspace/target/*.jar app.jar
+
 EXPOSE 9090
-ENTRYPOINT ["java", "-jar", "app.jar"]
+
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]

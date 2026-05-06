@@ -13,13 +13,13 @@
  */
 
 /** API Gateway Spring Cloud — changer ici uniquement pour tout le frontend */
-export const GATEWAY_ORIGIN = 'http://localhost:9090';
+export const GATEWAY_ORIGIN = '';
 
 /** Backend monolithe (CNN / routes non migrées si utilisées telles quelles) */
-export const BACKEND_ORIGIN = 'http://localhost:8080';
+export const BACKEND_ORIGIN = '';
 
 /** Serveur CNN Python (optionnel — voir medical-records cnn config) */
-export const CNN_PYTHON_ORIGIN = 'http://localhost:8000';
+export const CNN_PYTHON_ORIGIN = '';
 
 export const API = {
   GATEWAY_ORIGIN,

@@ -1,5 +1,5 @@
 server:
-  port: 9090
+  port: ${SERVER_PORT:9090}
 
 spring:
   application:
@@ -96,10 +96,74 @@ spring:
           filters:
             - StripPrefix=0
 
+        # Content Service
+        - id: content-service-posts
+          uri: lb://CONTENT-SERVICE
+          predicates:
+            - Path=/api/posts/**
+          filters:
+            - StripPrefix=0
+
+        # Dashboard Service
+        - id: dashboard-service
+          uri: lb://DASHBOARD-SERVICE
+          predicates:
+            - Path=/api/dashboard/**
+          filters:
+            - StripPrefix=0
+
+        # Tracking Service
+        - id: tracking-service-track
+          uri: lb://TRACKING-SERVICE
+          predicates:
+            - Path=/api/track/**
+          filters:
+            - StripPrefix=0
+
+        # Tracking Alerts
+        - id: tracking-service-alerts
+          uri: lb://TRACKING-SERVICE
+          predicates:
+            - Path=/api/alerts/**
+          filters:
+            - StripPrefix=0
+
+        # Content Communities
+        - id: content-service-communities
+          uri: lb://CONTENT-SERVICE
+          predicates:
+            - Path=/api/communities,/api/communities/**
+          filters:
+            - StripPrefix=0
+
+        # Content Posts Root
+        - id: content-service-posts-root
+          uri: lb://CONTENT-SERVICE
+          predicates:
+            - Path=/api/posts
+          filters:
+            - StripPrefix=0
+
+        # Content Comments
+        - id: content-service-comments
+          uri: lb://CONTENT-SERVICE
+          predicates:
+            - Path=/api/comments,/api/comments/**
+          filters:
+            - StripPrefix=0
+
+        # Content Votes
+        - id: content-service-votes
+          uri: lb://CONTENT-SERVICE
+          predicates:
+            - Path=/api/votes,/api/votes/**
+          filters:
+            - StripPrefix=0
+
 eureka:
   client:
     service-url:
-      defaultZone: http://${EUREKA_HOST:localhost}:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://localhost:8761/eureka/}
     fetch-registry: true
     register-with-eureka: true
   instance:
