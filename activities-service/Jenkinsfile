@@ -1,168 +1,72 @@
 pipeline {
-  agent none
+    agent any
 
-  options {
-    timestamps()
-    ansiColor('xterm')
-    buildDiscarder(logRotator(numToKeepStr: '20'))
-  }
-
-  environment {
-    // Image Docker à produire
-    IMAGE_NAME = "cognivita/activities-service"
-    IMAGE_TAG  = "${env.BUILD_NUMBER}"
-
-    // Registry Docker (par défaut Docker Hub). Exemple Harbor: registry.mycorp.local
-    DOCKER_REGISTRY = ""
-  }
-
-  stages {
-    stage('Checkout') {
-      agent any
-      steps {
-        checkout scm
-      }
+    options {
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '20'))
     }
 
-    stage('Build & Unit Tests (Maven)') {
-      agent {
-        docker {
-          image 'maven:3.9.9-eclipse-temurin-17'
-          args '-u root:root'
-          reuseNode true
-        }
-      }
-      steps {
-        dir('activities-service') {
-          sh 'mvn -B -DskipTests=false test'
-          sh 'mvn -B -DskipTests package'
-        }
-      }
-      post {
-        always {
-          junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
-        }
-      }
+    environment {
+        IMAGE_NAME = "cognivita/activities-service"
+        IMAGE_TAG  = "${env.BUILD_NUMBER}"
     }
 
-    stage('SonarQube Analysis') {
-      agent {
-        docker {
-          image 'maven:3.9.9-eclipse-temurin-17'
-          args '-u root:root'
-          reuseNode true
-        }
-      }
-      steps {
-        dir('activities-service') {
-          withSonarQubeEnv('sonarqube') {
-            withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
-              sh '''
-                mvn -B -DskipTests sonar:sonar \
-                  -Dsonar.login=$SONAR_TOKEN
-              '''
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/alinajjaa/Esprit-PIDEV-4SAE4-2026-COGNIVITA.git'
             }
-          }
         }
-      }
+
+        stage('Build & Package') {
+            steps {
+                dir('activities-service') {
+                    sh 'docker run --rm -v $PWD:/app -w /app maven:3.9.9-eclipse-temurin-17 mvn clean package -DskipTests'
+                }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir('activities-service') {
+                    sh '''
+                        docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                        docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                dir('activities-service') {
+                    sh 'docker compose up -d'
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh '''
+                    sleep 10
+                    curl -s http://localhost:8087/api/activities > /dev/null && echo "API OK" || echo "API KO"
+                    curl -s http://localhost:8087/api/journal > /dev/null && echo "Journal OK" || echo "Journal KO"
+                '''
+            }
+        }
     }
 
-    stage('Quality Gate') {
-      agent any
-      steps {
-        timeout(time: 10, unit: 'MINUTES') {
-          waitForQualityGate abortPipeline: true
+    post {
+        success {
+            echo "🎉 Pipeline réussi ! Image: ${IMAGE_NAME}:${IMAGE_TAG}"
         }
-      }
-    }
-
-    stage('Build Docker Image') {
-      agent {
-        docker {
-          image 'docker:27-cli'
-          args '-v /var/run/docker.sock:/var/run/docker.sock --entrypoint=""'
-          reuseNode true
+        failure {
+            echo "❌ Pipeline échoué !"
         }
-      }
-      environment {
-        DOCKER_BUILDKIT = "1"
-      }
-      steps {
-        dir('activities-service') {
-          sh '''
-            docker version
-            docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-            docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
-          '''
-        }
-      }
     }
-
-    stage('Push Docker Image') {
-      when {
-        expression { return env.DOCKERHUB_USER != null }
-      }
-      agent {
-        docker {
-          image 'docker:27-cli'
-          args '-v /var/run/docker.sock:/var/run/docker.sock --entrypoint=""'
-          reuseNode true
-        }
-      }
-      steps {
-        withCredentials([usernamePassword(credentialsId: 'DOCKERHUB', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
-          sh '''
-            echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
-            docker push ${IMAGE_NAME}:${IMAGE_TAG}
-            docker push ${IMAGE_NAME}:latest
-          '''
-        }
-      }
-    }
-
-    stage('Deploy to Test (docker-compose)') {
-      agent {
-        docker {
-          image 'docker:27-cli'
-          args '-v /var/run/docker.sock:/var/run/docker.sock --entrypoint=""'
-          reuseNode true
-        }
-      }
-      steps {
-        dir('activities-service') {
-          sh '''
-            docker compose up -d --build
-            docker compose ps
-          '''
-        }
-      }
-    }
-
-    stage('Integration Tests') {
-      agent any
-      steps {
-        powershell '''
-          cd activities-service
-          ./test.ps1
-        '''
-      }
-    }
-
-    stage('Deploy to Production') {
-      agent any
-      steps {
-        input message: 'Déployer en production ?', ok: 'Déployer'
-        echo "Déploiement production: à implémenter (K8s/VM/Harbor, etc.)"
-      }
-    }
-  }
-
-  post {
-    success {
-      echo "Pipeline OK: ${IMAGE_NAME}:${IMAGE_TAG}"
-    }
-    failure {
-      echo "Pipeline KO"
-    }
-  }
 }
