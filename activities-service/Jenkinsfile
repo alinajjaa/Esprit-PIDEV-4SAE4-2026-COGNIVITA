@@ -1,6 +1,11 @@
 pipeline {
     agent any
     
+    environment {
+        IMAGE_NAME = "cognivita/activities-service"
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
+    }
+    
     stages {
         stage('Checkout') {
             steps {
@@ -8,28 +13,26 @@ pipeline {
             }
         }
         
-        stage('Build') {
+        stage('Compilation Maven') {
             steps {
                 dir('activities-service') {
-                    sh 'echo "Compilation Maven..."'
                     sh 'docker run --rm -v $PWD:/app -w /app maven:3.9.9-eclipse-temurin-17 mvn clean package -DskipTests'
                 }
             }
         }
         
-        stage('Docker Build') {
+        stage('Build Docker Image') {
             steps {
                 dir('activities-service') {
-                    sh 'echo "Construction image Docker..."'
-                    sh 'docker build -t cognivita/activities-service:latest .'
+                    sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .'
+                    sh 'docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest'
                 }
             }
         }
         
-        stage('Deploy') {
+        stage('Déploiement') {
             steps {
                 dir('activities-service') {
-                    sh 'echo "Déploiement..."'
                     sh 'docker-compose up -d'
                 }
             }
@@ -38,7 +41,7 @@ pipeline {
         stage('Test API') {
             steps {
                 sh '''
-                    sleep 10
+                    sleep 15
                     curl -s http://localhost:8088/api/activities && echo " API OK" || echo " API KO"
                 '''
             }
@@ -47,10 +50,10 @@ pipeline {
     
     post {
         success {
-            echo '🎉 Pipeline réussi !'
+            echo "✅ Pipeline réussi !"
         }
         failure {
-            echo '❌ Pipeline échoué !'
+            echo "❌ Pipeline échoué"
         }
     }
 }
