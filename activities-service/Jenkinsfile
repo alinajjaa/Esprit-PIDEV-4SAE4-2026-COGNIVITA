@@ -33,8 +33,10 @@ pipeline {
         }
       }
       steps {
-        sh 'mvn -B -DskipTests=false test'
-        sh 'mvn -B -DskipTests package'
+        dir('activities-service') {
+          sh 'mvn -B -DskipTests=false test'
+          sh 'mvn -B -DskipTests package'
+        }
       }
       post {
         always {
@@ -52,15 +54,14 @@ pipeline {
         }
       }
       steps {
-        // IMPORTANT:
-        // - Configurer Jenkins: "SonarQube servers" (Manage Jenkins -> System)
-        // - Créer un credential secret text "SONAR_TOKEN"
-        withSonarQubeEnv('sonarqube') {
-          withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
-            sh '''
-              mvn -B -DskipTests sonar:sonar \
-                -Dsonar.login=$SONAR_TOKEN
-            '''
+        dir('activities-service') {
+          withSonarQubeEnv('sonarqube') {
+            withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
+              sh '''
+                mvn -B -DskipTests sonar:sonar \
+                  -Dsonar.login=$SONAR_TOKEN
+              '''
+            }
           }
         }
       }
@@ -69,7 +70,6 @@ pipeline {
     stage('Quality Gate') {
       agent any
       steps {
-        // Attente du quality gate (nécessite l'intégration Jenkins-SonarQube)
         timeout(time: 10, unit: 'MINUTES') {
           waitForQualityGate abortPipeline: true
         }
@@ -79,23 +79,22 @@ pipeline {
     stage('Build Docker Image') {
       agent {
         docker {
-          // Image avec docker CLI (utilise Docker-in-Docker via DOCKER_HOST)
           image 'docker:27-cli'
-          args '--entrypoint=""'
+          args '-v /var/run/docker.sock:/var/run/docker.sock --entrypoint=""'
           reuseNode true
         }
       }
       environment {
-        // IMPORTANT: en infra Jenkins locale (docker-compose.jenkins.yml),
-        // DOCKER_HOST est fourni pour parler au service "docker" (dind).
         DOCKER_BUILDKIT = "1"
       }
       steps {
-        sh '''
-          docker version
-          docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-          docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
-        '''
+        dir('activities-service') {
+          sh '''
+            docker version
+            docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+            docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
+          '''
+        }
       }
     }
 
@@ -106,13 +105,11 @@ pipeline {
       agent {
         docker {
           image 'docker:27-cli'
-          args '--entrypoint=""'
+          args '-v /var/run/docker.sock:/var/run/docker.sock --entrypoint=""'
           reuseNode true
         }
       }
       steps {
-        // IMPORTANT:
-        // - Créer un credential Jenkins "DOCKERHUB" (username/password)
         withCredentials([usernamePassword(credentialsId: 'DOCKERHUB', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
           sh '''
             echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
@@ -127,25 +124,25 @@ pipeline {
       agent {
         docker {
           image 'docker:27-cli'
-          args '--entrypoint=""'
+          args '-v /var/run/docker.sock:/var/run/docker.sock --entrypoint=""'
           reuseNode true
         }
       }
       steps {
-        // Exemple de déploiement test local/VM (adapter selon ton infra)
-        sh '''
-          docker compose up -d --build
-          docker compose ps
-        '''
+        dir('activities-service') {
+          sh '''
+            docker compose up -d --build
+            docker compose ps
+          '''
+        }
       }
     }
 
     stage('Integration Tests') {
       agent any
       steps {
-        // Ici on exécute un test simple HTTP (tu peux remplacer par Postman/Newman, RestAssured, etc.)
-        // On teste les endpoints exposés localement par compose.
         powershell '''
+          cd activities-service
           ./test.ps1
         '''
       }
@@ -154,7 +151,6 @@ pipeline {
     stage('Deploy to Production') {
       agent any
       steps {
-        // Déploiement prod: manuel (input) ou auto (quand stable)
         input message: 'Déployer en production ?', ok: 'Déployer'
         echo "Déploiement production: à implémenter (K8s/VM/Harbor, etc.)"
       }
@@ -164,14 +160,9 @@ pipeline {
   post {
     success {
       echo "Pipeline OK: ${IMAGE_NAME}:${IMAGE_TAG}"
-      // Notification optionnelle (Slack/Email)
-      // slackSend channel: '#ci', message: "Build OK: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
-      // mail to: 'team@exemple.com', subject: "Build OK ${env.JOB_NAME} #${env.BUILD_NUMBER}", body: "OK"
     }
     failure {
       echo "Pipeline KO"
-      // slackSend channel: '#ci', message: "Build KO: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
     }
   }
 }
-
