@@ -1,53 +1,29 @@
 pipeline {
     agent any
-
-    options {
-        timestamps()
-        buildDiscarder(logRotator(numToKeepStr: '20'))
-    }
-
-    environment {
-        IMAGE_NAME = "cognivita/activities-service"
-        IMAGE_TAG  = "${env.BUILD_NUMBER}"
-    }
-
+    
     stages {
-        stage('Checkout') {
+        stage('Build') {
             steps {
-                checkout scm
+                echo 'Building activities-service...'
+                dir('activities-service') {
+                    sh 'docker run --rm -v $PWD:/app -w /app maven:3.9.9-eclipse-temurin-17 mvn clean package -DskipTests'
+                    sh 'docker build -t activities-service:latest .'
+                }
             }
         }
-
-        stage('Build & Unit Tests (Maven)') {
+        
+        stage('Deploy') {
             steps {
                 dir('activities-service') {
-                    sh 'docker run --rm -v $PWD:/app -w /app maven:3.9.9-eclipse-temurin-17 mvn -B clean test'
-                    sh 'docker run --rm -v $PWD:/app -w /app maven:3.9.9-eclipse-temurin-17 mvn -B package -DskipTests'
-                }
-            }
-            post {
-                always {
-                    junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+                    sh 'docker-compose up -d'
                 }
             }
         }
-
-        stage('Build Docker Image') {
+        
+        stage('Test') {
             steps {
-                dir('activities-service') {
-                    sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .'
-                    sh 'docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest'
-                }
+                sh 'curl http://localhost:8088/api/activities'
             }
-        }
-    }
-
-    post {
-        success {
-            echo "Pipeline OK: ${IMAGE_NAME}:${IMAGE_TAG}"
-        }
-        failure {
-            echo "Pipeline KO"
         }
     }
 }
