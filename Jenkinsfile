@@ -1,13 +1,30 @@
 pipeline {
     agent any
 
-
     stages {
 
         stage('Checkout') {
             steps {
                 git branch: 'integration_medsadek',
                 url: 'https://github.com/alinajjaa/Esprit-PIDEV-4SAE4-2026-COGNIVITA.git'
+            }
+        }
+
+        stage('Build Java Services') {
+            steps {
+                sh '''
+                    chmod +x content-service/mvnw
+                    chmod +x tracking-service/mvnw
+                    chmod +x dashboard-service/mvnw
+                    chmod +x api-gateway/mvnw
+                    chmod +x eureka-server/mvnw
+
+                    cd content-service && ./mvnw clean package -DskipTests && cd ..
+                    cd tracking-service && ./mvnw clean package -DskipTests && cd ..
+                    cd dashboard-service && ./mvnw clean package -DskipTests && cd ..
+                    cd api-gateway && ./mvnw clean package -DskipTests && cd ..
+                    cd eureka-server && ./mvnw clean package -DskipTests && cd ..
+                '''
             }
         }
 
@@ -24,7 +41,8 @@ pipeline {
                           -Dsonar.host.url=http://192.168.56.10:9000 \
                           -Dsonar.token=$SONAR_TOKEN \
                           -Dsonar.sources=. \
-                          -Dsonar.exclusions=**/*.java,**/target/**,**/node_modules/**,**/dist/**,**/.angular/**,**/.git/**,**/venv/**,**/*.7z
+                          -Dsonar.java.binaries=content-service/target/classes,tracking-service/target/classes,dashboard-service/target/classes,api-gateway/target/classes,eureka-server/target/classes \
+                          -Dsonar.exclusions=**/target/**,**/node_modules/**,**/dist/**,**/.angular/**,**/.git/**,**/venv/**,**/*.7z
                     '''
                 }
             }
