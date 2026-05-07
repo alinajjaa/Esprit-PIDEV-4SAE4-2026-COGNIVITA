@@ -75,7 +75,11 @@ pipeline {
 
         stage('Push Docker Images') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_PASSWORD')]) {
+                withCredentials([usernamePassword(
+                    credentialsId: 'docker-hub',
+                    usernameVariable: 'DOCKERHUB_USERNAME',
+                    passwordVariable: 'DOCKERHUB_PASSWORD'
+                )]) {
                     sh '''
                         echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
@@ -90,13 +94,28 @@ pipeline {
             }
         }
 
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh '''
+                    kubectl apply -k k8s
+
+                    kubectl rollout restart deployment/eureka-server -n cognivita
+                    kubectl rollout restart deployment/api-gateway -n cognivita
+                    kubectl rollout restart deployment/content-service -n cognivita
+                    kubectl rollout restart deployment/tracking-service -n cognivita
+                    kubectl rollout restart deployment/dashboard-service -n cognivita
+                    kubectl rollout restart deployment/frontend -n cognivita
+                '''
+            }
+        }
+
         stage('Docker Compose Build') {
             steps {
                 sh 'docker compose build'
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy Docker Compose') {
             steps {
                 sh 'docker compose up -d'
             }
