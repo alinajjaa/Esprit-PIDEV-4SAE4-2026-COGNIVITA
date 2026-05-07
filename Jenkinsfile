@@ -98,6 +98,7 @@ pipeline {
             steps {
                 sh '''
                     kubectl apply -k k8s
+                    kubectl apply -k k8s/monitoring
 
                     kubectl rollout restart deployment/eureka-server -n cognivita
                     kubectl rollout restart deployment/api-gateway -n cognivita
