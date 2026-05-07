@@ -1,141 +1,418 @@
-services:
-  # ----------------------------------------------------------
-  # MySQL (base de données dédiée au activities-service)
-  # ----------------------------------------------------------
-  mysql-activities:
-    image: mysql:8.0
-    environment:
-      # Base créée automatiquement au premier démarrage
-      MYSQL_DATABASE: cognivita_activities
-      MYSQL_USER: cognivita
-      MYSQL_PASSWORD: password
-      MYSQL_ROOT_PASSWORD: rootpassword
-    ports:
-      # Expose sur 3307 côté Windows pour éviter conflit avec MySQL local
-      - "3307:3306"
-    volumes:
-      # Volume persistant: les données survivent aux redémarrages
-      - mysql_activities_data:/var/lib/mysql
-    healthcheck:
-      # Attend que MySQL réponde avant de lancer l'app
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p$$MYSQL_ROOT_PASSWORD --silent"]
-      interval: 10s
-      timeout: 5s
-      retries: 20
-      start_period: 20s
-    networks:
-      - cognivita-net
-
-  # ----------------------------------------------------------
-  # activities-service (Spring Boot)
-  # ----------------------------------------------------------
-  activities-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: cognivita/activities-service:local
-    depends_on:
-      # IMPORTANT: attend le healthcheck MySQL (compose v2)
-      mysql-activities:
-        condition: service_healthy
-    ports:
-      - "8087:8087"
-    environment:
-      # On active le profil docker (application-docker.properties)
-      SPRING_PROFILES_ACTIVE: docker
-
-      # Variables override possibles (Spring Boot mappe automatiquement)
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-activities:3306/cognivita_activities?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      SPRING_DATASOURCE_USERNAME: cognivita
-      SPRING_DATASOURCE_PASSWORD: password
-
-      # JVM tuning en conteneur (peut être ajusté)
-      JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
-    restart: unless-stopped
-    networks:
-      - cognivita-net
-
-  # ----------------------------------------------------------
-  # Prometheus (monitoring)
-  # ----------------------------------------------------------
-  prometheus:
-    image: prom/prometheus:v2.55.0
-    ports:
-      - "9090:9090"
-    volumes:
-      # Config + règles + persistance des séries temporelles
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml:ro
-      - prometheus_data:/prometheus
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-      - "--storage.tsdb.retention.time=15d"
-    networks:
-      - cognivita-net
-    depends_on:
-      - activities-service
-
-  # ----------------------------------------------------------
-  # Alertmanager (alerting)
-  # ----------------------------------------------------------
-  alertmanager:
-    image: prom/alertmanager:v0.27.0
-    ports:
-      - "9093:9093"
-    volumes:
-      - ./prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
-      - alertmanager_data:/alertmanager
-    command:
-      - "--config.file=/etc/alertmanager/alertmanager.yml"
-      - "--storage.path=/alertmanager"
-    networks:
-      - cognivita-net
-
-  # ----------------------------------------------------------
-  # MySQL Exporter (metrics MySQL -> Prometheus)
-  # ----------------------------------------------------------
-  mysql-activities-exporter:
-    image: prom/mysqld-exporter:v0.16.0
-    environment:
-      # IMPORTANT: le exporter se connecte au MySQL interne (port 3306)
-      DATA_SOURCE_NAME: "cognivita:password@(mysql-activities:3306)/"
-    ports:
-      - "9104:9104"
-    depends_on:
-      mysql-activities:
-        condition: service_healthy
-    networks:
-      - cognivita-net
-
-  # ----------------------------------------------------------
-  # Grafana (dashboards)
-  # ----------------------------------------------------------
-  grafana:
-    image: grafana/grafana:11.2.0
-    ports:
-      - "3000:3000"
-    environment:
-      # Login admin par défaut (à changer en prod)
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
-      # Provisioning automatique
-      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
-    networks:
-      - cognivita-net
-    depends_on:
-      - prometheus
-
-volumes:
-  mysql_activities_data:
-  prometheus_data:
-  grafana_data:
-  alertmanager_data:
+# Alzheimer Platform — Full Microservices Stack
 
 networks:
-  cognivita-net:
+  alzheimer-net:
     driver: bridge
+
+volumes:
+  mysql_familytree:
+  mysql_medical:
+  mysql_users:
+  mysql_mmse:
+  mysql_healthprev:
+  mysql_notifications:
+  mysql_adherence:
+  rabbitmq_data:
+
+services:
+
+  # ─────────────────────────────────────────────
+  # MySQL Databases
+  # ─────────────────────────────────────────────
+  mysql-familytree:
+    image: mysql:8.0
+    container_name: mysql-familytree
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: alzheimer_familytree
+      MYSQL_ROOT_HOST: '%'
+
+    volumes:
+      - mysql_familytree:/var/lib/mysql
+    networks:
+      - alzheimer-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql-medical:
+    image: mysql:8.0
+    container_name: mysql-medical
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: alzheimer_medical
+      MYSQL_ROOT_HOST: '%'
+
+    volumes:
+      - mysql_medical:/var/lib/mysql
+    networks:
+      - alzheimer-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql-users:
+    image: mysql:8.0
+    container_name: mysql-users
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: alzheimer_users
+      MYSQL_ROOT_HOST: '%'
+
+    volumes:
+      - mysql_users:/var/lib/mysql
+    networks:
+      - alzheimer-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql-mmse:
+    image: mysql:8.0
+    container_name: mysql-mmse
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: alzheimer_mmse
+      MYSQL_ROOT_HOST: '%'
+
+    volumes:
+      - mysql_mmse:/var/lib/mysql
+    networks:
+      - alzheimer-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql-healthprev:
+    image: mysql:8.0
+    container_name: mysql-healthprev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: alzheimer_healthprev
+      MYSQL_ROOT_HOST: '%'
+
+    volumes:
+      - mysql_healthprev:/var/lib/mysql
+    networks:
+      - alzheimer-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql-notifications:
+    image: mysql:8.0
+    container_name: mysql-notifications
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: alzheimer_notifications
+      MYSQL_ROOT_HOST: '%'
+
+    volumes:
+      - mysql_notifications:/var/lib/mysql
+    networks:
+      - alzheimer-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql-adherence:
+    image: mysql:8.0
+    container_name: mysql-adherence
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: alzheimer_adherence
+      MYSQL_ROOT_HOST: '%'
+    volumes:
+      - mysql_adherence:/var/lib/mysql   # ✅ fixed
+    networks:
+      - alzheimer-net                   # ✅ fixed
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────────
+  # RabbitMQ
+  # ─────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - alzheimer-net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ─────────────────────────────────────────────
+  # Eureka Server
+  # ─────────────────────────────────────────────
+  eureka-server:
+    image: monta2027/eureka-server:latest
+    container_name: eureka-server
+    restart: unless-stopped
+    ports:
+      - "8761:8761"
+    networks:
+      - alzheimer-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8761/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  # ─────────────────────────────────────────────
+  # Microservices
+  # ─────────────────────────────────────────────
+  medical-records-service:
+    image: monta2027/medical-records-service:latest
+    container_name: medical-records-service
+    restart: unless-stopped
+    environment:
+      DB_HOST: mysql-medical
+      DB_PORT: 3306
+      DB_NAME: alzheimer_medical
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      EUREKA_HOST: eureka-server
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASS: guest
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      REPORT_FROM_EMAIL: ${REPORT_FROM_EMAIL:-noreply@alzheimer.app}
+      REPORT_DOCTOR_EMAIL: ${REPORT_DOCTOR_EMAIL:-doctor@alzheimer.app}
+      FAMILY_TREE_URL: http://family-tree-service:8083
+      USER_SERVICE_URL: http://api-gateway:9090
+    depends_on:
+      - mysql-medical
+      - rabbitmq
+      - eureka-server
+      - users-service
+    networks:
+      - alzheimer-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8081/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+
+  family-tree-service:
+    image: monta2027/family-tree-service:latest
+    container_name: family-tree-service
+    restart: unless-stopped
+    environment:
+      DB_HOST: mysql-familytree
+      DB_PORT: 3306
+      DB_NAME: alzheimer_familytree
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      EUREKA_HOST: eureka-server
+      MEDICAL_RECORDS_URL: http://medical-records-service:8081
+    depends_on:
+      - mysql-familytree
+      - eureka-server
+    networks:
+      - alzheimer-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8083/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+
+  health-prevention-service:
+    image: monta2027/health-prevention-service:latest
+    container_name: health-prevention-service
+    restart: unless-stopped
+    environment:
+      DB_HOST: mysql-healthprev
+      DB_PORT: 3306
+      DB_NAME: alzheimer_healthprev
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      EUREKA_HOST: eureka-server
+    depends_on:
+      - mysql-healthprev
+      - eureka-server
+    networks:
+      - alzheimer-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8082/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+
+  users-service:
+    image: monta2027/users-service:latest
+    container_name: users-service
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    environment:
+      DB_HOST: mysql-users
+      DB_PORT: 3306
+      DB_NAME: alzheimer_users
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      EUREKA_HOST: eureka-server
+    depends_on:
+      - mysql-users
+      - eureka-server
+    networks:
+      - alzheimer-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8084/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+
+  # ─────────────────────────────────────────────
+  # API Gateway
+  # ─────────────────────────────────────────────
+  api-gateway:
+    image: monta2027/api-gateway:latest
+    container_name: api-gateway
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    environment:
+      EUREKA_HOST: eureka-server
+    depends_on:
+      - eureka-server
+    networks:
+      - alzheimer-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+
+  # ─────────────────────────────────────────────
+  # Angular Frontend
+  # ─────────────────────────────────────────────
+  frontend:
+    image: monta2027/frontend:latest
+    container_name: frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - api-gateway
+    networks:
+    - alzheimer-net
+  # ─────────────────────────────────────────────
+  # Notification Service
+  # ─────────────────────────────────────────────
+  notification-service:
+    image: monta2027/notification-service:latest
+    container_name: notification-service
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    environment:
+      DB_HOST: mysql-notifications
+      DB_PORT: 3306
+      DB_NAME: alzheimer_notifications
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASS: guest
+      EUREKA_HOST: eureka-server
+      CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:4200,http://frontend:80
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-alzheimer.alerts@gmail.com}
+      TWILIO_ENABLED: ${TWILIO_ENABLED:-false}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-}
+    depends_on:
+      - mysql-notifications
+      - rabbitmq
+      - eureka-server
+    networks:
+      - alzheimer-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8085/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+
+  # ─────────────────────────────────────────────
+  # Medication Adherence Service
+  # ─────────────────────────────────────────────
+  medication-adherence-service:
+    image: monta2027/medication-adherence-service:latest
+    container_name: medication-adherence-service
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      DB_HOST: mysql-adherence
+      DB_PORT: 3306
+      DB_NAME: alzheimer_adherence
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASS: guest
+      EUREKA_HOST: eureka-server
+      MEDICAL_RECORDS_URL: http://medical-records-service:8081
+    depends_on:
+      - mysql-adherence
+      - rabbitmq
+      - eureka-server
+      - medical-records-service
+    networks:
+      - alzheimer-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8086/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
