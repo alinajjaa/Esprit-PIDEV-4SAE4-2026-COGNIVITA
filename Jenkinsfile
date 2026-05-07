@@ -97,15 +97,15 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 sh '''
+                    kubectl apply -k k8s
+                    kubectl apply -k k8s/monitoring
+
                     kubectl rollout restart deployment/eureka-server -n cognivita
                     kubectl rollout restart deployment/api-gateway -n cognivita
                     kubectl rollout restart deployment/content-service -n cognivita
                     kubectl rollout restart deployment/tracking-service -n cognivita
                     kubectl rollout restart deployment/dashboard-service -n cognivita
                     kubectl rollout restart deployment/frontend -n cognivita
-
-                    kubectl rollout restart deployment/prometheus -n cognivita
-                    kubectl rollout restart deployment/grafana -n cognivita
                 '''
             }
         }
