@@ -25,11 +25,17 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus,metrics
   endpoint:
+    prometheus:
+      enabled: true
     health:
       # Show full UP/DOWN details so the grep in health check always finds "UP"
       show-details: always
+  prometheus:
+    metrics:
+      export:
+        enabled: true
   health:
     defaults:
       enabled: true
