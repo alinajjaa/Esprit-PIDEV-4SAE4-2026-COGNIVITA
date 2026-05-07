@@ -19,11 +19,11 @@ pipeline {
                     chmod +x api-gateway/mvnw
                     chmod +x eureka-server/mvnw
 
-                    cd content-service && ./mvnw test && cd ..
-                    cd tracking-service && ./mvnw test && cd ..
-                    cd dashboard-service && ./mvnw test && cd ..
-                    cd api-gateway && ./mvnw test && cd ..
-                    cd eureka-server && ./mvnw test && cd ..
+                    (cd content-service && ./mvnw test)
+                    (cd tracking-service && ./mvnw test)
+                    (cd dashboard-service && ./mvnw test)
+                    (cd api-gateway && ./mvnw test)
+                    (cd eureka-server && ./mvnw test)
                 '''
             }
         }
@@ -31,11 +31,11 @@ pipeline {
         stage('Build Java Services') {
             steps {
                 sh '''
-                    cd content-service && ./mvnw clean package -DskipTests && cd ..
-                    cd tracking-service && ./mvnw clean package -DskipTests && cd ..
-                    cd dashboard-service && ./mvnw clean package -DskipTests && cd ..
-                    cd api-gateway && ./mvnw clean package -DskipTests && cd ..
-                    cd eureka-server && ./mvnw clean package -DskipTests && cd ..
+                    (cd content-service && ./mvnw clean package -DskipTests)
+                    (cd tracking-service && ./mvnw clean package -DskipTests)
+                    (cd dashboard-service && ./mvnw clean package -DskipTests)
+                    (cd api-gateway && ./mvnw clean package -DskipTests)
+                    (cd eureka-server && ./mvnw clean package -DskipTests)
                 '''
             }
         }
