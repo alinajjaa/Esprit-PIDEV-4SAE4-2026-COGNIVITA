@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: cognivita-config
-  namespace: cognivita
-data:
-  EUREKA_DEFAULT_ZONE: "http://eureka-server:8761/eureka/"
-  RDV_SERVICE_URL: "http://pi:8091/rdv"
-  SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/gestion_rendezvous?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"

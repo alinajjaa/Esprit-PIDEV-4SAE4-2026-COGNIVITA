@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - 00-namespace.yaml
+  - 01-mysql.yaml
+  - 02-eureka-server.yaml
+  - 03-content-service.yaml
+  - 04-tracking-service.yaml
+  - 05-dashboard-service.yaml
+  - 06-api-gateway.yaml
+  - 07-frontend.yaml

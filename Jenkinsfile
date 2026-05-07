@@ -60,6 +60,36 @@ pipeline {
             }
         }
 
+        stage('Build Docker Images') {
+            steps {
+                sh '''
+                    docker build -t medsadek/eureka-server:latest ./eureka-server
+                    docker build -t medsadek/api-gateway:latest ./api-gateway
+                    docker build -t medsadek/content-service:latest ./content-service
+                    docker build -t medsadek/tracking-service:latest ./tracking-service
+                    docker build -t medsadek/dashboard-service:latest ./dashboard-service
+                    docker build -t medsadek/frontend:latest ./frontend
+                '''
+            }
+        }
+
+        stage('Push Docker Images') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_PASSWORD')]) {
+                    sh '''
+                        echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+                        docker push medsadek/eureka-server:latest
+                        docker push medsadek/api-gateway:latest
+                        docker push medsadek/content-service:latest
+                        docker push medsadek/tracking-service:latest
+                        docker push medsadek/dashboard-service:latest
+                        docker push medsadek/frontend:latest
+                    '''
+                }
+            }
+        }
+
         stage('Docker Compose Build') {
             steps {
                 sh 'docker compose build'

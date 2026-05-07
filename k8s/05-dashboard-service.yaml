@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard-service
+  namespace: cognivita
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dashboard-service
+  template:
+    metadata:
+      labels:
+        app: dashboard-service
+    spec:
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z mysql 3306; do sleep 2; done"]
+        - name: wait-for-eureka
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z eureka-server 8761; do sleep 2; done"]
+      containers:
+        - name: dashboard-service
+          image: medsadek/dashboard-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8095
+          env:
+            - name: SERVER_PORT
+              value: "8095"
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:mysql://mysql:3306/analytics_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+            - name: SPRING_DATASOURCE_USERNAME
+              value: root
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_ROOT_PASSWORD
+            - name: EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE
+              value: http://eureka-server:8761/eureka/
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboard-service
+  namespace: cognivita
+spec:
+  type: ClusterIP
+  selector:
+    app: dashboard-service
+  ports:
+    - name: http
+      port: 8095
+      targetPort: 8095
