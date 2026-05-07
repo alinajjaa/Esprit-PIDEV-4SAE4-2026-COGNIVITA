@@ -24,7 +24,7 @@ pipeline {
                           -Dsonar.host.url=http://192.168.56.10:9000 \
                           -Dsonar.token=$SONAR_TOKEN \
                           -Dsonar.sources=. \
-                          -Dsonar.exclusions=**/target/**,**/node_modules/**,**/dist/**,**/.angular/**,**/.git/**,**/venv/**,**/*.7z
+                          -Dsonar.exclusions=**/*.java,**/target/**,**/node_modules/**,**/dist/**,**/.angular/**,**/.git/**,**/venv/**,**/*.7z
                     '''
                 }
             }
