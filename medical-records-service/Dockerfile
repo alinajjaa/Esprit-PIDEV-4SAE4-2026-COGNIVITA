@@ -10,5 +10,5 @@ WORKDIR /app
 RUN apk add --no-cache curl && addgroup -S appgroup && adduser -S appuser -G appgroup
 COPY --from=builder /app/target/*.jar app.jar
 USER appuser
-EXPOSE 8081
+EXPOSE 8079
 ENTRYPOINT ["java", "-jar", "app.jar"]
